@@ -26,7 +26,7 @@ export const useSortStore = defineStore("sort", () => {
   const swaps = ref(0);
   const animationSpeed = ref(200);
   const arraySize = ref(20);
-  const algorithm = ref<SortAlgorithm>("merge");
+  const algorithm = ref<SortAlgorithm>("quick");
 
   let animationTimer: ReturnType<typeof setTimeout> | null = null;
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, toRef } from "vue";
+import { ref, onMounted, onUnmounted, watch, toRef, nextTick } from "vue";
 import { useCanvasRenderer } from "@/composables/useCanvasRenderer";
 import type { HighlightedIndices } from "@/composables/useCanvasRenderer";
 
@@ -72,17 +72,28 @@ watch(
 );
 
 function applyStep(step: { type: string; indices: number[]; arraySnapshot?: number[] }) {
+  // 对于所有步骤类型，都设置标志防止 watcher 干扰
+  isApplyingStep = true;
+
   if (step.type === "swap" || step.type === "merge") {
+    // 保存旧位置必须在 updateBars 之前，否则柱子已经跳到新位置了
     const oldPositions = new Map<number, number>();
     step.indices.forEach((idx) => {
       const bar = barStates.value.find((b) => b.index === idx);
       if (bar) oldPositions.set(bar.value, bar.x);
     });
-    isApplyingStep = true;
-    updateBars();
+    // 先排队动画（此时柱子还在旧位置）
     onStep(step as any, props.animationSpeed, oldPositions);
-    isApplyingStep = false;
+    // 再更新显示数组（触发 watcher 调用 updateBars）
+    if (step.arraySnapshot) {
+      displayArray.value = [...step.arraySnapshot];
+    }
   }
+
+  // 延迟重置标志，让 watcher 完成后再重置
+  nextTick(() => {
+    isApplyingStep = false;
+  });
 }
 
 defineExpose({ applyStep, updateBars });

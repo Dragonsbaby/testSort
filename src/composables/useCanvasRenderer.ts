@@ -50,7 +50,6 @@ const EASING = {
 };
 
 const GAP = 4;
-const BASE_DURATION = 800;
 const BAR_HEIGHT_OFFSET = 20;
 
 export function useCanvasRenderer(
@@ -75,20 +74,23 @@ export function useCanvasRenderer(
   }
 
   function setCanvasDimensions(width: number, height: number) {
-    containerWidth = width;
-    containerHeight = height;
+    // Ensure dimensions are valid
+    containerWidth = Math.max(1, width);
+    containerHeight = Math.max(1, height);
     if (canvasRef.value) {
-      canvasRef.value.width = width;
-      canvasRef.value.height = height;
+      canvasRef.value.width = containerWidth;
+      canvasRef.value.height = containerHeight;
     }
   }
 
-  function updateBars() {
+  function updateBars(clearQueue = true) {
     const arr = displayArray.value;
     if (!arr || arr.length === 0) return;
 
-    // 清空动画队列，因为柱子重建后旧动画无效
-    animationQueue.value = [];
+    // 清空动画队列，因为柱子重建后旧动画无效（除非明确保留）
+    if (clearQueue) {
+      animationQueue.value = [];
+    }
 
     const maxValue = Math.max(...arr);
     // 确保总宽度不超过容器宽度
@@ -223,6 +225,11 @@ export function useCanvasRenderer(
     const { x, y, width, height, color, glowIntensity } = bar;
     const barTop = y - height;
 
+    // Skip bars that are not visible
+    if (width <= 0 || height <= 0 || barTop > containerHeight || y < 0) {
+      return;
+    }
+
     if (glowIntensity > 0) {
       ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, ${glowIntensity * 0.8})`;
       ctx.shadowBlur = 15 * glowIntensity;
@@ -267,8 +274,20 @@ export function useCanvasRenderer(
     if (height > 25) {
       ctx.font = `600 ${Math.min(10, width - 2)}px "JetBrains Mono", monospace`;
       ctx.textAlign = "center";
-      ctx.fillStyle = glowIntensity > 0.3 ? "#1a1a2e" : "#e0e0e0";
-      ctx.fillText(bar.value.toString(), x + width / 2, barTop - 8);
+      // Ensure text stays within visible canvas area
+      // During animation y can increase (bars move up), so barTop = y - height may become small
+      const minTextY = 5;
+      let textY = barTop - 8;
+      if (textY < minTextY || barTop < 15) {
+        // Position text inside bar near top when barTop is too small
+        textY = Math.max(y - 15, minTextY);
+      }
+      // Always use white text with slight shadow for contrast during all states
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 2;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(bar.value.toString(), x + width / 2, textY);
+      ctx.shadowBlur = 0;
     }
   }
 
@@ -302,7 +321,7 @@ export function useCanvasRenderer(
 
     const deltaX = task.startX2 - task.startX1;
     // 抛物线弧度：0 -> 最高 -> 0
-    const arcHeight = Math.sin(progress * Math.PI) * 30;
+    const arcHeight = Math.sin(progress * Math.PI) * 50;
 
     bar1.x = task.startX1 + deltaX * progress;
     bar1.y = task.baseY - arcHeight;
@@ -346,7 +365,8 @@ export function useCanvasRenderer(
     const bar2 = barStates.value.find((b) => b.value === values[1]);
     if (!bar1 || !bar2) return;
 
-    const duration = BASE_DURATION * (200 / speed);
+    // 让动画时长与步骤间隔一致，确保动画能够完整播放
+    const duration = Math.max(speed, 400);
 
     const startX1 = oldPositions?.get(values[0]) ?? bar1.x;
     const startX2 = oldPositions?.get(values[1]) ?? bar2.x;
