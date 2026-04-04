@@ -5,6 +5,12 @@ import type { SortAlgorithm } from "@/types/sorting";
 
 const store = useSortStore();
 
+const emit = defineEmits<{
+  (e: "reset"): void;
+  (e: "step"): void;
+  (e: "new-array"): void;
+}>();
+
 const algorithms: { value: SortAlgorithm; label: string }[] = [
   { value: "merge", label: "归并排序" },
   { value: "quick", label: "快速排序" },
@@ -25,6 +31,19 @@ function handleAlgorithmChange(val: SortAlgorithm) {
 function handleSizeChange(val: number) {
   store.arraySize = val;
   store.generateArray(val);
+  emit("new-array");
+}
+
+function handleReset() {
+  emit("reset");
+}
+
+function handleStep() {
+  emit("step");
+}
+
+function handleNewArray() {
+  emit("new-array");
 }
 </script>
 
@@ -93,7 +112,7 @@ function handleSizeChange(val: number) {
 
       <el-button
         :icon="store.isPlaying ? 'Loading' : 'RefreshRight'"
-        @click="store.stopAnimation()"
+        @click="handleReset"
         :loading="store.isPlaying"
         size="large"
         class="control-btn"
@@ -103,7 +122,7 @@ function handleSizeChange(val: number) {
 
       <el-button
         icon="DArrowRight"
-        @click="store.stepForward()"
+        @click="handleStep"
         :disabled="store.isPlaying || store.isComplete"
         size="large"
         class="control-btn"
@@ -113,7 +132,7 @@ function handleSizeChange(val: number) {
 
       <el-button
         icon="Refresh"
-        @click="store.generateArray(store.arraySize)"
+        @click="handleNewArray"
         :disabled="store.isPlaying"
         size="large"
         class="control-btn"

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useSortStore } from "@/stores/sortStore";
 import { algorithmInfo } from "@/types/sorting";
 import SortVisualizer from "@/components/SortVisualizer.vue";
 import ControlPanel from "@/components/ControlPanel.vue";
 
 const store = useSortStore();
+const visualizerRef = ref<InstanceType<typeof SortVisualizer> | null>(null);
 
 onMounted(() => {
   store.generateArray(store.arraySize);
@@ -21,10 +22,24 @@ function handleKeydown(e: KeyboardEvent) {
     e.preventDefault();
     store.isPlaying ? store.pauseAnimation() : store.startSort();
   } else if (e.code === "KeyR") {
-    store.stopAnimation();
+    handleReset();
   } else if (e.code === "KeyN") {
-    store.generateArray(store.arraySize);
+    handleNewArray();
   }
+}
+
+function handleReset() {
+  store.stopAnimation();
+  visualizerRef.value?.reset();
+}
+
+function handleStep() {
+  visualizerRef.value?.step();
+}
+
+function handleNewArray() {
+  store.generateArray(store.arraySize);
+  visualizerRef.value?.generateArray(store.arraySize);
 }
 </script>
 
@@ -47,9 +62,13 @@ function handleKeydown(e: KeyboardEvent) {
     </header>
 
     <main class="main">
-      <ControlPanel />
+      <ControlPanel
+        @reset="handleReset"
+        @step="handleStep"
+        @new-array="handleNewArray"
+      />
 
-      <SortVisualizer />
+      <SortVisualizer ref="visualizerRef" />
 
       <footer class="stats-bar">
         <div class="stat">
