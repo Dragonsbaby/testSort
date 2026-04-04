@@ -51,6 +51,8 @@ const EASING = {
 
 const GAP = 4;
 const BASE_DURATION = 800;
+const PADDING = 40;
+const BAR_HEIGHT_OFFSET = 20;
 
 export function useCanvasRenderer(
   canvasRef: Ref<HTMLCanvasElement | null>,
@@ -64,23 +66,22 @@ export function useCanvasRenderer(
   let containerWidth = 800;
 
   function initialize(width: number, height: number) {
-    containerWidth = width;
-    containerHeight = height;
-    if (canvasRef.value) {
-      canvasRef.value.width = width;
-      canvasRef.value.height = height;
-    }
+    setCanvasDimensions(width, height);
     updateBars();
   }
 
   function resize(width: number, height: number) {
+    setCanvasDimensions(width, height);
+    updateBars();
+  }
+
+  function setCanvasDimensions(width: number, height: number) {
     containerWidth = width;
     containerHeight = height;
     if (canvasRef.value) {
       canvasRef.value.width = width;
       canvasRef.value.height = height;
     }
-    updateBars();
   }
 
   function updateBars() {
@@ -108,7 +109,7 @@ export function useCanvasRenderer(
         value,
         x,
         targetX: x,
-        y: containerHeight - 20,
+        y: containerHeight - BAR_HEIGHT_OFFSET,
         width: barWidth,
         height: maxValue > 0 ? (value / maxValue) * (containerHeight - 60) : 0,
         color: old?.color ?? COLORS.default,
@@ -122,16 +123,19 @@ export function useCanvasRenderer(
 
   function updateColors() {
     const { comparing, swapping, sorted, pivot } = highlightedIndices.value;
+    const comparingSet = new Set(comparing);
+    const swappingSet = new Set(swapping);
     const sortedSet = new Set(sorted);
+    const pivotSet = new Set(pivot);
 
     barStates.value.forEach((bar) => {
-      if (pivot.includes(bar.index)) {
+      if (pivotSet.has(bar.index)) {
         bar.color = COLORS.pivot;
         bar.glowIntensity = 0.8;
-      } else if (swapping.includes(bar.index)) {
+      } else if (swappingSet.has(bar.index)) {
         bar.color = COLORS.swapping;
         bar.glowIntensity = 1.0;
-      } else if (comparing.includes(bar.index)) {
+      } else if (comparingSet.has(bar.index)) {
         bar.color = COLORS.comparing;
         bar.glowIntensity = 0.6;
       } else if (sortedSet.has(bar.index)) {
@@ -279,7 +283,7 @@ export function useCanvasRenderer(
       if (task.type === "swap") {
         // 使用 easeOutCubic 替代 easeOutElastic，避免弹性抖动
         const easedProgress = EASING.easeOutCubic(Math.min(1, rawProgress));
-        animateSwap(task, easedProgress, rawProgress);
+        animateSwap(task, easedProgress);
       }
 
       if (rawProgress >= 1) {
@@ -291,11 +295,7 @@ export function useCanvasRenderer(
     toRemove.reverse().forEach((i) => animationQueue.value.splice(i, 1));
   }
 
-  function animateSwap(
-    task: AnimationTask,
-    progress: number,
-    _rawProgress: number,
-  ) {
+  function animateSwap(task: AnimationTask, progress: number) {
     const [val1, val2] = task.indices;
     const bar1 = barStates.value.find((b) => b.value === val1);
     const bar2 = barStates.value.find((b) => b.value === val2);
@@ -338,12 +338,7 @@ export function useCanvasRenderer(
     }
   }
 
-  function queueSwap(
-    _i: number,
-    _j: number,
-    speed: number,
-    values: [number, number],
-  ) {
+  function queueSwap(speed: number, values: [number, number]) {
     const bar1 = barStates.value.find((b) => b.value === values[0]);
     const bar2 = barStates.value.find((b) => b.value === values[1]);
     if (!bar1 || !bar2) return;
@@ -357,7 +352,7 @@ export function useCanvasRenderer(
       duration,
       startX1: bar1.x,
       startX2: bar2.x,
-      baseY: containerHeight - 20,
+      baseY: containerHeight - BAR_HEIGHT_OFFSET,
     });
   }
 
@@ -371,7 +366,7 @@ export function useCanvasRenderer(
         step.arraySnapshot[step.indices[0]],
         step.arraySnapshot[step.indices[1]],
       ];
-      queueSwap(step.indices[0], step.indices[1], speed, oldValues);
+      queueSwap(speed, oldValues);
     }
   }
 
