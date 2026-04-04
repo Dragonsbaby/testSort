@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { useSortStore, type SortAlgorithm } from "@/stores/sortStore";
+import { useSortStore } from "@/stores/sortStore";
+import type { SortAlgorithm } from "@/types/sorting";
 
 const store = useSortStore();
 
