@@ -12,16 +12,11 @@ const props = defineProps<{
 
 const store = useSortStore();
 
-const emit = defineEmits<{
-  (e: "array-generated", arr: number[]): void;
-  (e: "step-change", step: SortStep | null): void;
-  (e: "comparisons", n: number): void;
-  (e: "swaps", n: number): void;
-}>();
-
 const array = ref<number[]>([]);
 const steps = ref<SortStep[]>([]);
 const currentStep = ref(0);
+const comparisons = ref(0);
+const swaps = ref(0);
 const localPlaying = ref(false);
 const canvasRef = ref<InstanceType<typeof SortBarCanvas> | null>(null);
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -63,6 +58,13 @@ const highlightedIndices = computed(() => {
   };
 });
 
+const currentStepInfo = computed(() => {
+  if (currentStep.value <= 0 || currentStep.value > steps.value.length) {
+    return null;
+  }
+  return steps.value[currentStep.value - 1];
+});
+
 function generateArray(size: number) {
   stop();
   const arr: number[] = [];
@@ -72,11 +74,9 @@ function generateArray(size: number) {
   array.value = [...arr];
   steps.value = insertionSort([...arr]);
   currentStep.value = 0;
+  comparisons.value = 0;
+  swaps.value = 0;
   localPlaying.value = false;
-  emit("array-generated", array.value);
-  emit("step-change", null);
-  emit("comparisons", 0);
-  emit("swaps", 0);
 }
 
 function play() {
@@ -85,29 +85,32 @@ function play() {
   step();
 }
 
-function step() {
+async function step() {
   if (!localPlaying.value || currentStep.value >= steps.value.length) {
     localPlaying.value = false;
     return;
   }
   const s = steps.value[currentStep.value];
-  applyStep(s);
-  if (s.type === "compare") emit("comparisons", emitComparisons++);
-  else if (s.type === "swap" || s.type === "merge" || s.type === "set")
-    emit("swaps", emitSwaps++);
-  currentStep.value++;
-  timer = setTimeout(step, props.speed);
+  const delay = await applyStep(s);
+  // currentStep 在 store.onStepComplete() 中递增，保持与动画同步
+  timer = setTimeout(step, delay ?? props.speed);
 }
 
-let emitComparisons = 0;
-let emitSwaps = 0;
-
-function applyStep(step: SortStep) {
-  canvasRef.value?.applyStep(step);
+async function applyStep(step: SortStep) {
+  currentStep.value++;
+  const animationDelay = await canvasRef.value?.applyStep(step);
+  if (step.type === "compare") {
+    comparisons.value++;
+  } else if (step.type === "swap" || step.type === "merge" || step.type === "set") {
+    swaps.value++;
+  }
+  if (currentStep.value >= steps.value.length) {
+    localPlaying.value = false;
+  }
   if (step.arraySnapshot) {
     array.value = [...step.arraySnapshot];
   }
-  emit("step-change", step);
+  return animationDelay;
 }
 
 function stop() {
@@ -121,15 +124,12 @@ function stop() {
 function reset() {
   stop();
   currentStep.value = 0;
-  emitComparisons = 0;
-  emitSwaps = 0;
+  comparisons.value = 0;
+  swaps.value = 0;
   if (array.value.length > 0) {
     array.value = [...array.value];
   }
   canvasRef.value?.updateBars();
-  emit("comparisons", 0);
-  emit("swaps", 0);
-  emit("step-change", null);
 }
 
 watch(
@@ -161,16 +161,10 @@ onMounted(() => {
   generateArray(store.arraySize);
 });
 
-function stepOnce() {
+async function stepOnce() {
   if (!localPlaying.value && currentStep.value < steps.value.length) {
     const s = steps.value[currentStep.value];
-    applyStep(s);
-    if (s.type === "compare") emitComparisons++;
-    else if (s.type === "swap" || s.type === "merge" || s.type === "set")
-      emitSwaps++;
-    currentStep.value++;
-    emit("comparisons", emitComparisons);
-    emit("swaps", emitSwaps);
+    await applyStep(s);
   }
 }
 
@@ -185,13 +179,27 @@ defineExpose({ generateArray, reset, step: stepOnce });
       :highlighted-indices="highlightedIndices"
       :animation-speed="speed"
     />
+    <footer class="stats-bar">
+      <div class="stat">
+        <span class="stat-label">比较次数</span>
+        <span class="stat-value">{{ comparisons }}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">交换次数</span>
+        <span class="stat-value">{{ swaps }}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">当前步骤</span>
+        <span class="stat-value">{{ currentStep }} / {{ steps.length }}</span>
+      </div>
+      <div class="stat description" v-if="currentStepInfo">
+        <span class="stat-label">操作</span>
+        <span class="stat-value desc">{{ currentStepInfo.description }}</span>
+      </div>
+    </footer>
   </div>
 </template>
 
 <style scoped>
-.algorithm-view {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+@import "@/styles/shared.css";
 </style>

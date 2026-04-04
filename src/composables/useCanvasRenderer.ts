@@ -29,6 +29,7 @@ interface AnimationTask {
   startX1: number;
   startX2: number;
   baseY: number;
+  resolve?: () => void;
 }
 
 const COLORS = {
@@ -342,6 +343,9 @@ export function useCanvasRenderer(
     barStates.value.forEach((bar) => {
       bar.targetX = bar.x;
     });
+
+    // 动画完成，调用 resolve 让 Promise 结束
+    task.resolve?.();
   }
 
   function startRenderLoop() {
@@ -360,25 +364,28 @@ export function useCanvasRenderer(
     speed: number,
     values: [number, number],
     oldPositions?: Map<number, number>,
-  ) {
+  ): Promise<number> {
     const bar1 = barStates.value.find((b) => b.value === values[0]);
     const bar2 = barStates.value.find((b) => b.value === values[1]);
-    if (!bar1 || !bar2) return;
+    if (!bar1 || !bar2) return Promise.resolve(0);
 
     // 让动画时长与步骤间隔一致，确保动画能够完整播放
-    const duration = Math.max(speed, 400);
+    const duration = Math.max(speed, 200);
 
     const startX1 = oldPositions?.get(values[0]) ?? bar1.x;
     const startX2 = oldPositions?.get(values[1]) ?? bar2.x;
 
-    animationQueue.value.push({
-      type: "swap",
-      indices: [bar1.value, bar2.value],
-      startTime: performance.now(),
-      duration,
-      startX1,
-      startX2,
-      baseY: containerHeight - BAR_HEIGHT_OFFSET,
+    return new Promise<number>((resolve) => {
+      animationQueue.value.push({
+        type: "swap",
+        indices: [bar1.value, bar2.value],
+        startTime: performance.now(),
+        duration,
+        startX1,
+        startX2,
+        baseY: containerHeight - BAR_HEIGHT_OFFSET,
+        resolve: () => resolve(duration),
+      });
     });
   }
 
@@ -386,7 +393,7 @@ export function useCanvasRenderer(
     step: SortStep,
     speed: number,
     oldPositions?: Map<number, number>,
-  ) {
+  ): Promise<number> | number | undefined {
     if (
       (step.type === "swap" || step.type === "merge") &&
       step.indices.length === 2 &&
@@ -396,8 +403,10 @@ export function useCanvasRenderer(
         step.arraySnapshot[step.indices[0]],
         step.arraySnapshot[step.indices[1]],
       ];
-      queueSwap(speed, oldValues, oldPositions);
+      return queueSwap(speed, oldValues, oldPositions);
     }
+    // compare 和 set 操作不需要动画，返回 undefined 让调用方使用默认速度
+    return undefined;
   }
 
   return {

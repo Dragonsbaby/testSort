@@ -69,29 +69,6 @@ function handleNewArray() {
       />
 
       <SortVisualizer ref="visualizerRef" />
-
-      <footer class="stats-bar">
-        <div class="stat">
-          <span class="stat-label">比较次数</span>
-          <span class="stat-value">{{ store.comparisons }}</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">交换次数</span>
-          <span class="stat-value">{{ store.swaps }}</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">当前步骤</span>
-          <span class="stat-value"
-            >{{ store.currentStep }} / {{ store.steps.length }}</span
-          >
-        </div>
-        <div class="stat description" v-if="store.currentStepInfo">
-          <span class="stat-label">操作</span>
-          <span class="stat-value desc">{{
-            store.currentStepInfo.description
-          }}</span>
-        </div>
-      </footer>
     </main>
 
     <div class="shortcuts">
@@ -180,53 +157,6 @@ function handleNewArray() {
   flex-direction: column;
   gap: 20px;
   flex: 1;
-}
-
-.stats-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: center;
-  padding: 16px 24px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 100px;
-}
-
-.stat-label {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
-  color: #8892b0;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.stat-value {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 20px;
-  font-weight: 700;
-  color: #e0e0e0;
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-value.desc {
-  font-size: 13px;
-  font-weight: 400;
-  color: #ffcc00;
-  max-width: 400px;
-  text-align: center;
-}
-
-.stat.description {
-  flex: 1;
-  min-width: 200px;
 }
 
 .shortcuts {

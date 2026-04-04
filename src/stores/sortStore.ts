@@ -38,13 +38,13 @@ export const useSortStore = defineStore("sort", () => {
   });
 
   const highlightedIndices = computed(() => {
-    if (!currentStepInfo.value)
+    if (currentStep.value <= 0 || currentStep.value > steps.value.length)
       return { comparing: [], swapping: [], sorted: [], pivot: [] };
 
-    const step = currentStepInfo.value;
+    const step = steps.value[currentStep.value - 1];
     const sortedIndices = new Set<number>();
 
-    for (let i = 0; i <= currentStep.value; i++) {
+    for (let i = 0; i < currentStep.value; i++) {
       if (steps.value[i].type === "sorted") {
         steps.value[i].indices.forEach((idx) => sortedIndices.add(idx));
       }
@@ -104,50 +104,28 @@ export const useSortStore = defineStore("sort", () => {
     swaps.value = 0;
   }
 
-  function playAnimation() {
-    if (isComplete.value || steps.value.length === 0) return;
-
+  async function playAnimation(): Promise<void> {
+    // Animation is now driven by the algorithm component's play() loop
+    // This function just triggers the algorithm component via isPlaying
     isPlaying.value = true;
-
-    const step = () => {
-      if (!isPlaying.value || currentStep.value >= steps.value.length) {
-        if (currentStep.value >= steps.value.length && !isComplete.value) {
-          isComplete.value = true;
-          isPlaying.value = false;
-          applyStep(steps.value[steps.value.length - 1]);
-        }
-        return;
-      }
-
-      const currentStepData = steps.value[currentStep.value];
-      applyStep(currentStepData);
-
-      if (currentStepData.type === "compare") {
-        comparisons.value++;
-      } else if (
-        currentStepData.type === "swap" ||
-        currentStepData.type === "merge" ||
-        currentStepData.type === "set"
-      ) {
-        swaps.value++;
-      }
-
-      currentStep.value++;
-
-      if (currentStep.value >= steps.value.length) {
-        isComplete.value = true;
-        isPlaying.value = false;
-      } else {
-        animationTimer = setTimeout(step, animationSpeed.value);
-      }
-    };
-
-    step();
   }
 
-  function applyStep(step: SortStep) {
+  function applyStep(step: SortStep): void {
     if (step.arraySnapshot) {
       displayArray.value = [...step.arraySnapshot];
+    }
+  }
+
+  function onStepComplete(step: SortStep): void {
+    if (step.type === "compare") {
+      comparisons.value++;
+    } else if (step.type === "swap" || step.type === "merge" || step.type === "set") {
+      swaps.value++;
+    }
+    // 注意：currentStep 由算法组件在动画完成后递增，此处不再重复递增
+    if (currentStep.value >= steps.value.length) {
+      isComplete.value = true;
+      isPlaying.value = false;
     }
   }
 
@@ -232,5 +210,6 @@ export const useSortStore = defineStore("sort", () => {
     stepForward,
     setSpeed,
     setAlgorithm,
+    onStepComplete,
   };
 });
