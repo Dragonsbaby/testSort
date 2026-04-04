@@ -5,8 +5,9 @@ import {
   insertionSort,
   mergeSort,
   quickSort,
-} from "../utils/sortingAlgorithms";
-import type { SortAlgorithm, SortStep } from "../types/sorting";
+} from "@/utils/sortingAlgorithms";
+import type { SortAlgorithm, SortStep } from "@/types/sorting";
+export type { SortAlgorithm };
 
 const ALGORITHMS: Record<SortAlgorithm, (arr: number[]) => SortStep[]> = {
   bubble: bubbleSort,

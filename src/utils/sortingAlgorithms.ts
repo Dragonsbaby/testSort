@@ -1,4 +1,4 @@
-import type { SortStep, SortAlgorithm } from "../stores/sortStore";
+import type { SortStep, SortAlgorithm } from "@/types/sorting";
 
 function createStep(
   type: SortStep["type"],

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
-import { useSortStore } from "./stores/sortStore";
-import { algorithmInfo } from "./types/sorting";
-import SortVisualizer from "./components/SortVisualizer.vue";
-import ControlPanel from "./components/ControlPanel.vue";
+import { useSortStore } from "@/stores/sortStore";
+import { algorithmInfo } from "@/types/sorting";
+import SortVisualizer from "@/components/SortVisualizer.vue";
+import ControlPanel from "@/components/ControlPanel.vue";
 
 const store = useSortStore();
 

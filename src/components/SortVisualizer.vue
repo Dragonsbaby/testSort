@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, toRef, nextTick } from "vue";
-import { useSortStore } from "../stores/sortStore";
-import { useCanvasRenderer } from "../composables/useCanvasRenderer";
+import { useSortStore } from "@/stores/sortStore";
+import { useCanvasRenderer } from "@/composables/useCanvasRenderer";
 
 const store = useSortStore();
 const containerRef = ref<HTMLDivElement | null>(null);

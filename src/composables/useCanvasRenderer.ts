@@ -1,5 +1,5 @@
 import { ref, type Ref } from "vue";
-import type { SortStep } from "../types/sorting";
+import type { SortStep } from "@/types/sorting";
 
 export interface BarState {
   index: number;
@@ -51,7 +51,6 @@ const EASING = {
 
 const GAP = 4;
 const BASE_DURATION = 800;
-const PADDING = 40;
 const BAR_HEIGHT_OFFSET = 20;
 
 export function useCanvasRenderer(

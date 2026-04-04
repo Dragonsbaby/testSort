@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { watch } from "vue";
-import { bubbleSort } from "../../utils/sortingAlgorithms";
-import type { SortStep } from "../../types/sorting";
+import { bubbleSort } from "@/utils/sortingAlgorithms";
+import type { SortStep } from "@/types/sorting";
 
 const props = defineProps<{
   array: number[];
