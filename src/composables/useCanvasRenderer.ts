@@ -337,25 +337,36 @@ export function useCanvasRenderer(
     }
   }
 
-  function queueSwap(speed: number, values: [number, number]) {
+  function queueSwap(
+    speed: number,
+    values: [number, number],
+    oldPositions?: Map<number, number>,
+  ) {
     const bar1 = barStates.value.find((b) => b.value === values[0]);
     const bar2 = barStates.value.find((b) => b.value === values[1]);
     if (!bar1 || !bar2) return;
 
     const duration = BASE_DURATION * (200 / speed);
 
+    const startX1 = oldPositions?.get(values[0]) ?? bar1.x;
+    const startX2 = oldPositions?.get(values[1]) ?? bar2.x;
+
     animationQueue.value.push({
       type: "swap",
       indices: [bar1.value, bar2.value],
       startTime: performance.now(),
       duration,
-      startX1: bar1.x,
-      startX2: bar2.x,
+      startX1,
+      startX2,
       baseY: containerHeight - BAR_HEIGHT_OFFSET,
     });
   }
 
-  function onStep(step: SortStep, speed: number) {
+  function onStep(
+    step: SortStep,
+    speed: number,
+    oldPositions?: Map<number, number>,
+  ) {
     if (
       (step.type === "swap" || step.type === "merge") &&
       step.indices.length === 2 &&
@@ -365,7 +376,7 @@ export function useCanvasRenderer(
         step.arraySnapshot[step.indices[0]],
         step.arraySnapshot[step.indices[1]],
       ];
-      queueSwap(speed, oldValues);
+      queueSwap(speed, oldValues, oldPositions);
     }
   }
 

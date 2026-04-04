@@ -32,6 +32,7 @@ function generateArray(size: number) {
 
 function step() {
   algorithmRef.value?.step();
+  store.stepForward();
 }
 
 defineExpose({ reset, generateArray, step });

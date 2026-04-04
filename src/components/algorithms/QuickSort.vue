@@ -23,6 +23,7 @@ const array = ref<number[]>([]);
 const steps = ref<SortStep[]>([]);
 const currentStep = ref(0);
 const localPlaying = ref(false);
+const canvasRef = ref<InstanceType<typeof SortBarCanvas> | null>(null);
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 const highlightedIndices = computed(() => {
@@ -102,6 +103,7 @@ let emitComparisons = 0;
 let emitSwaps = 0;
 
 function applyStep(step: SortStep) {
+  canvasRef.value?.applyStep(step);
   if (step.arraySnapshot) {
     array.value = [...step.arraySnapshot];
   }
@@ -124,6 +126,7 @@ function reset() {
   if (array.value.length > 0) {
     array.value = [...array.value];
   }
+  canvasRef.value?.updateBars();
   emit("comparisons", 0);
   emit("swaps", 0);
   emit("step-change", null);
@@ -177,6 +180,7 @@ defineExpose({ generateArray, reset, step: stepOnce });
 <template>
   <div class="algorithm-view">
     <SortBarCanvas
+      ref="canvasRef"
       :array="array"
       :highlighted-indices="highlightedIndices"
       :animation-speed="speed"

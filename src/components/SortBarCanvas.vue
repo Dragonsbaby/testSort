@@ -16,6 +16,7 @@ const displayArray = toRef(props, "array");
 const highlighted = toRef(props, "highlightedIndices");
 
 const {
+  barStates,
   initialize,
   resize,
   updateBars,
@@ -72,9 +73,14 @@ watch(
 
 function applyStep(step: { type: string; indices: number[]; arraySnapshot?: number[] }) {
   if (step.type === "swap" || step.type === "merge") {
+    const oldPositions = new Map<number, number>();
+    step.indices.forEach((idx) => {
+      const bar = barStates.value.find((b) => b.index === idx);
+      if (bar) oldPositions.set(bar.value, bar.x);
+    });
     isApplyingStep = true;
     updateBars();
-    onStep(step as any, props.animationSpeed);
+    onStep(step as any, props.animationSpeed, oldPositions);
     isApplyingStep = false;
   }
 }
