@@ -31,7 +31,6 @@ function generateArray(size: number) {
 }
 
 function step() {
-  // applyStep already handles stats (comparisons/swaps) via store.onStepComplete()
   algorithmRef.value?.step();
 }
 

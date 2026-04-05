@@ -99,11 +99,7 @@ function handleNewArray() {
         type="primary"
         :icon="store.isPlaying ? 'VideoPause' : 'VideoPlay'"
         @click="store.isPlaying ? store.pauseAnimation() : store.startSort()"
-        :disabled="
-          store.isComplete &&
-          store.steps.length > 0 &&
-          store.currentStep >= store.steps.length
-        "
+        :disabled="store.isComplete"
         size="large"
         class="control-btn play-btn"
       >
