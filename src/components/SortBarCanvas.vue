@@ -45,7 +45,6 @@ async function applyStep(step: { type: string; indices: number[]; arraySnapshot?
     const oldPositions = new Map<number, number>();
     step.indices.forEach((idx) => { const bar = barStates.value.find((b) => b.index === idx); if (bar) oldPositions.set(bar.value, bar.x); });
     delay = await onStep(step as any, props.animationSpeed, oldPositions);
-    if (step.arraySnapshot) displayArray.value = [...step.arraySnapshot];
   } else if (step.type === "compare" || step.type === "set") {
     delay = props.animationSpeed;
   }

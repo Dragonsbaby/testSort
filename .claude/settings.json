@@ -10,7 +10,8 @@
       "Bash(claude mcp:*)",
       "Read(//c/Users/DragonBaby/**)",
       "Bash(npm list:*)",
-      "Bash(npm search:*)"
+      "Bash(npm search:*)",
+      "Bash(npx rolldown:*)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DragonBaby\\.claude",

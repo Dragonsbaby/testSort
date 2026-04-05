@@ -1,45 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { onMounted } from "vue";
 import { useSortStore } from "@/stores/sortStore";
 import { algorithmInfo } from "@/types/sorting";
 import SortVisualizer from "@/components/SortVisualizer.vue";
 import ControlPanel from "@/components/ControlPanel.vue";
 
 const store = useSortStore();
-const visualizerRef = ref<InstanceType<typeof SortVisualizer> | null>(null);
 
 onMounted(() => {
   store.generateArray(store.arraySize);
-  window.addEventListener("keydown", handleKeydown);
 });
-
-onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeydown);
-});
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.code === "Space") {
-    e.preventDefault();
-    store.isPlaying ? store.pauseAnimation() : store.startSort();
-  } else if (e.code === "KeyR") {
-    handleReset();
-  } else if (e.code === "KeyN") {
-    handleNewArray();
-  }
-}
-
-function handleReset() {
-  store.stopAnimation();
-  visualizerRef.value?.reset();
-}
-
-function handleStep() {
-  visualizerRef.value?.step();
-}
-
-function handleNewArray() {
-  store.generateArray(store.arraySize);
-}
 </script>
 
 <template>
@@ -61,20 +31,10 @@ function handleNewArray() {
     </header>
 
     <main class="main">
-      <ControlPanel
-        @reset="handleReset"
-        @step="handleStep"
-        @new-array="handleNewArray"
-      />
+      <ControlPanel />
 
-      <SortVisualizer ref="visualizerRef" />
+      <SortVisualizer />
     </main>
-
-    <div class="shortcuts">
-      <span><kbd>Space</kbd> 开始/暂停</span>
-      <span><kbd>R</kbd> 重置</span>
-      <span><kbd>N</kbd> 新数组</span>
-    </div>
   </div>
 </template>
 
@@ -158,34 +118,6 @@ function handleNewArray() {
   flex: 1;
 }
 
-.shortcuts {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  margin-top: 20px;
-  padding: 12px;
-}
-
-.shortcuts span {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
-  color: #5a6a8a;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-kbd {
-  display: inline-block;
-  padding: 3px 8px;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
-  color: #8892b0;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
 @media (max-width: 768px) {
   .app {
     padding: 16px;
@@ -198,11 +130,6 @@ kbd {
   .algorithm-info {
     flex-direction: column;
     gap: 8px;
-  }
-
-  .shortcuts {
-    flex-wrap: wrap;
-    gap: 12px;
   }
 }
 </style>

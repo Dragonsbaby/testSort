@@ -38,7 +38,6 @@ defineExpose({ reset, step });
     <component
       :is="currentComponent"
       ref="algorithmRef"
-      :is-playing="store.isPlaying"
       :speed="store.animationSpeed"
     />
   </div>

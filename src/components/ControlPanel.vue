@@ -5,12 +5,6 @@ import type { SortAlgorithm } from "@/types/sorting";
 
 const store = useSortStore();
 
-const emit = defineEmits<{
-  (e: "reset"): void;
-  (e: "step"): void;
-  (e: "new-array"): void;
-}>();
-
 const algorithms: { value: SortAlgorithm; label: string }[] = [
   { value: "merge", label: "归并排序" },
   { value: "quick", label: "快速排序" },
@@ -31,19 +25,10 @@ function handleAlgorithmChange(val: SortAlgorithm) {
 function handleSizeChange(val: number) {
   store.arraySize = val;
   store.generateArray(val);
-  emit("new-array");
-}
-
-function handleReset() {
-  emit("reset");
-}
-
-function handleStep() {
-  emit("step");
 }
 
 function handleNewArray() {
-  emit("new-array");
+  store.generateArray(store.arraySize);
 }
 </script>
 
@@ -96,40 +81,8 @@ function handleNewArray() {
 
     <div class="control-row buttons">
       <el-button
-        type="primary"
-        :icon="store.isPlaying ? 'VideoPause' : 'VideoPlay'"
-        @click="store.isPlaying ? store.pauseAnimation() : store.startSort()"
-        :disabled="store.isComplete"
-        size="large"
-        class="control-btn play-btn"
-      >
-        {{ store.isPlaying ? "暂停" : "开始" }}
-      </el-button>
-
-      <el-button
-        :icon="store.isPlaying ? 'Loading' : 'RefreshRight'"
-        @click="handleReset"
-        :loading="store.isPlaying"
-        size="large"
-        class="control-btn"
-      >
-        重置
-      </el-button>
-
-      <el-button
-        icon="DArrowRight"
-        @click="handleStep"
-        :disabled="store.isPlaying || store.isComplete"
-        size="large"
-        class="control-btn"
-      >
-        单步
-      </el-button>
-
-      <el-button
         icon="Refresh"
         @click="handleNewArray"
-        :disabled="store.isPlaying"
         size="large"
         class="control-btn"
       >
@@ -205,13 +158,6 @@ function handleNewArray() {
   font-family: "JetBrains Mono", monospace;
 }
 
-:deep(.el-button--primary) {
-  --el-button-bg-color: #4a9eff;
-  --el-button-border-color: #4a9eff;
-  --el-button-hover-bg-color: #6ab0ff;
-  --el-button-hover-border-color: #6ab0ff;
-}
-
 .control-btn {
   min-width: 100px;
   transition: all 0.2s ease;
@@ -219,10 +165,6 @@ function handleNewArray() {
 
 .control-btn:hover {
   transform: translateY(-2px);
-}
-
-.play-btn {
-  min-width: 120px;
 }
 
 .size-slider {
