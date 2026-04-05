@@ -15,6 +15,7 @@ const { array, comparisons, swaps, highlightedIndices, currentStepInfo, steps, c
   speed: toRef(props, "speed"),
   arraySize: toRef(store, "arraySize"),
   canvasRef,
+  originalArray: toRef(store, "originalArray"),
 });
 
 defineExpose({ generateArray, reset, step });

@@ -17,8 +17,9 @@ export function useSortAnimation(params: {
   speed: ToRef<number>;
   arraySize: ToRef<number>;
   canvasRef: Ref<InstanceType<typeof SortBarCanvas> | null>;
+  originalArray: ToRef<number[]>;
 }) {
-  const { sortFn, isPlaying, speed, arraySize, canvasRef } = params;
+  const { sortFn, isPlaying, speed, arraySize, canvasRef, originalArray } = params;
 
   const array = ref<number[]>([]);
   const steps = ref<SortStep[]>([]);
@@ -47,10 +48,31 @@ export function useSortAnimation(params: {
 
   const currentStepInfo = computed(() => { if (currentStep.value <= 0 || currentStep.value > steps.value.length) return null; return steps.value[currentStep.value - 1]; });
 
+  // 初始化数组：从 store 的 originalArray 拷贝
+  function initFromOriginal() {
+    if (array.value.length === 0 && originalArray.value.length > 0) {
+      array.value = [...originalArray.value];
+      steps.value = sortFn([...originalArray.value]);
+      currentStep.value = 0;
+      comparisons.value = 0;
+      swaps.value = 0;
+      sortedIndices.value = new Set();
+      localPlaying.value = false;
+    }
+  }
+
+  // 监听 store 的 originalArray 变化，自动初始化
+  watch(originalArray, (newArr) => {
+    if (newArr.length > 0 && array.value.length === 0) {
+      initFromOriginal();
+    }
+  }, { immediate: true });
+
   function generateArray(size: number) { // 生成随机数组并预计算排序步骤
     stop();
     const arr = generateRandomArray(size);
-    array.value = arr;
+    originalArray.value = [...arr]; // 更新 store
+    array.value = [...arr];
     steps.value = sortFn([...arr]);
     currentStep.value = 0; comparisons.value = 0; swaps.value = 0; sortedIndices.value = new Set(); localPlaying.value = false;
   }
