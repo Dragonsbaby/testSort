@@ -330,12 +330,12 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
     }
 
     // 底部序号标签（亮绿色）
-    ctx.font = `600 ${Math.min(10, width - 2)}px "JetBrains Mono", monospace`;
+    ctx.font = `600 ${Math.min(12, width - 2)}px "JetBrains Mono", monospace`;
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 2;
     ctx.fillStyle = 'rgb(57, 255, 20)'; // 亮绿色
-    ctx.fillText(bar.displayIndex.toString(), x + width / 2, y + 12);
+    ctx.fillText(bar.displayIndex.toString(), x + width / 2, y + 14);
     ctx.shadowBlur = 0;
   }
 

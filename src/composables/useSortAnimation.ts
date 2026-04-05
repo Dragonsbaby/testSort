@@ -13,14 +13,14 @@ type SortFn = (arr: number[]) => SortStep[];
  * @param params.sortFn - 排序算法函数
  * @param params.isPlaying - 外部播放状态（响应式）
  * @param params.speed - 动画速度（毫秒）
- * @param params.arraySize - 数组大小
  * @param params.canvasRef - Canvas 组件引用
  * @param params.originalArray - 原始数组（用于重置）
+ * @param params.store - 可选，直接更新 store 的 isComplete 状态
  */
 import type { ArrayElement } from "@/stores/sortStore";
 
-export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<boolean>; speed: ToRef<number>; canvasRef: Ref<InstanceType<typeof SortBarCanvas> | null>; originalArray: ToRef<ArrayElement[]> }) {
-  const { sortFn, isPlaying, speed, canvasRef, originalArray } = params;
+export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<boolean>; speed: ToRef<number>; canvasRef: Ref<InstanceType<typeof SortBarCanvas> | null>; originalArray: ToRef<ArrayElement[]>; store?: { isComplete?: boolean; isPlaying?: boolean } }) {
+  const { sortFn, isPlaying, speed, canvasRef, originalArray, store } = params;
 
   /** 当前显示的数组（步骤执行后可能与 originalArray 不同） */
   const array = ref<ArrayElement[]>([]);
@@ -122,6 +122,8 @@ export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<bool
     localPlaying.value = false;
     // 构建 value -> displayIndices 映射（只需构建一次）
     valueToDisplayIndices = buildValueToDisplayIndices();
+    // 重置完成状态（新数组或重排时）
+    store && (store.isComplete = false) && (store.isPlaying = false);
   }
 
   /** 开始连续播放 */
@@ -163,6 +165,7 @@ export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<bool
 
     if (currentStep.value >= steps.value.length) {
       localPlaying.value = false;
+      store && (store.isComplete = true) && (store.isPlaying = false);
     }
     if (step.arraySnapshot) {
       // arraySnapshot 是 number[]，需要重建为 ArrayElement[]
@@ -202,6 +205,7 @@ export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<bool
     sortedIndices.value = new Set();
     if (array.value.length > 0) array.value = [...array.value];
     canvasRef.value?.updateBars();
+    store && (store.isComplete = false);
   }
 
   // 监听 originalArray 变化，生成新数组并重置状态
