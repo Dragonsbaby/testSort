@@ -45,8 +45,6 @@ onMounted(() => {
       <ControlPanel />
     </main>
 
-    <!-- Scanline overlay -->
-    <div class="scanlines"></div>
   </div>
 </template>
 
@@ -72,22 +70,6 @@ onMounted(() => {
   background-size: 40px 40px;
   pointer-events: none;
   z-index: 0;
-}
-
-/* Scanline overlay */
-.scanlines {
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.1) 2px,
-    rgba(0, 0, 0, 0.1) 4px
-  );
-  pointer-events: none;
-  z-index: 1000;
-  opacity: 0.3;
 }
 
 /* Header */

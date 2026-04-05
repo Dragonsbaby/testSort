@@ -105,8 +105,21 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
     containerWidth = Math.max(1, width);
     containerHeight = Math.max(1, height);
     if (canvasRef.value) {
-      canvasRef.value.width = containerWidth;
-      canvasRef.value.height = containerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      // 设置实际像素尺寸
+      canvasRef.value.width = Math.floor(containerWidth * dpr);
+      canvasRef.value.height = Math.floor(containerHeight * dpr);
+      // 设置 CSS 显示尺寸
+      canvasRef.value.style.width = `${containerWidth}px`;
+      canvasRef.value.style.height = `${containerHeight}px`;
+      // 重置缩放并重新缩放
+      const ctx = canvasRef.value.getContext('2d');
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        // 禁用图像平滑，防止亚像素抗锯齿产生条纹
+        ctx.imageSmoothingEnabled = false;
+      }
     }
   }
 
@@ -135,7 +148,8 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
 
     barStates.value = arr.map((element, index) => {
       const old = oldStates.get(element.displayIndex);
-      const x = startX + index * (barWidth + GAP);
+      // 像素对齐避免模糊/条纹
+      const x = Math.round(startX + index * (barWidth + GAP));
 
       return {
         index,
@@ -143,10 +157,10 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
         displayIndex: element.displayIndex,
         x,
         targetX: x,
-        y: containerHeight - BAR_HEIGHT_OFFSET,
+        y: Math.round(containerHeight - BAR_HEIGHT_OFFSET),
         width: barWidth,
-        // 高度按数值比例计算，maxValue 为 0 时处理为 0
-        height: maxValue > 0 ? (element.value / maxValue) * (containerHeight - 60) : 0,
+        // 高度按数值比例计算，maxValue 为 0 时处理为 0，像素对齐
+        height: maxValue > 0 ? Math.round((element.value / maxValue) * (containerHeight - 60)) : 0,
         color: old?.color ?? COLORS.default,
         glowIntensity: old?.glowIntensity ?? 0,
       };
@@ -198,7 +212,8 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 使用 CSS 像素尺寸清除画布，与后续绘制操作坐标系统一致
+    ctx.clearRect(0, 0, containerWidth, containerHeight);
 
     drawBackground(ctx);
     processAnimations(timestamp);
@@ -213,32 +228,14 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
   function drawBackground(ctx: CanvasRenderingContext2D) {
     const { width, height } = { width: containerWidth, height: containerHeight };
 
-    // 垂直渐变背景
-    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-    bgGradient.addColorStop(0, '#0f0f1a');
-    bgGradient.addColorStop(0.5, '#1a1a2e');
-    bgGradient.addColorStop(1, '#16213e');
-    ctx.fillStyle = bgGradient;
+    // 纯色背景
+    ctx.fillStyle = '#0f1219';
     ctx.fillRect(0, 0, width, height);
 
-    // 顶部径向高光
-    const topGlow = ctx.createRadialGradient(width / 2, 0, 0, width / 2, 0, height * 0.8);
-    topGlow.addColorStop(0, 'rgba(74, 158, 255, 0.08)');
-    topGlow.addColorStop(1, 'rgba(74, 158, 255, 0)');
-    ctx.fillStyle = topGlow;
-    ctx.fillRect(0, 0, width, height);
-
-    // 底部渐变遮罩
-    const bottomFade = ctx.createLinearGradient(0, height - 60, 0, height);
-    bottomFade.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    bottomFade.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
-    ctx.fillStyle = bottomFade;
-    ctx.fillRect(0, height - 60, width, 60);
-
-    // 网格线
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+    // 简洁网格线
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
     ctx.lineWidth = 1;
-    const gridSize = 50;
+    const gridSize = 40;
     for (let x = 0; x < width; x += gridSize) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -252,9 +249,9 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
       ctx.stroke();
     }
 
-    // 底部水平装饰线
-    ctx.strokeStyle = 'rgba(78, 205, 196, 0.2)';
-    ctx.lineWidth = 2;
+    // 底部装饰线
+    ctx.strokeStyle = 'rgba(78, 205, 196, 0.15)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, height - 20);
     ctx.lineTo(width, height - 20);
@@ -266,50 +263,59 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
    */
   function drawBar(ctx: CanvasRenderingContext2D, bar: BarState) {
     const { x, y, width, height, color, glowIntensity } = bar;
-    const barTop = y - height;
+    // 像素对齐：所有坐标取整，避免亚像素渲染导致条纹
+    const bx = Math.round(x);
+    const by = Math.round(y);
+    const bw = Math.round(width);
+    const bh = Math.round(height);
+    if (bw <= 0 || bh <= 0) return;
 
+    const barTop = by - bh;
     // 跳过不可见的柱子
-    if (width <= 0 || height <= 0 || barTop > containerHeight || y < 0) {
+    if (barTop > containerHeight || by < 0) {
       return;
     }
 
-    // 发光效果
+    // 圆角矩形（半径也取整）
+    const radius = Math.min(3, Math.round(bw / 2));
+    const bxr = bx + radius;
+    const bxrEnd = bx + bw - radius;
+    const byt = barTop + radius;
+    const bytEnd = by - radius;
+
+    // 创建圆角矩形路径
+    ctx.beginPath();
+    ctx.moveTo(bxr, by);
+    ctx.lineTo(bxrEnd, by);
+    ctx.quadraticCurveTo(bx + bw, by, bx + bw, bytEnd);
+    ctx.lineTo(bx + bw, byt);
+    ctx.quadraticCurveTo(bx + bw, barTop, bxrEnd, barTop);
+    ctx.lineTo(bxr, barTop);
+    ctx.quadraticCurveTo(bx, barTop, bx, byt);
+    ctx.lineTo(bx, bytEnd);
+    ctx.quadraticCurveTo(bx, by, bxr, by);
+    ctx.closePath();
+
+    // 渐变填充：从顶部浅色到底部深色
+    const gradient = ctx.createLinearGradient(0, barTop, 0, by);
+    gradient.addColorStop(0, `rgba(${Math.min(255, color.r + 60)}, ${Math.min(255, color.g + 60)}, ${Math.min(255, color.b + 60)}, 1)`);
+    gradient.addColorStop(0.5, `rgb(${color.r}, ${color.g}, ${color.b})`);
+    gradient.addColorStop(1, `rgba(${Math.max(0, color.r - 40)}, ${Math.max(0, color.g - 40)}, ${Math.max(0, color.b - 40)}, 1)`);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // 发光效果（使用阴影）
     if (glowIntensity > 0) {
       ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, ${glowIntensity * 0.8})`;
-      ctx.shadowBlur = 15 * glowIntensity;
-    } else {
-      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 12 * glowIntensity;
+      ctx.fill();
       ctx.shadowBlur = 0;
     }
 
-    // 柱子渐变填充
-    const gradient = ctx.createLinearGradient(x, y, x, barTop);
-    gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 1)`);
-    gradient.addColorStop(0.5, `rgba(${Math.min(255, color.r + 30)}, ${Math.min(255, color.g + 30)}, ${Math.min(255, color.b + 30)}, 1)`);
-    gradient.addColorStop(1, `rgba(${Math.max(0, color.r - 20)}, ${Math.max(0, color.g - 20)}, ${Math.max(0, color.b - 20)}, 0.9)`);
-    ctx.fillStyle = gradient;
+    // 顶部高光条纹
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.35 + glowIntensity * 0.15})`;
+    ctx.fillRect(bx + 3, barTop + 2, bw - 6, 3);
 
-    // 圆角矩形路径
-    const radius = Math.min(4, width / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y - radius);
-    ctx.lineTo(x + width, barTop + radius);
-    ctx.quadraticCurveTo(x + width, barTop, x + width - radius, barTop);
-    ctx.lineTo(x + radius, barTop);
-    ctx.quadraticCurveTo(x, barTop, x, barTop + radius);
-    ctx.lineTo(x, y - radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-
-    // 顶部高光
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.15 + glowIntensity * 0.15})`;
-    ctx.fillRect(x + 2, barTop, width - 4, 3);
 
     // 数值标签（柱子足够高时显示）
     if (height > 25) {
@@ -317,7 +323,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
       ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
       ctx.shadowBlur = 2;
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#f7cb07';
 
       // 确保文字在可见区域内
       const minTextY = 5;
@@ -329,14 +335,11 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
       ctx.shadowBlur = 0;
     }
 
-    // 底部序号标签（亮绿色）
-    ctx.font = `600 ${Math.min(12, width - 2)}px "JetBrains Mono", monospace`;
+    // 底部序号标签（像素对齐）
+    ctx.font = `bold ${Math.min(12, bw - 2)}px "JetBrains Mono", monospace`;
     ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 2;
-    ctx.fillStyle = 'rgb(57, 255, 20)'; // 亮绿色
-    ctx.fillText(bar.displayIndex.toString(), x + width / 2, y + 14);
-    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#20e25a';
+    ctx.fillText(bar.displayIndex.toString(), bx + bw / 2, by + 16);
   }
 
   /**
@@ -375,13 +378,13 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
     if (!bar1 || !bar2) return;
 
     const deltaX = task.startX2 - task.startX1;
-    // 抛物线弧度：0 -> 最高 -> 0
+    // 抛物线弧度：0 -> 最高 -> 0，像素对齐避免条纹
     const arcHeight = Math.sin(progress * Math.PI) * 50;
 
-    bar1.x = task.startX1 + deltaX * progress;
-    bar1.y = task.baseY - arcHeight;
-    bar2.x = task.startX2 - deltaX * progress;
-    bar2.y = task.baseY - arcHeight;
+    bar1.x = Math.round(task.startX1 + deltaX * progress);
+    bar1.y = Math.round(task.baseY - arcHeight);
+    bar2.x = Math.round(task.startX2 - deltaX * progress);
+    bar2.y = Math.round(task.baseY - arcHeight);
   }
 
   /**

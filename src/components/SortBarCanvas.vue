@@ -60,6 +60,6 @@ defineExpose({ applyStep, updateBars });
 </template>
 
 <style scoped>
-.sort-bar-canvas { flex: 1; display: flex; flex-direction: column; min-height: 300px; }
-.sort-canvas { flex: 1; width: 100%; border-radius: 8px; }
+.sort-bar-canvas { flex: 1; display: flex; flex-direction: column; min-height: 300px; position: relative; }
+.sort-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px; }
 </style>
