@@ -31,11 +31,10 @@ export function useSortAnimation(params: {
   sortFn: SortFn;
   isPlaying: ToRef<boolean>;
   speed: ToRef<number>;
-  arraySize: ToRef<number>;
   canvasRef: Ref<InstanceType<typeof SortBarCanvas> | null>;
   originalArray: ToRef<number[]>;
 }) {
-  const { sortFn, isPlaying, speed, arraySize, canvasRef, originalArray } = params;
+  const { sortFn, isPlaying, speed, canvasRef, originalArray } = params;
 
   /** 当前显示的数组（步骤执行后可能与 originalArray 不同） */
   const array = ref<number[]>([]);
@@ -202,8 +201,6 @@ export function useSortAnimation(params: {
     }
   });
 
-  // 数组大小变化时重新生成
-  watch(arraySize, (size) => generateArray(size));
 
   // 卸载时清理定时器
   onUnmounted(() => stop());

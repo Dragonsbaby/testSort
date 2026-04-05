@@ -13,7 +13,6 @@ const { array, comparisons, swaps, highlightedIndices, currentStepInfo, steps, c
   sortFn: quickSort,
   isPlaying: toRef(props, "isPlaying"),
   speed: toRef(props, "speed"),
-  arraySize: toRef(store, "arraySize"),
   canvasRef,
   originalArray: toRef(store, "originalArray"),
 });
