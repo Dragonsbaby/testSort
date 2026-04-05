@@ -17,11 +17,13 @@ type SortFn = (arr: number[]) => SortStep[];
  * @param params.canvasRef - Canvas 组件引用
  * @param params.originalArray - 原始数组（用于重置）
  */
-export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<boolean>; speed: ToRef<number>; canvasRef: Ref<InstanceType<typeof SortBarCanvas> | null>; originalArray: ToRef<number[]> }) {
+import type { ArrayElement } from "@/stores/sortStore";
+
+export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<boolean>; speed: ToRef<number>; canvasRef: Ref<InstanceType<typeof SortBarCanvas> | null>; originalArray: ToRef<ArrayElement[]> }) {
   const { sortFn, isPlaying, speed, canvasRef, originalArray } = params;
 
   /** 当前显示的数组（步骤执行后可能与 originalArray 不同） */
-  const array = ref<number[]>([]);
+  const array = ref<ArrayElement[]>([]);
   /** 预计算的排序步骤数组 */
   const steps = ref<SortStep[]>([]);
   /** 当前步骤索引（0 表示未开始） */
@@ -82,7 +84,8 @@ export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<bool
     if(originalArray.value.length === 0) return;
     stop();
     array.value = [...originalArray.value];
-    steps.value = sortFn([...originalArray.value]);
+    // 排序算法只接收数值数组
+    steps.value = sortFn(originalArray.value.map(e => e.value));
     currentStep.value = 0;
     comparisons.value = 0;
     swaps.value = 0;
@@ -131,7 +134,9 @@ export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<bool
       localPlaying.value = false;
     }
     if (step.arraySnapshot) {
-      array.value = [...step.arraySnapshot];
+      // 从 arraySnapshot (number[]) 重建 ArrayElement[]，根据 originalArray 查找 displayIndex
+      const originalMap = new Map(originalArray.value.map(e => [e.value, e.displayIndex]));
+      array.value = step.arraySnapshot.map(value => ({ value, displayIndex: originalMap.get(value) ?? 0 }));
     }
     return animationDelay;
   }

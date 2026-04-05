@@ -2,8 +2,9 @@
 import { ref, onMounted, onUnmounted, watch, toRef } from "vue";
 import { useCanvasRenderer } from "@/composables/useCanvasRenderer";
 import type { HighlightedIndices } from "@/composables/useCanvasRenderer";
+import type { ArrayElement } from "@/stores/sortStore";
 
-const props = defineProps<{ array: number[]; highlightedIndices: HighlightedIndices; animationSpeed: number }>();
+const props = defineProps<{ array: ArrayElement[]; highlightedIndices: HighlightedIndices; animationSpeed: number }>();
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const canvasRef = ref<HTMLCanvasElement | null>(null);

@@ -1,13 +1,15 @@
 import { ref, type Ref } from 'vue';
 import type { SortStep } from '@/types/sorting';
+import type { ArrayElement } from '@/stores/sortStore';
 
 /**
  * 单个柱子的渲染状态
  * 用于跟踪每个柱子的位置、尺寸、颜色和动画状态
  */
 export interface BarState {
-  index: number; // 柱子在数组中的原始索引
+  index: number; // 柱子在数组中的位置（动画时会变）
   value: number; // 柱子代表的数值（用于排序操作时查找）
+  displayIndex: number; // 固定序号（1-based），跟随元素移动
   x: number; // 当前 X 坐标
   targetX: number; // 目标 X 坐标（动画结束后应到达的位置）
   y: number; // 底部 Y 坐标（固定为 containerHeight - offset）
@@ -68,7 +70,7 @@ const BAR_HEIGHT_OFFSET = 20; // 柱子底部距画布底部的偏移
  * @param displayArray - 要显示的数组（响应式）
  * @param highlightedIndices - 当前步骤需要高亮的索引（响应式）
  */
-export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, displayArray: Ref<number[]>, highlightedIndices: Ref<HighlightedIndices>) {
+export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, displayArray: Ref<ArrayElement[]>, highlightedIndices: Ref<HighlightedIndices>) {
   /** 柱子状态数组，索引对应柱子位置 */
   const barStates = ref<BarState[]>([]);
   /** 待执行的动画任务队列 */
@@ -117,7 +119,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
    * 这是已知限制，暂不修复以避免破坏当前动画逻辑。
    */
   function updateBars(clearQueue = true) {
-    const arr = displayArray.value;
+    const arr = displayArray.value as ArrayElement[];
     if (!arr || arr.length === 0) return;
 
     // 重置时清空队列（柱子重建后旧动画无效）
@@ -125,29 +127,30 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
       animationQueue.value = [];
     }
 
-    const maxValue = Math.max(...arr);
+    const maxValue = Math.max(...arr.map((e) => e.value));
     // 计算柱子宽度：确保总宽度不超过容器
     const maxBarWidth = Math.min(60, (containerWidth - GAP) / arr.length - GAP);
     const barWidth = Math.max(4, maxBarWidth);
     const totalWidth = arr.length * barWidth + (arr.length - 1) * GAP;
     const startX = Math.max(0, (containerWidth - totalWidth) / 2);
 
-    // 保留旧状态的颜色和发光信息（按 value 查找，存在重复值问题）
+    // 保留旧状态的颜色和发光信息（按 value 查找）
     const oldStates = new Map(barStates.value.map((b) => [b.value, b]));
 
-    barStates.value = arr.map((value, index) => {
-      const old = oldStates.get(value);
+    barStates.value = arr.map((element, index) => {
+      const old = oldStates.get(element.value);
       const x = startX + index * (barWidth + GAP);
 
       return {
         index,
-        value,
+        value: element.value,
+        displayIndex: element.displayIndex,
         x,
         targetX: x,
         y: containerHeight - BAR_HEIGHT_OFFSET,
         width: barWidth,
         // 高度按数值比例计算，maxValue 为 0 时处理为 0
-        height: maxValue > 0 ? (value / maxValue) * (containerHeight - 60) : 0,
+        height: maxValue > 0 ? (element.value / maxValue) * (containerHeight - 60) : 0,
         color: old?.color ?? COLORS.default,
         glowIntensity: old?.glowIntensity ?? 0,
       };
@@ -329,6 +332,15 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
       ctx.fillText(bar.value.toString(), x + width / 2, textY);
       ctx.shadowBlur = 0;
     }
+
+    // 底部序号标签（亮绿色）
+    ctx.font = `600 ${Math.min(10, width - 2)}px "JetBrains Mono", monospace`;
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 2;
+    ctx.fillStyle = 'rgb(57, 255, 20)'; // 亮绿色
+    ctx.fillText(bar.displayIndex.toString(), x + width / 2, y + 12);
+    ctx.shadowBlur = 0;
   }
 
   /**
