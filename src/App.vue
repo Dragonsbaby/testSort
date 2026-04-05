@@ -39,7 +39,6 @@ function handleStep() {
 
 function handleNewArray() {
   store.generateArray(store.arraySize);
-  visualizerRef.value?.generateArray(store.arraySize);
 }
 </script>
 

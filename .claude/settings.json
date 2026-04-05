@@ -5,10 +5,16 @@
       "Bash(curl -sI \"https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap\")",
       "Bash(npx playwright:*)",
       "Bash(npx vue-tsc:*)",
-      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)"
+      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)",
+      "Bash(npx chrome-devtools-mcp@latest)",
+      "Bash(claude mcp:*)",
+      "Read(//c/Users/DragonBaby/**)",
+      "Bash(npm list:*)",
+      "Bash(npm search:*)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\DragonBaby\\.claude"
+      "C:\\Users\\DragonBaby\\.claude",
+      "C:\\Users\\DragonBaby"
     ]
   }
 }

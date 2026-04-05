@@ -9,7 +9,7 @@ const props = defineProps<{ isPlaying: boolean; speed: number }>();
 const store = useSortStore();
 const canvasRef = ref<InstanceType<typeof SortBarCanvas> | null>(null);
 
-const { array, comparisons, swaps, highlightedIndices, currentStepInfo, steps, currentStep, generateArray, reset, step } = useSortAnimation({
+const { array, comparisons, swaps, highlightedIndices, currentStepInfo, steps, currentStep, reset, step } = useSortAnimation({
   sortFn: mergeSort,
   isPlaying: toRef(props, "isPlaying"),
   speed: toRef(props, "speed"),
@@ -17,7 +17,7 @@ const { array, comparisons, swaps, highlightedIndices, currentStepInfo, steps, c
   originalArray: toRef(store, "originalArray"),
 });
 
-defineExpose({ generateArray, reset, step });
+defineExpose({ reset, step });
 </script>
 
 <template>

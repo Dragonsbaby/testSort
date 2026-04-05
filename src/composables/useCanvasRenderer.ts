@@ -1,20 +1,20 @@
-import { ref, type Ref } from "vue";
-import type { SortStep } from "@/types/sorting";
+import { ref, type Ref } from 'vue';
+import type { SortStep } from '@/types/sorting';
 
 /**
  * 单个柱子的渲染状态
  * 用于跟踪每个柱子的位置、尺寸、颜色和动画状态
  */
 export interface BarState {
-  index: number;           // 柱子在数组中的原始索引
-  value: number;           // 柱子代表的数值（用于排序操作时查找）
-  x: number;               // 当前 X 坐标
-  targetX: number;          // 目标 X 坐标（动画结束后应到达的位置）
-  y: number;                // 底部 Y 坐标（固定为 containerHeight - offset）
-  width: number;           // 柱子宽度
-  height: number;          // 柱子高度（根据数值比例计算）
-  color: { r: number; g: number; b: number };  // RGB 颜色
-  glowIntensity: number;  // 发光强度 0-1
+  index: number; // 柱子在数组中的原始索引
+  value: number; // 柱子代表的数值（用于排序操作时查找）
+  x: number; // 当前 X 坐标
+  targetX: number; // 目标 X 坐标（动画结束后应到达的位置）
+  y: number; // 底部 Y 坐标（固定为 containerHeight - offset）
+  width: number; // 柱子宽度
+  height: number; // 柱子高度（根据数值比例计算）
+  color: { r: number; g: number; b: number }; // RGB 颜色
+  glowIntensity: number; // 发光强度 0-1
 }
 
 /**
@@ -22,10 +22,10 @@ export interface BarState {
  * 由 useSortAnimation 计算，传递给 useCanvasRenderer 用于颜色更新
  */
 export interface HighlightedIndices {
-  comparing: number[];  // 正在比较的元素
-  swapping: number[];   // 正在交换的元素
-  sorted: number[];      // 已排好序的元素
-  pivot: number[];       // 基准元素（快排）
+  comparing: number[]; // 正在比较的元素
+  swapping: number[]; // 正在交换的元素
+  sorted: number[]; // 已排好序的元素
+  pivot: number[]; // 基准元素（快排）
 }
 
 /**
@@ -33,22 +33,22 @@ export interface HighlightedIndices {
  * 注意：目前只实现了 swap 动画，compare 类型未使用
  */
 interface AnimationTask {
-  indices: number[];       // 要交换的两个值 [val1, val2]
-  startTime: number;        // 动画开始时间戳
-  duration: number;        // 动画持续时长（毫秒）
-  startX1: number;          // 柱子1的起始 X 坐标
-  startX2: number;         // 柱子2的起始 X 坐标
-  baseY: number;            // 基础 Y 坐标（动画时 Y 会升高形成弧线）
-  resolve?: () => void;    // Promise resolve 回调，动画完成后调用
+  indices: number[]; // 要交换的两个值 [val1, val2]
+  startTime: number; // 动画开始时间戳
+  duration: number; // 动画持续时长（毫秒）
+  startX1: number; // 柱子1的起始 X 坐标
+  startX2: number; // 柱子2的起始 X 坐标
+  baseY: number; // 基础 Y 坐标（动画时 Y 会升高形成弧线）
+  resolve?: () => void; // Promise resolve 回调，动画完成后调用
 }
 
 /** 各状态的默认颜色 */
 const COLORS = {
-  default: { r: 74, g: 158, b: 255 },    // 蓝色 - 默认状态
-  comparing: { r: 255, g: 204, b: 0 },   // 黄色 - 比较中
-  swapping: { r: 255, g: 107, b: 107 },  // 红色 - 交换中
-  sorted: { r: 0, g: 255, b: 160 },      // 绿色 - 已排序
-  pivot: { r: 155, g: 89, b: 182 },      // 紫色 - 基准点
+  default: { r: 74, g: 158, b: 255 }, // 蓝色 - 默认状态
+  comparing: { r: 255, g: 204, b: 0 }, // 黄色 - 比较中
+  swapping: { r: 255, g: 107, b: 107 }, // 红色 - 交换中
+  sorted: { r: 0, g: 255, b: 160 }, // 绿色 - 已排序
+  pivot: { r: 155, g: 89, b: 182 }, // 紫色 - 基准点
 };
 
 /** 缓动函数 */
@@ -57,8 +57,8 @@ const EASING = {
   easeOutCubic: (t: number) => 1 - Math.pow(1 - t, 3),
 };
 
-const GAP = 4;                    // 柱子间距
-const BAR_HEIGHT_OFFSET = 20;     // 柱子底部距画布底部的偏移
+const GAP = 4; // 柱子间距
+const BAR_HEIGHT_OFFSET = 20; // 柱子底部距画布底部的偏移
 
 /**
  * Canvas 渲染器组合式函数
@@ -68,11 +68,7 @@ const BAR_HEIGHT_OFFSET = 20;     // 柱子底部距画布底部的偏移
  * @param displayArray - 要显示的数组（响应式）
  * @param highlightedIndices - 当前步骤需要高亮的索引（响应式）
  */
-export function useCanvasRenderer(
-  canvasRef: Ref<HTMLCanvasElement | null>,
-  displayArray: Ref<number[]>,
-  highlightedIndices: Ref<HighlightedIndices>,
-) {
+export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, displayArray: Ref<number[]>, highlightedIndices: Ref<HighlightedIndices>) {
   /** 柱子状态数组，索引对应柱子位置 */
   const barStates = ref<BarState[]>([]);
   /** 待执行的动画任务队列 */
@@ -200,7 +196,7 @@ export function useCanvasRenderer(
     const canvas = canvasRef.value;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -220,28 +216,28 @@ export function useCanvasRenderer(
 
     // 垂直渐变背景
     const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-    bgGradient.addColorStop(0, "#0f0f1a");
-    bgGradient.addColorStop(0.5, "#1a1a2e");
-    bgGradient.addColorStop(1, "#16213e");
+    bgGradient.addColorStop(0, '#0f0f1a');
+    bgGradient.addColorStop(0.5, '#1a1a2e');
+    bgGradient.addColorStop(1, '#16213e');
     ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, width, height);
 
     // 顶部径向高光
     const topGlow = ctx.createRadialGradient(width / 2, 0, 0, width / 2, 0, height * 0.8);
-    topGlow.addColorStop(0, "rgba(74, 158, 255, 0.08)");
-    topGlow.addColorStop(1, "rgba(74, 158, 255, 0)");
+    topGlow.addColorStop(0, 'rgba(74, 158, 255, 0.08)');
+    topGlow.addColorStop(1, 'rgba(74, 158, 255, 0)');
     ctx.fillStyle = topGlow;
     ctx.fillRect(0, 0, width, height);
 
     // 底部渐变遮罩
     const bottomFade = ctx.createLinearGradient(0, height - 60, 0, height);
-    bottomFade.addColorStop(0, "rgba(0, 0, 0, 0)");
-    bottomFade.addColorStop(1, "rgba(0, 0, 0, 0.3)");
+    bottomFade.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    bottomFade.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
     ctx.fillStyle = bottomFade;
     ctx.fillRect(0, height - 60, width, 60);
 
     // 网格线
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
     ctx.lineWidth = 1;
     const gridSize = 50;
     for (let x = 0; x < width; x += gridSize) {
@@ -258,7 +254,7 @@ export function useCanvasRenderer(
     }
 
     // 底部水平装饰线
-    ctx.strokeStyle = "rgba(78, 205, 196, 0.2)";
+    ctx.strokeStyle = 'rgba(78, 205, 196, 0.2)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, height - 20);
@@ -283,7 +279,7 @@ export function useCanvasRenderer(
       ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, ${glowIntensity * 0.8})`;
       ctx.shadowBlur = 15 * glowIntensity;
     } else {
-      ctx.shadowColor = "transparent";
+      ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
     }
 
@@ -309,7 +305,7 @@ export function useCanvasRenderer(
     ctx.closePath();
     ctx.fill();
 
-    ctx.shadowColor = "transparent";
+    ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
 
     // 顶部高光
@@ -319,10 +315,10 @@ export function useCanvasRenderer(
     // 数值标签（柱子足够高时显示）
     if (height > 25) {
       ctx.font = `600 ${Math.min(10, width - 2)}px "JetBrains Mono", monospace`;
-      ctx.textAlign = "center";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
       ctx.shadowBlur = 2;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = '#ffffff';
 
       // 确保文字在可见区域内
       const minTextY = 5;
@@ -422,11 +418,7 @@ export function useCanvasRenderer(
    * @param oldPositions 交换前的位置映射，用于平滑过渡动画
    * @returns Promise，动画完成后 resolve
    */
-  function queueSwap(
-    speed: number,
-    values: [number, number],
-    oldPositions?: Map<number, number>,
-  ): Promise<number> {
+  function queueSwap(speed: number, values: [number, number], oldPositions?: Map<number, number>): Promise<number> {
     const bar1 = barStates.value.find((b) => b.value === values[0]);
     const bar2 = barStates.value.find((b) => b.value === values[1]);
     if (!bar1 || !bar2) return Promise.resolve(0);
@@ -457,20 +449,9 @@ export function useCanvasRenderer(
    * @param oldPositions 交换前的位置映射
    * @returns Promise（swap/merge）或 undefined（compare/set）
    */
-  function onStep(
-    step: SortStep,
-    speed: number,
-    oldPositions?: Map<number, number>,
-  ): Promise<number> | number | undefined {
-    if (
-      (step.type === "swap" || step.type === "merge") &&
-      step.indices.length === 2 &&
-      step.arraySnapshot
-    ) {
-      const oldValues: [number, number] = [
-        step.arraySnapshot[step.indices[0]],
-        step.arraySnapshot[step.indices[1]],
-      ];
+  function onStep(step: SortStep, speed: number, oldPositions?: Map<number, number>): Promise<number> | number | undefined {
+    if ((step.type === 'swap' || step.type === 'merge') && step.indices.length === 2 && step.arraySnapshot) {
+      const oldValues: [number, number] = [step.arraySnapshot[step.indices[0]], step.arraySnapshot[step.indices[1]]];
       return queueSwap(speed, oldValues, oldPositions);
     }
     // compare 和 set 操作不需要动画，返回 undefined 让调用方使用默认速度

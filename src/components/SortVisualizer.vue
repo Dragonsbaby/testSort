@@ -26,15 +26,11 @@ function reset() {
   algorithmRef.value?.reset();
 }
 
-function generateArray(size: number) {
-  algorithmRef.value?.generateArray(size);
-}
-
 function step() {
   algorithmRef.value?.step();
 }
 
-defineExpose({ reset, generateArray, step });
+defineExpose({ reset, step });
 </script>
 
 <template>
