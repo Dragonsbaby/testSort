@@ -41,6 +41,35 @@ export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<bool
   const sortedIndices = ref<Set<number>>(new Set());
 
   /**
+   * 缓存：value -> 所有对应 displayIndex 的映射
+   *
+   * 背景：arraySnapshot 只记录数值序列（如 [3, 1, 4, 3]），重建 ArrayElement[] 时
+   * 需要知道每个值对应的 displayIndex（原始序号）。如果有重复值，必须按出现顺序
+   * 逐一分配，不能混淆。
+   *
+   * 示例：originalArray = [{value:3, displayIndex:0}, {value:1, displayIndex:1},
+   *                        {value:3, displayIndex:2}, {value:3, displayIndex:3}]
+   * 构建后: Map(3) → [0, 2, 3], Map(1) → [1]
+   */
+  let valueToDisplayIndices: Map<number, number[]> | null = null;
+
+  /**
+   * 构建 value -> displayIndices 映射
+   *
+   * 在 initFromOriginal() 时构建一次并缓存，之后重建 snapshot 时复用。
+   * 不需要每次步骤都重建，因为 originalArray 本身不会变。
+   */
+  function buildValueToDisplayIndices() {
+    const map = new Map<number, number[]>();
+    for (const el of originalArray.value) {
+      const arr = map.get(el.value) ?? [];
+      arr.push(el.displayIndex);
+      map.set(el.value, arr);
+    }
+    return map;
+  }
+
+  /**
    * 根据当前步骤计算需要高亮的索引
    * @returns 各类高亮索引的对象，用于 Canvas 颜色渲染
    */
@@ -91,6 +120,8 @@ export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<bool
     swaps.value = 0;
     sortedIndices.value = new Set();
     localPlaying.value = false;
+    // 构建 value -> displayIndices 映射（只需构建一次）
+    valueToDisplayIndices = buildValueToDisplayIndices();
   }
 
   /** 开始连续播放 */
@@ -134,9 +165,18 @@ export function useSortAnimation(params: { sortFn: SortFn; isPlaying: ToRef<bool
       localPlaying.value = false;
     }
     if (step.arraySnapshot) {
-      // 从 arraySnapshot (number[]) 重建 ArrayElement[]，根据 originalArray 查找 displayIndex
-      const originalMap = new Map(originalArray.value.map(e => [e.value, e.displayIndex]));
-      array.value = step.arraySnapshot.map(value => ({ value, displayIndex: originalMap.get(value) ?? 0 }));
+      // arraySnapshot 是 number[]，需要重建为 ArrayElement[]
+      // 使用 round-robin 分配 displayIndex：遇到重复值时交替使用不同的序号
+      // 例如 snapshot = [3, 3]，缓存 Map(3) = [0, 2] 时，
+      // 第一个 3 分配 displayIndex=0，第二个 3 分配 displayIndex=2
+      const roundRobin = new Map<number, number>();
+      array.value = step.arraySnapshot.map(value => {
+        const available = valueToDisplayIndices?.get(value) ?? [0];
+        const idx = roundRobin.get(value) ?? 0;
+        const displayIndex = available[idx % available.length];
+        roundRobin.set(value, idx + 1);
+        return { value, displayIndex };
+      });
     }
     return animationDelay;
   }

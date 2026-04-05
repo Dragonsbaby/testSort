@@ -113,10 +113,6 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
   /**
    * 根据 displayArray 更新所有柱子的状态
    * @param clearQueue 是否清空动画队列（重置时为 true，正常更新时为 false）
-   *
-   * 注意：使用 value 作为 Map 的 key 存在问题——当数组中存在重复值时，
-   * oldStates 只会保留最后一个该值的柱子状态，可能导致颜色/发光状态丢失。
-   * 这是已知限制，暂不修复以避免破坏当前动画逻辑。
    */
   function updateBars(clearQueue = true) {
     const arr = displayArray.value as ArrayElement[];
@@ -134,11 +130,11 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
     const totalWidth = arr.length * barWidth + (arr.length - 1) * GAP;
     const startX = Math.max(0, (containerWidth - totalWidth) / 2);
 
-    // 保留旧状态的颜色和发光信息（按 value 查找）
-    const oldStates = new Map(barStates.value.map((b) => [b.value, b]));
+    // 保留旧状态的颜色和发光信息（按 displayIndex 查找，支持重复值）
+    const oldStates = new Map(barStates.value.map((b) => [b.displayIndex, b]));
 
     barStates.value = arr.map((element, index) => {
-      const old = oldStates.get(element.value);
+      const old = oldStates.get(element.displayIndex);
       const x = startX + index * (barWidth + GAP);
 
       return {
