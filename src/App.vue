@@ -14,27 +14,39 @@ onMounted(() => {
 
 <template>
   <div class="app">
+    <!-- Background grid pattern -->
+    <div class="bg-grid"></div>
+
     <header class="header">
-      <div class="title-section">
-        <h1 class="title">testSort</h1>
-        <p class="subtitle">排序算法可视化</p>
+      <div class="title-row">
+        <h1 class="title">test<span class="accent">Sort</span></h1>
+        <div class="version">v1.0</div>
       </div>
-      <div class="algorithm-info" v-if="store.algorithm">
-        <span class="info-name">{{ algorithmInfo[store.algorithm].name }}</span>
-        <span class="info-desc">{{
-          algorithmInfo[store.algorithm].description
-        }}</span>
-        <span class="info-complexity">{{
-          algorithmInfo[store.algorithm].complexity
-        }}</span>
+      <div class="algo-hud" v-if="store.algorithm">
+        <div class="hud-item">
+          <span class="hud-label">算法</span>
+          <span class="hud-value algo-name">{{ algorithmInfo[store.algorithm].name }}</span>
+        </div>
+        <div class="hud-divider"></div>
+        <div class="hud-item">
+          <span class="hud-label">复杂度</span>
+          <span class="hud-value complexity">{{ algorithmInfo[store.algorithm].complexity }}</span>
+        </div>
+        <div class="hud-divider"></div>
+        <div class="hud-item wide">
+          <span class="hud-label">描述</span>
+          <span class="hud-value desc">{{ algorithmInfo[store.algorithm].description }}</span>
+        </div>
       </div>
     </header>
 
     <main class="main">
-      <ControlPanel />
-
       <SortVisualizer />
+      <ControlPanel />
     </main>
+
+    <!-- Scanline overlay -->
+    <div class="scanlines"></div>
   </div>
 </template>
 
@@ -44,78 +56,157 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   padding: 24px;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
+  position: relative;
+  overflow: hidden;
 }
 
+/* Background grid pattern */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(74, 158, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 158, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scanline overlay */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.3;
+}
+
+/* Header */
 .header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
 }
 
-.title-section {
+.title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
 .title {
   font-family: "JetBrains Mono", monospace;
-  font-size: 48px;
+  font-size: 42px;
   font-weight: 800;
-  color: #4a9eff;
+  color: #e0e0e0;
   margin: 0;
-  letter-spacing: -2px;
-  text-shadow: 0 0 40px rgba(74, 158, 255, 0.3);
+  letter-spacing: -1px;
+  text-shadow: 0 0 30px rgba(74, 158, 255, 0.3);
 }
 
-.subtitle {
+.title .accent {
+  color: #4a9eff;
+  text-shadow: 0 0 20px rgba(74, 158, 255, 0.6);
+}
+
+.version {
   font-family: "JetBrains Mono", monospace;
-  font-size: 14px;
-  color: #8892b0;
-  margin: 8px 0 0;
-  letter-spacing: 2px;
+  font-size: 11px;
+  color: #4a9eff;
+  background: rgba(74, 158, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(74, 158, 255, 0.2);
 }
 
-.algorithm-info {
+/* HUD bar */
+.algo-hud {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 20px;
   padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(10, 10, 20, 0.8);
+  border: 1px solid rgba(74, 158, 255, 0.15);
   border-radius: 8px;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
+  backdrop-filter: blur(10px);
 }
 
-.info-name {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 16px;
-  font-weight: 600;
-  color: #4ecdc4;
-}
-
-.info-desc {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12px;
-  color: #8892b0;
-}
-
-.info-complexity {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 14px;
-  font-weight: 600;
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.1);
-  padding: 4px 12px;
-  border-radius: 4px;
-}
-
-.main {
+.hud-item {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud-item.wide {
+  min-width: 200px;
+  text-align: center;
+}
+
+.hud-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: #8b95a8;
+  letter-spacing: 1px;
+}
+
+.hud-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+  color: #5dddd4;
+  text-transform: uppercase;
+}
+
+.hud-value.algo-name {
+  color: #6bb3ff;
+  font-weight: 600;
+}
+
+.hud-value.complexity {
+  color: #ff8a8a;
+  font-weight: 600;
+}
+
+.hud-value.desc {
+  color: #a8b2c8;
+  font-size: 12px;
+  text-transform: none;
+}
+
+.hud-divider {
+  width: 1px;
+  height: 30px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(74, 158, 255, 0.3) 50%,
+    transparent
+  );
+}
+
+/* Main content */
+.main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {
@@ -124,12 +215,23 @@ onMounted(() => {
   }
 
   .title {
-    font-size: 32px;
+    font-size: 28px;
   }
 
-  .algorithm-info {
+  .algo-hud {
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .hud-divider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .hud-item.wide {
+    min-width: auto;
+    width: 100%;
   }
 }
 </style>
