@@ -73,7 +73,7 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
    */
   const highlightedIndices = computed<HighlightedIndices>(() => {
     if (currentStep.value <= 0 || currentStep.value > steps.value.length) {
-      return { comparing: [], swapping: [], sorted: [], pivot: [] };
+      return { comparing: [], swapping: [], sorted: [], pivot: [], pending: [] };
     }
     const step = steps.value[currentStep.value - 1];
     let comparing: number[] = [],
@@ -95,7 +95,8 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
         break;
       // "sorted" 类型不需要设置高亮，仅更新 sortedIndices
     }
-    return { comparing, swapping, sorted: Array.from(sortedIndices.value), pivot };
+    const pending = step.groupIndices ?? [];
+    return { comparing, swapping, sorted: Array.from(sortedIndices.value), pivot, pending };
   });
 
   /** 当前步骤的详细信息（用于 UI 显示） */

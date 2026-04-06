@@ -28,6 +28,7 @@ export interface HighlightedIndices {
   swapping: number[]; // 正在交换的元素
   sorted: number[]; // 已排好序的元素
   pivot: number[]; // 基准元素（快排）
+  pending: number[]; // 当前排序组的元素（待排序）
 }
 
 /**
@@ -49,8 +50,9 @@ const COLORS = {
   default: { r: 74, g: 158, b: 255 }, // 蓝色 - 默认状态
   comparing: { r: 255, g: 204, b: 0 }, // 黄色 - 比较中
   swapping: { r: 255, g: 107, b: 107 }, // 红色 - 交换中
-  sorted: { r: 0, g: 255, b: 160 }, // 绿色 - 已排序
+  sorted: { r: 103, g: 194, b: 58 }, // #67C23A - 已排序
   pivot: { r: 155, g: 89, b: 182 }, // 紫色 - 基准点
+  pending: { r: 149, g: 117, b: 205 }, // #9575CD 淡紫色 - 待排序（当前组）
 };
 
 /** 缓动函数 */
@@ -172,14 +174,15 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
 
   /**
    * 根据 highlightedIndices 更新所有柱子的颜色
-   * 优先级：pivot > swapping > comparing > sorted > default
+   * 优先级：pivot > swapping > comparing > pending > sorted > default
    */
   function updateColors() {
-    const { comparing, swapping, sorted, pivot } = highlightedIndices.value;
+    const { comparing, swapping, sorted, pivot, pending } = highlightedIndices.value;
     const comparingSet = new Set(comparing);
     const swappingSet = new Set(swapping);
     const sortedSet = new Set(sorted);
     const pivotSet = new Set(pivot);
+    const pendingSet = new Set(pending);
 
     barStates.value.forEach((bar) => {
       if (pivotSet.has(bar.index)) {
@@ -191,6 +194,9 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
       } else if (comparingSet.has(bar.index)) {
         bar.color = COLORS.comparing;
         bar.glowIntensity = 0.6;
+      } else if (pendingSet.has(bar.index)) {
+        bar.color = COLORS.pending;
+        bar.glowIntensity = 0.25;
       } else if (sortedSet.has(bar.index)) {
         bar.color = COLORS.sorted;
         bar.glowIntensity = 0.3;

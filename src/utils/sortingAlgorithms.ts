@@ -6,8 +6,9 @@ function createStep(
   description: string,
   arraySnapshot?: number[],
   gap?: number,
+  groupIndices?: number[],
 ): SortStep {
-  return { type, indices, description, arraySnapshot, gap };
+  return { type, indices, description, arraySnapshot, gap, groupIndices };
 }
 
 export function bubbleSort(arr: number[]): SortStep[] {
@@ -185,13 +186,16 @@ export function shellSort(arr: number[]): SortStep[] {
 
   for (let gap = Math.floor(n / 2); gap > 0; gap = Math.floor(gap / 2)) {
     for (let i = gap; i < n; i++) {
+      // 计算当前 i 所属的组：所有 ≡ i (mod gap) 的索引（包括 i 之前和之后的同组元素）
+      const group: number[] = [];
+      const remainder = i % gap;
+      for (let k = remainder; k < n; k += gap) group.push(k);
       const current = a[i];
       let j = i;
       while (j >= gap) {
-        steps.push(createStep("compare", [j - gap, j], `比较间隔 ${gap} 内的元素 [${j - gap}]=${a[j - gap]} 和 [${j}]=${current}`, undefined, gap));
+        steps.push(createStep("compare", [j - gap, j], `比较间隔 ${gap} 内的元素 [${j - gap}]=${a[j - gap]} 和 [${j}]=${current}`, undefined, gap, group));
         if (a[j - gap] > current) {
-          // 移位操作：使用 swap 动画来展示元素右移
-          steps.push(createStep("swap", [j - gap, j], `间隔 ${gap} 移位：${a[j - gap]} 移到 [${j}]`, [...a], gap));
+          steps.push(createStep("swap", [j - gap, j], `间隔 ${gap} 移位：${a[j - gap]} 移到 [${j}]`, [...a], gap, group));
           a[j] = a[j - gap];
           j -= gap;
         } else {
@@ -199,8 +203,7 @@ export function shellSort(arr: number[]): SortStep[] {
         }
       }
       if (j !== i) {
-        // 将 current 插入到最终位置，使用 swap 动画
-        steps.push(createStep("swap", [j, i], `插入元素 ${current} 到位置 [${j}]`, [...a], gap));
+        steps.push(createStep("swap", [j, i], `插入元素 ${current} 到位置 [${j}]`, [...a], gap, group));
         a[j] = current;
       }
     }
