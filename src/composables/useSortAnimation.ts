@@ -37,6 +37,8 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
 
   /** 已排序元素的索引集合（增量维护，避免 O(n) 遍历） */
   const sortedIndices = ref<Set<number>>(new Set());
+  /** 上一步的完整高亮状态，交换步骤时继承所有状态 */
+  let prevHighlightedIndices: HighlightedIndices = { comparing: [], swapping: [], sorted: [], pivot: [], pending: [] };
 
   /**
    * 缓存：value -> 所有对应 displayIndex 的映射
@@ -78,14 +80,19 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     const step = steps.value[currentStep.value - 1];
     let comparing: number[] = [],
       swapping: number[] = [],
-      pivot: number[] = [];
+      pivot: number[] = [],
+      pending: number[] = [];
     switch (step.type) {
       case 'compare':
         comparing = step.indices;
+        pending = step.groupIndices ?? [];
         break;
       case 'swap':
       case 'merge':
         swapping = step.indices;
+        // 交换/合并时继承上一步的所有高亮状态（comparing, pending, sorted, pivot）
+        comparing = prevHighlightedIndices.comparing;
+        pending = prevHighlightedIndices.pending;
         break;
       case 'pivot':
         pivot = step.indices;
@@ -95,7 +102,10 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
         break;
       // "sorted" 类型不需要设置高亮，仅更新 sortedIndices
     }
-    const pending = step.groupIndices ?? [];
+    // 更新 prevHighlightedIndices（swap 步骤继承上一步状态，其他步骤保存当前状态）
+    if (step.type !== 'swap' && step.type !== 'merge') {
+      prevHighlightedIndices = { comparing, swapping, sorted: Array.from(sortedIndices.value), pivot, pending };
+    }
     return { comparing, swapping, sorted: Array.from(sortedIndices.value), pivot, pending };
   });
 
@@ -149,8 +159,12 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
    * @returns 动画延迟时间
    */
   async function applyStep(step: SortStep) {
-    currentStep.value++;
+    // 先等待动画完成，再递增 currentStep
+    // 这样 highlightedIndices 的更新会与动画同步，避免比较高亮在动画结束前被清除
     const animationDelay = await canvasRef.value?.applyStep(step);
+
+    // 动画完成后才更新 currentStep，让 highlightedIndices 与视觉状态一致
+    currentStep.value++;
 
     if (step.type === 'compare') {
       comparisons.value++;
@@ -165,17 +179,27 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     }
     if (step.arraySnapshot) {
       // arraySnapshot 是 number[]，需要重建为 ArrayElement[]
+      // 注意：对于 swap 步骤，arraySnapshot 是交换前的状态
+      // 动画完成后，需要应用实际的交换来得到交换后的状态
+      let finalSnapshot = step.arraySnapshot;
+      if (step.type === 'swap' && step.indices.length === 2) {
+        const [i, j] = step.indices;
+        finalSnapshot = [...step.arraySnapshot];
+        [finalSnapshot[i], finalSnapshot[j]] = [finalSnapshot[j], finalSnapshot[i]];
+      }
       // 使用 round-robin 分配 displayIndex：遇到重复值时交替使用不同的序号
       // 例如 snapshot = [3, 3]，缓存 Map(3) = [0, 2] 时，
       // 第一个 3 分配 displayIndex=0，第二个 3 分配 displayIndex=2
       const roundRobin = new Map<number, number>();
-      array.value = step.arraySnapshot.map(value => {
+      array.value = finalSnapshot.map(value => {
         const available = valueToDisplayIndices?.get(value) ?? [0];
         const idx = roundRobin.get(value) ?? 0;
         const displayIndex = available[idx % available.length];
         roundRobin.set(value, idx + 1);
         return { value, displayIndex };
       });
+      // 同步更新 barStates，避免被下一步骤的 isApplyingStep 打断
+      canvasRef.value?.updateBars();
     }
     return animationDelay;
   }

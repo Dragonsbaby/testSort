@@ -174,7 +174,8 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
 
   /**
    * 根据 highlightedIndices 更新所有柱子的颜色
-   * 优先级：pivot > swapping > comparing > pending > sorted > default
+   * 优先级：pivot > comparing > pending > sorted > default
+   * 注意：swapping 不做颜色标记，物理动画本身已足够表达交换动作
    */
   function updateColors() {
     const { comparing, swapping, sorted, pivot, pending } = highlightedIndices.value;
@@ -189,8 +190,15 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
         bar.color = COLORS.pivot;
         bar.glowIntensity = 0.8;
       } else if (swappingSet.has(bar.index)) {
-        bar.color = COLORS.swapping;
-        bar.glowIntensity = 1.0;
+        // 如果交换中的柱子上一步也是比较状态，保持黄色高亮
+        // 这样用户可以看到"从比较过渡到交换"的连续视觉反馈
+        if (comparingSet.has(bar.index)) {
+          bar.color = COLORS.comparing;
+          bar.glowIntensity = 0.6;
+        } else {
+          bar.color = COLORS.default;
+          bar.glowIntensity = 0;
+        }
       } else if (comparingSet.has(bar.index)) {
         bar.color = COLORS.comparing;
         bar.glowIntensity = 0.6;
