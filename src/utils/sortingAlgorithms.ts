@@ -77,13 +77,9 @@ export function insertionSort(arr: number[]): SortStep[] {
           [...array],
         ),
       );
+      // 使用 swap 动画来展示元素右移
       steps.push(
-        createStep(
-          "set",
-          [j + 1],
-          `将 arr[${j}]=${array[j]} 后移到 arr[${j + 1}]`,
-          [...array],
-        ),
+        createStep("swap", [j, j + 1], `将 arr[${j}]=${array[j]} 右移到 arr[${j + 1}]`, [...array]),
       );
       array[j + 1] = array[j];
       j--;
@@ -100,12 +96,8 @@ export function insertionSort(arr: number[]): SortStep[] {
       );
     }
 
+    // 将 key 插入到正确位置
     array[j + 1] = key;
-    steps.push(
-      createStep("set", [j + 1], `将 key=${key} 插入到 arr[${j + 1}]`, [
-        ...array,
-      ]),
-    );
     steps.push(createStep("sorted", [0, i], `0-${i} 范围已排序`, [...array]));
   }
 
@@ -347,9 +339,9 @@ export function shellSort(arr: number[]): SortStep[] {
           ),
         );
         if (a[j - gap] > current) {
-          // 移位操作：记录当前数组快照后，将 a[j-gap] 的值移到 a[j]
+          // 移位操作：使用 swap 动画来展示元素右移
           steps.push(
-            createStep("set", [j], `间隔 ${gap} 移位：${a[j - gap]} 移到 [${j}]`, [...a]),
+            createStep("swap", [j - gap, j], `间隔 ${gap} 移位：${a[j - gap]} 移到 [${j}]`, [...a]),
           );
           a[j] = a[j - gap];
           j -= gap;
@@ -358,9 +350,9 @@ export function shellSort(arr: number[]): SortStep[] {
         }
       }
       if (j !== i) {
-        // 将 current 插入到最终位置
+        // 将 current 插入到最终位置，使用 swap 动画
         steps.push(
-          createStep("set", [j], `插入元素 ${current} 到位置 [${j}]`, [...a]),
+          createStep("swap", [j, i], `插入元素 ${current} 到位置 [${j}]`, [...a]),
         );
         a[j] = current;
       }
