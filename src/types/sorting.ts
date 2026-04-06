@@ -11,6 +11,7 @@ export interface SortStep {
   indices: number[];
   description: string;
   arraySnapshot?: number[];
+  gap?: number; // 步长（希尔排序用）
 }
 
 export type SortAlgorithm = "bubble" | "insertion" | "merge" | "quick" | "shell";

@@ -31,6 +31,12 @@ const statusClass = computed(() => {
   if (currentStep.value === 0) return 'ready';
   return 'paused';
 });
+
+// 直接从步骤信息中获取间隔 (gap)
+const currentGap = computed(() => {
+  if (!currentStepInfo.value) return null;
+  return currentStepInfo.value.gap ?? null;
+});
 </script>
 
 <template>
@@ -83,6 +89,11 @@ const statusClass = computed(() => {
         <div class="stat-item">
           <span class="stat-label">步骤</span>
           <span class="stat-value steps">{{ currentStep }}/{{ steps.length }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label">间隔</span>
+          <span class="stat-value gap">{{ currentGap ?? '-' }}</span>
         </div>
         <div class="stat-divider"></div>
         <div class="status-indicator" :class="statusClass">
@@ -204,6 +215,10 @@ const statusClass = computed(() => {
 
 .stat-value.steps {
   color: #5dddd4;
+}
+
+.stat-value.gap {
+  color: #c89bff;
 }
 
 /* Status indicator */
