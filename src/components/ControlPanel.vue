@@ -126,7 +126,6 @@ function handleNewArray() {
   font-size: 11px;
   color: #8b95a8;
   letter-spacing: 1px;
-  text-transform: uppercase;
 }
 
 /* Algorithm tabs */

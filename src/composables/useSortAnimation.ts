@@ -190,15 +190,15 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
 
   /**
    * 重置到初始状态
-   * 注意：array 不重置为 originalArray，而是保持当前值（可能已被步骤修改）
+   * 恢复原始数组，清除所有统计和步骤进度
    */
   function reset() {
     stop();
+    array.value = [...originalArray.value];
     currentStep.value = 0;
     comparisons.value = 0;
     swaps.value = 0;
     sortedIndices.value = new Set();
-    if (array.value.length > 0) array.value = [...array.value];
     canvasRef.value?.updateBars();
   }
 

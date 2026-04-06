@@ -38,11 +38,11 @@ onMounted(() => {
           <span class="hud-value desc">{{ algorithmInfo[store.algorithm].description }}</span>
         </div>
       </div>
+      <ControlPanel />
     </header>
 
     <main class="main">
       <SortVisualizer />
-      <ControlPanel />
     </main>
 
   </div>
@@ -78,6 +78,9 @@ onMounted(() => {
   margin-bottom: 20px;
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .title-row {
@@ -151,7 +154,6 @@ onMounted(() => {
   font-family: "JetBrains Mono", monospace;
   font-size: 14px;
   color: #5dddd4;
-  text-transform: uppercase;
 }
 
 .hud-value.algo-name {
