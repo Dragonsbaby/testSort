@@ -10,6 +10,7 @@ const algorithms: { value: SortAlgorithm; label: string }[] = [
   { value: "quick", label: "快速" },
   { value: "bubble", label: "冒泡" },
   { value: "insertion", label: "插入" },
+  { value: "shell", label: "希尔" },
 ];
 
 const sliderValue = ref(200);

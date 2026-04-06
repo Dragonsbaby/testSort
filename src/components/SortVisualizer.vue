@@ -6,6 +6,7 @@ import {
   InsertionSort,
   MergeSort,
   QuickSort,
+  ShellSort,
 } from "@/components/algorithms";
 
 const store = useSortStore();
@@ -16,6 +17,7 @@ const componentMap = {
   insertion: InsertionSort,
   merge: MergeSort,
   quick: QuickSort,
+  shell: ShellSort,
 } as const;
 
 const currentComponent = computed(

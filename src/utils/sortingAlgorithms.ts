@@ -328,3 +328,46 @@ export function quickSort(arr: number[]): SortStep[] {
 
   return steps;
 }
+
+export function shellSort(arr: number[]): SortStep[] {
+  const steps: SortStep[] = [];
+  const a = [...arr];
+  const n = a.length;
+
+  for (let gap = Math.floor(n / 2); gap > 0; gap = Math.floor(gap / 2)) {
+    for (let i = gap; i < n; i++) {
+      const current = a[i];
+      let j = i;
+      while (j >= gap) {
+        steps.push(
+          createStep(
+            "compare",
+            [j - gap, j],
+            `比较间隔 ${gap} 内的元素 [${j - gap}]=${a[j - gap]} 和 [${j}]=${current}`,
+          ),
+        );
+        if (a[j - gap] > current) {
+          // 移位操作：记录当前数组快照后，将 a[j-gap] 的值移到 a[j]
+          steps.push(
+            createStep("set", [j], `间隔 ${gap} 移位：${a[j - gap]} 移到 [${j}]`, [...a]),
+          );
+          a[j] = a[j - gap];
+          j -= gap;
+        } else {
+          break;
+        }
+      }
+      if (j !== i) {
+        // 将 current 插入到最终位置
+        steps.push(
+          createStep("set", [j], `插入元素 ${current} 到位置 [${j}]`, [...a]),
+        );
+        a[j] = current;
+      }
+    }
+  }
+
+  const sortedIndices = Array.from({ length: n }, (_, i) => i);
+  steps.push(createStep("sorted", sortedIndices, "排序完成"));
+  return steps;
+}

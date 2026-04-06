@@ -13,7 +13,7 @@ export interface SortStep {
   arraySnapshot?: number[];
 }
 
-export type SortAlgorithm = "bubble" | "insertion" | "merge" | "quick";
+export type SortAlgorithm = "bubble" | "insertion" | "merge" | "quick" | "shell";
 
 export interface AlgorithmInfo {
   name: string;
@@ -41,5 +41,10 @@ export const algorithmInfo: Record<SortAlgorithm, AlgorithmInfo> = {
     name: "快速排序",
     description: "分治策略，选择基准元素，将数组分为小于和大于基准的两部分",
     complexity: "O(n log n)",
+  },
+  shell: {
+    name: "希尔排序",
+    description: "希尔排序是插入排序的改进版本，通过设置间隔序列逐步缩小排序范围。",
+    complexity: "O(n log² n)",
   },
 };
