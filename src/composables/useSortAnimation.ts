@@ -102,11 +102,12 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
         break;
       // "sorted" 类型不需要设置高亮，仅更新 sortedIndices
     }
+    const sortedArray = Array.from(sortedIndices.value);
     // 更新 prevHighlightedIndices（swap 步骤继承上一步状态，其他步骤保存当前状态）
     if (step.type !== 'swap' && step.type !== 'merge') {
-      prevHighlightedIndices = { comparing, swapping, sorted: Array.from(sortedIndices.value), pivot, pending };
+      prevHighlightedIndices = { comparing, swapping, sorted: sortedArray, pivot, pending };
     }
-    return { comparing, swapping, sorted: Array.from(sortedIndices.value), pivot, pending };
+    return { comparing, swapping, sorted: sortedArray, pivot, pending };
   });
 
   /** 当前步骤的详细信息（用于 UI 显示） */
