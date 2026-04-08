@@ -47,18 +47,11 @@ export function insertionSort(arr: number[]): SortStep[] {
 
     while (j >= 0 && array[j] > key) {
       steps.push(createStep("compare", [j, j + 1], `比较 arr[${j}]=${array[j]} 和 key=${key}`, [...array]));
-      // 使用 swap 动画来展示元素右移
-      steps.push(createStep("swap", [j, j + 1], `将 arr[${j}]=${array[j]} 右移到 arr[${j + 1}]`, [...array]));
-      array[j + 1] = array[j];
+      // 用真正的 swap 模拟 key 与左元素交换（实现右移效果）
+      steps.push(createStep("swap", [j, j + 1], `交换 arr[${j}]=${array[j]} 和 arr[${j + 1}]=${key}`, [...array]));
+      [array[j], array[j + 1]] = [array[j + 1], array[j]];
       j--;
     }
-
-    if (j >= 0) {
-      steps.push(createStep("compare", [j, j + 1], `比较 arr[${j}]=${array[j]} 和 key=${key}`, [...array]));
-    }
-
-    // 将 key 插入到正确位置
-    array[j + 1] = key;
     steps.push(createStep("sorted", [0, i], `0-${i} 范围已排序`, [...array]));
   }
 

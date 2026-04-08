@@ -2,16 +2,14 @@
 import { ref, watch } from 'vue';
 import { useSortStore } from '@/stores/sortStore';
 import type { SortAlgorithm } from '@/types/sorting';
+import { algorithmInfo } from '@/types/sorting';
 
 const store = useSortStore();
 
-const algorithms: { value: SortAlgorithm; label: string }[] = [
-  { value: 'merge', label: '归并' },
-  { value: 'quick', label: '快速' },
-  { value: 'bubble', label: '冒泡' },
-  { value: 'insertion', label: '插入' },
-  { value: 'shell', label: '希尔' }
-];
+const algorithms = Object.entries(algorithmInfo).map(([value, info]) => ({
+  value: value as SortAlgorithm,
+  label: info.name.replace('排序', ''),
+}));
 
 const sliderValue = ref(store.animationSpeed);
 
@@ -36,20 +34,23 @@ function handleNewArray() {
 <template>
   <div class="control-panel">
     <div class="panel-section algo-section">
-      <span class="section-label">算法</span>
-      <div class="algo-tabs">
-        <button v-for="alg in algorithms" :key="alg.value" class="algo-tab" :class="{ active: store.algorithm === alg.value }" @click="handleAlgorithmChange(alg.value)">
-          {{ alg.label }}
-        </button>
+      <select :value="store.algorithm" @change="e => handleAlgorithmChange((e.target as HTMLSelectElement).value as SortAlgorithm)" class="algo-dropdown">
+        <option v-for="alg in algorithms" :key="alg.value" :value="alg.value">{{ alg.label }}</option>
+      </select>
+    </div>
+
+    <div class="panel-section algo-info-section">
+      <div class="algo-info">
+        <span class="algo-complexity">{{ algorithmInfo[store.algorithm].complexity }}</span>
+        <span class="algo-desc">{{ algorithmInfo[store.algorithm].description }}</span>
       </div>
     </div>
 
     <div class="panel-divider"></div>
 
     <div class="panel-section size-section">
-      <span class="section-label">数据量</span>
       <div class="size-control">
-        <input type="range" :value="store.arraySize" @input="e => handleSizeChange(Number((e.target as HTMLInputElement).value))" min="10" max="50" step="1" class="size-slider" />
+        <input type="range" :value="store.arraySize" @input="e => handleSizeChange(Number((e.target as HTMLInputElement).value))" min="10" max="100" step="1" class="size-slider" />
         <span class="size-value">{{ store.arraySize }}</span>
       </div>
     </div>
@@ -57,7 +58,6 @@ function handleNewArray() {
     <div class="panel-divider"></div>
 
     <div class="panel-section speed-section">
-      <span class="section-label">速度</span>
       <div class="speed-control">
         <input type="range" v-model="sliderValue" min="50" max="500" step="10" class="speed-slider" />
         <span class="speed-value">{{ sliderValue }}ms</span>
@@ -83,67 +83,95 @@ function handleNewArray() {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .control-panel {
   display: flex;
   align-items: center;
   gap: 0;
-  padding: 16px 24px;
-  background: rgba(10, 10, 20, 0.9);
-  border: 1px solid rgba(74, 158, 255, 0.2);
-  border-radius: 12px;
+  padding: 14px 28px;
+  background: rgba(10, 10, 20, 0.85);
+  border: 1px solid rgba(74, 158, 255, 0.15);
+  border-radius: 14px;
   backdrop-filter: blur(20px);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .panel-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  padding: 2px 6px;
 }
 
-.section-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: #8b95a8;
-  letter-spacing: 1px;
-}
-
-/* Algorithm tabs */
-.algo-tabs {
-  display: flex;
-  gap: 4px;
-}
-
-.algo-tab {
+/* Algorithm selector */
+.algo-dropdown {
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
-  padding: 10px 16px;
+  padding: 8px 32px 8px 12px;
   border: 1px solid rgba(74, 158, 255, 0.25);
   background: rgba(74, 158, 255, 0.08);
-  color: #b4bcc8;
+  color: #6bb3ff;
   border-radius: 6px;
   cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b95a8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 88px;
   transition: all 0.2s ease;
 }
 
-.algo-tab:hover {
-  background: rgba(74, 158, 255, 0.1);
+.algo-dropdown:hover {
+  background-color: rgba(74, 158, 255, 0.12);
+  border-color: rgba(74, 158, 255, 0.4);
+}
+
+.algo-dropdown:focus {
+  border-color: rgba(74, 158, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+}
+
+.algo-dropdown option {
+  background: #0d1117;
   color: #e0e0e0;
 }
 
-.algo-tab.active {
-  background: rgba(74, 158, 255, 0.25);
-  border-color: rgba(74, 158, 255, 0.6);
-  color: #6bb3ff;
-  box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+/* Algorithm info */
+.algo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 260px;
+}
+
+.algo-complexity {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #4adeee;
+  padding: 2px 8px;
+  background: rgba(74, 222, 222, 0.08);
+  border-radius: 4px;
+  border: 1px solid rgba(74, 222, 222, 0.2);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.algo-desc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #a8b2c8;
+  line-height: 1.4;
 }
 
 /* Dividers */
 .panel-divider {
   width: 1px;
-  height: 50px;
-  background: linear-gradient(180deg, transparent, rgba(74, 158, 255, 0.3) 30%, rgba(74, 158, 255, 0.3) 70%, transparent);
-  margin: 0 24px;
+  height: 44px;
+  background: linear-gradient(180deg, transparent, rgba(74, 158, 255, 0.25) 30%, rgba(74, 158, 255, 0.25) 70%, transparent);
+  margin: 0 20px;
 }
 
 /* Size control */
@@ -151,17 +179,23 @@ function handleNewArray() {
 .speed-control {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .size-slider,
 .speed-slider {
   -webkit-appearance: none;
-  width: 120px;
+  width: 110px;
   height: 4px;
-  background: rgba(74, 158, 255, 0.2);
+  background: rgba(74, 158, 255, 0.15);
   border-radius: 2px;
   outline: none;
+  transition: background 0.2s ease;
+}
+
+.size-slider:hover,
+.speed-slider:hover {
+  background: rgba(74, 158, 255, 0.25);
 }
 
 .size-slider::-webkit-slider-thumb,
@@ -172,13 +206,14 @@ function handleNewArray() {
   background: #4a9eff;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
-  transition: transform 0.15s ease;
+  box-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .size-slider::-webkit-slider-thumb:hover,
 .speed-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
+  box-shadow: 0 0 14px rgba(74, 158, 255, 0.6);
 }
 
 .size-value,
@@ -192,45 +227,51 @@ function handleNewArray() {
 .speed-marks {
   display: flex;
   justify-content: space-between;
-  width: 120px;
+  width: 110px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   color: #8b95a8;
+  margin-top: 2px;
 }
 
 /* Action button */
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  padding: 10px 18px;
-  border: 1px solid rgba(78, 205, 196, 0.4);
-  background: rgba(78, 205, 196, 0.1);
+  padding: 8px 16px;
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  background: rgba(78, 205, 196, 0.08);
   color: #4ecdc4;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .action-btn:hover {
-  background: rgba(78, 205, 196, 0.2);
-  border-color: rgba(78, 205, 196, 0.6);
-  box-shadow: 0 0 20px rgba(78, 205, 196, 0.2);
+  background: rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.5);
+  box-shadow: 0 0 16px rgba(78, 205, 196, 0.15);
   transform: translateY(-1px);
 }
 
+.action-btn:active {
+  transform: translateY(0);
+}
+
 .icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 @media (max-width: 900px) {
   .control-panel {
     flex-wrap: wrap;
-    gap: 16px;
-    padding: 16px;
+    gap: 12px;
+    padding: 14px 16px;
+    justify-content: center;
   }
 
   .panel-divider {
@@ -244,6 +285,10 @@ function handleNewArray() {
 
   .speed-marks {
     width: 100px;
+  }
+
+  .algo-info {
+    align-items: flex-start;
   }
 }
 </style>

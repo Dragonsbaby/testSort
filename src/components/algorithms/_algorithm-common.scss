@@ -1,0 +1,215 @@
+// Shared styles for algorithm view components
+
+.algorithm-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 14px;
+}
+
+/* Combined stats bar */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 20px;
+  background: rgba(10, 10, 20, 0.7);
+  border: 1px solid rgba(74, 158, 255, 0.12);
+  border-radius: 10px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* Left group: buttons + compact stats */
+.stats-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Control group (left) */
+.ctrl-group {
+  display: flex;
+  gap: 6px;
+}
+
+.ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(74, 158, 255, 0.25);
+  background: rgba(74, 158, 255, 0.06);
+  color: #b4bcc8;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ctrl-btn:hover:not(:disabled) {
+  background: rgba(74, 158, 255, 0.12);
+  border-color: rgba(74, 158, 255, 0.4);
+  color: #e0e0e0;
+}
+
+.ctrl-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ctrl-btn.active {
+  background: rgba(255, 107, 107, 0.12);
+  border-color: rgba(255, 107, 107, 0.35);
+  color: #ff6b6b;
+}
+
+.btn-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.stat-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  color: #8b95a8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: #5dddd4;
+}
+
+.stat-value.comparisons {
+  color: #6bb3ff;
+}
+
+.stat-value.swaps {
+  color: #ff8a8a;
+}
+
+.stat-value.steps {
+  color: #5dddd4;
+}
+
+/* Status indicator */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-indicator.ready .dot {
+  background: #8b95a8;
+}
+
+.status-indicator.playing .dot {
+  background: #5dddd4;
+  box-shadow: 0 0 8px rgba(93, 221, 212, 0.5);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.status-indicator.paused .dot {
+  background: #ff8a8a;
+}
+
+.status-indicator.done .dot {
+  background: #6bff6b;
+}
+
+.status-text {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  transition: color 0.2s ease;
+}
+
+.status-indicator.ready .status-text {
+  color: #8b95a8;
+}
+
+.status-indicator.playing .status-text {
+  color: #5dddd4;
+}
+
+.status-indicator.paused .status-text {
+  color: #ff8a8a;
+}
+
+.status-indicator.done .status-text {
+  color: #6bff6b;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* Operation (right) */
+.operation-item {
+  text-align: right;
+  min-width: 160px;
+}
+
+.stat-value.operation {
+  font-size: 11px;
+  color: #a8b2c8;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 28px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(74, 158, 255, 0.2) 50%,
+    transparent
+  );
+}
+
+@media (max-width: 700px) {
+  .stats-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .stats-left {
+    order: 1;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .operation-item {
+    order: 2;
+    width: 100%;
+    text-align: center;
+  }
+
+  .stat-divider {
+    display: none;
+  }
+}

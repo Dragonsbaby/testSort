@@ -120,7 +120,7 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
    * 只要 originalArray 更新就会要重载 数组和步骤
    */
   function initFromOriginal() {
-    if(originalArray.value.length === 0) return;
+    if (originalArray.value.length === 0) return;
     stop();
     array.value = [...originalArray.value];
     // 排序算法只接收数值数组
@@ -252,6 +252,22 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     }
   }
 
+  /** 状态文本 */
+  const statusText = computed(() => {
+    if (localPlaying.value) return '播放中';
+    if (currentStep.value >= steps.value.length) return '已完成';
+    if (currentStep.value === 0) return '就绪';
+    return '已暂停';
+  });
+
+  /** 状态样式类 */
+  const statusClass = computed(() => {
+    if (localPlaying.value) return 'playing';
+    if (currentStep.value >= steps.value.length) return 'done';
+    if (currentStep.value === 0) return 'ready';
+    return 'paused';
+  });
+
   return {
     array,
     steps,
@@ -265,5 +281,7 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     pause: stop,
     step: stepOnce,
     reset,
+    statusText,
+    statusClass,
   };
 }

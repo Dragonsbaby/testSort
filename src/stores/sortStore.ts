@@ -16,9 +16,14 @@ export const useSortStore = defineStore("sort", () => {
   const algorithm = ref<SortAlgorithm>("quick");
 
   function generateArray(size: number) {
-    const arr: ArrayElement[] = [];
-    for (let i = 0; i < size; i++) arr.push({ value: Math.floor(Math.random() * 90) + 10, displayIndex: i + 1 });
-    originalArray.value = [...arr];
+    // 生成 1-size 不重复的数并乱序
+    const values = Array.from({ length: size }, (_, i) => i + 1);
+    for (let i = values.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [values[i], values[j]] = [values[j], values[i]];
+    }
+    const arr: ArrayElement[] = values.map((value, index) => ({ value, displayIndex: index + 1 }));
+    originalArray.value = arr;
   }
 
   function setSpeed(speed: number) { animationSpeed.value = speed; }

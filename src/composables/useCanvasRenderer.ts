@@ -162,7 +162,8 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
         y: Math.round(containerHeight - BAR_HEIGHT_OFFSET),
         width: barWidth,
         // 高度按数值比例计算，maxValue 为 0 时处理为 0，像素对齐
-        height: maxValue > 0 ? Math.round((element.value / maxValue) * (containerHeight - 60)) : 0,
+        // 最小高度 5 像素，确保 value=1 时也能正常显示
+        height: maxValue > 0 ? Math.max(5, Math.round((element.value / maxValue) * (containerHeight - 60))) : 0,
         color: old?.color ?? COLORS.default,
         glowIntensity: old?.glowIntensity ?? 0,
       };
@@ -331,23 +332,21 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
     ctx.fillRect(bx + 3, barTop + 2, bw - 6, 3);
 
 
-    // 数值标签（柱子足够高时显示）
-    if (height > 25) {
-      ctx.font = `600 ${Math.min(10, width - 2)}px "JetBrains Mono", monospace`;
-      ctx.textAlign = 'center';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = 2;
-      ctx.fillStyle = '#f7cb07';
+    // 数值标签（保证所有数值都能可见）
+    ctx.font = `600 ${Math.min(10, width - 2)}px "JetBrains Mono", monospace`;
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 2;
+    ctx.fillStyle = '#f7cb07';
 
-      // 确保文字在可见区域内
-      const minTextY = 5;
-      let textY = barTop - 8;
-      if (textY < minTextY || barTop < 15) {
-        textY = Math.max(y - 15, minTextY);
-      }
-      ctx.fillText(bar.value.toString(), x + width / 2, textY);
-      ctx.shadowBlur = 0;
+    // 确保文字在可见区域内
+    const minTextY = 5;
+    let textY = barTop - 8;
+    if (textY < minTextY || barTop < 15) {
+      textY = Math.max(y - 15, minTextY);
     }
+    ctx.fillText(bar.value.toString(), x + width / 2, textY);
+    ctx.shadowBlur = 0;
 
     // 底部序号标签（像素对齐）
     ctx.font = `bold ${Math.min(12, bw - 2)}px "JetBrains Mono", monospace`;
