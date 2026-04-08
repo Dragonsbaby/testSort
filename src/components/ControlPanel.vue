@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { useSortStore } from "@/stores/sortStore";
-import type { SortAlgorithm } from "@/types/sorting";
+import { ref, watch } from 'vue';
+import { useSortStore } from '@/stores/sortStore';
+import type { SortAlgorithm } from '@/types/sorting';
 
 const store = useSortStore();
 
 const algorithms: { value: SortAlgorithm; label: string }[] = [
-  { value: "merge", label: "归并" },
-  { value: "quick", label: "快速" },
-  { value: "bubble", label: "冒泡" },
-  { value: "insertion", label: "插入" },
-  { value: "shell", label: "希尔" },
+  { value: 'merge', label: '归并' },
+  { value: 'quick', label: '快速' },
+  { value: 'bubble', label: '冒泡' },
+  { value: 'insertion', label: '插入' },
+  { value: 'shell', label: '希尔' }
 ];
 
-const sliderValue = ref(200);
+const sliderValue = ref(store.animationSpeed);
 
-watch(sliderValue, (val) => {
+watch(sliderValue, val => {
   store.setSpeed(val);
 });
 
@@ -38,13 +38,7 @@ function handleNewArray() {
     <div class="panel-section algo-section">
       <span class="section-label">算法</span>
       <div class="algo-tabs">
-        <button
-          v-for="alg in algorithms"
-          :key="alg.value"
-          class="algo-tab"
-          :class="{ active: store.algorithm === alg.value }"
-          @click="handleAlgorithmChange(alg.value)"
-        >
+        <button v-for="alg in algorithms" :key="alg.value" class="algo-tab" :class="{ active: store.algorithm === alg.value }" @click="handleAlgorithmChange(alg.value)">
           {{ alg.label }}
         </button>
       </div>
@@ -55,15 +49,7 @@ function handleNewArray() {
     <div class="panel-section size-section">
       <span class="section-label">数据量</span>
       <div class="size-control">
-        <input
-          type="range"
-          :value="store.arraySize"
-          @input="(e) => handleSizeChange(Number((e.target as HTMLInputElement).value))"
-          min="10"
-          max="50"
-          step="1"
-          class="size-slider"
-        />
+        <input type="range" :value="store.arraySize" @input="e => handleSizeChange(Number((e.target as HTMLInputElement).value))" min="10" max="50" step="1" class="size-slider" />
         <span class="size-value">{{ store.arraySize }}</span>
       </div>
     </div>
@@ -73,14 +59,7 @@ function handleNewArray() {
     <div class="panel-section speed-section">
       <span class="section-label">速度</span>
       <div class="speed-control">
-        <input
-          type="range"
-          v-model="sliderValue"
-          min="50"
-          max="500"
-          step="10"
-          class="speed-slider"
-        />
+        <input type="range" v-model="sliderValue" min="50" max="500" step="10" class="speed-slider" />
         <span class="speed-value">{{ sliderValue }}ms</span>
       </div>
       <div class="speed-marks">
@@ -95,8 +74,8 @@ function handleNewArray() {
     <div class="panel-section action-section">
       <button class="action-btn" @click="handleNewArray">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M23 4v6h-6M1 20v-6h6"/>
-          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          <path d="M23 4v6h-6M1 20v-6h6" />
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
         </svg>
         新数组
       </button>
@@ -123,7 +102,7 @@ function handleNewArray() {
 }
 
 .section-label {
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   color: #8b95a8;
   letter-spacing: 1px;
@@ -136,7 +115,7 @@ function handleNewArray() {
 }
 
 .algo-tab {
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
   padding: 10px 16px;
   border: 1px solid rgba(74, 158, 255, 0.25);
@@ -163,13 +142,7 @@ function handleNewArray() {
 .panel-divider {
   width: 1px;
   height: 50px;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    rgba(74, 158, 255, 0.3) 30%,
-    rgba(74, 158, 255, 0.3) 70%,
-    transparent
-  );
+  background: linear-gradient(180deg, transparent, rgba(74, 158, 255, 0.3) 30%, rgba(74, 158, 255, 0.3) 70%, transparent);
   margin: 0 24px;
 }
 
@@ -210,7 +183,7 @@ function handleNewArray() {
 
 .size-value,
 .speed-value {
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 14px;
   color: #5dddd4;
   min-width: 55px;
@@ -220,7 +193,7 @@ function handleNewArray() {
   display: flex;
   justify-content: space-between;
   width: 120px;
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   color: #8b95a8;
 }
@@ -230,7 +203,7 @@ function handleNewArray() {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   padding: 10px 18px;
   border: 1px solid rgba(78, 205, 196, 0.4);
