@@ -188,15 +188,15 @@ export function shellSort(arr: number[]): SortStep[] {
       while (j >= gap) {
         steps.push(createStep("compare", [j - gap, j], `比较间隔 ${gap} 内的元素 [${j - gap}]=${a[j - gap]} 和 [${j}]=${current}`, undefined, gap, group));
         if (a[j - gap] > current) {
-          steps.push(createStep("swap", [j - gap, j], `间隔 ${gap} 移位：${a[j - gap]} 移到 [${j}]`, [...a], gap, group));
-          a[j] = a[j - gap];
+          steps.push(createStep("swap", [j - gap, j], `交换 arr[${j - gap}]=${arr[j]} 和 arr[${j}]=${arr[j]}`, [...a], gap, group));
+
+          [a[j - gap], a[j]] = [a[j], a[j - gap]];
           j -= gap;
         } else {
           break;
         }
       }
       if (j !== i) {
-        steps.push(createStep("swap", [j, i], `插入元素 ${current} 到位置 [${j}]`, [...a], gap, group));
         a[j] = current;
       }
     }
