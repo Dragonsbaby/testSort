@@ -183,21 +183,17 @@ export function shellSort(arr: number[]): SortStep[] {
       const group: number[] = [];
       const remainder = i % gap;
       for (let k = remainder; k < n; k += gap) group.push(k);
-      const current = a[i];
       let j = i;
       while (j >= gap) {
-        steps.push(createStep("compare", [j - gap, j], `比较间隔 ${gap} 内的元素 [${j - gap}]=${a[j - gap]} 和 [${j}]=${current}`, undefined, gap, group));
-        if (a[j - gap] > current) {
-          steps.push(createStep("swap", [j - gap, j], `交换 arr[${j - gap}]=${arr[j]} 和 arr[${j}]=${arr[j]}`, [...a], gap, group));
+        steps.push(createStep("compare", [j - gap, j], `比较间隔 ${gap} 内的元素 [${j - gap}]=${a[j - gap]} 和 [${j}]=${a[j]}`, undefined, gap, group));
+        if (a[j - gap] > a[j]) {
+          steps.push(createStep("swap", [j - gap, j], `交换 arr[${j - gap}]=${a[j - gap]} 和 arr[${j}]=${a[j]}`, [...a], gap, group));
 
           [a[j - gap], a[j]] = [a[j], a[j - gap]];
           j -= gap;
         } else {
           break;
         }
-      }
-      if (j !== i) {
-        a[j] = current;
       }
     }
   }
