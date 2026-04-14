@@ -1,7 +1,16 @@
 import { ref, watch, onUnmounted, computed, type Ref, type ToRef } from 'vue';
 import type { SortStep } from '@/types/sorting';
-import type SortBarCanvas from '@/components/SortBarCanvas.vue';
 import type { HighlightedIndices } from '@/composables/useCanvasRenderer';
+
+/**
+ * Canvas 组件的最小接口
+ * SortBarCanvas 和 SortBarCanvasMerge 均实现此接口，
+ * 使 useSortAnimation 不与具体组件类型耦合
+ */
+export interface ISortCanvas {
+  applyStep(step: SortStep): Promise<number | undefined>;
+  updateBars(): void;
+}
 
 /** 排序函数类型：输入数组，输出排序步骤数组 */
 type SortFn = (arr: number[]) => SortStep[];
@@ -12,12 +21,12 @@ type SortFn = (arr: number[]) => SortStep[];
  *
  * @param params.sortFn - 排序算法函数
  * @param params.speed - 动画速度（毫秒）
- * @param params.canvasRef - Canvas 组件引用
+ * @param params.canvasRef - Canvas 组件引用（实现 ISortCanvas 接口即可）
  * @param params.originalArray - 原始数组（用于重置）
  */
 import type { ArrayElement } from "@/stores/sortStore";
 
-export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>; canvasRef: Ref<InstanceType<typeof SortBarCanvas> | null>; originalArray: ToRef<ArrayElement[]> }) {
+export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>; canvasRef: Ref<ISortCanvas | null>; originalArray: ToRef<ArrayElement[]> }) {
   const { sortFn, speed, canvasRef, originalArray } = params;
 
   /** 当前显示的数组（步骤执行后可能与 originalArray 不同） */
@@ -100,11 +109,20 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
       case 'set':
         swapping = step.indices;
         break;
+      case 'merge-set':
+        // 下排正在放入元素：上排继承上一步的比较高亮，整个合并区间保持待排序标记
+        comparing = prevHighlightedIndices.comparing;
+        pending = step.groupIndices ?? prevHighlightedIndices.pending;
+        break;
+      case 'merge-back':
+        // 合并完成：清除所有上排高亮，由后续 sorted 步骤更新 sortedIndices
+        comparing = []; pending = []; swapping = [];
+        break;
       // "sorted" 类型不需要设置高亮，仅更新 sortedIndices
     }
     const sortedArray = Array.from(sortedIndices.value);
-    // 更新 prevHighlightedIndices（swap 步骤继承上一步状态，其他步骤保存当前状态）
-    if (step.type !== 'swap' && step.type !== 'merge') {
+    // merge-set 继承上一步状态，不更新 prevHighlightedIndices
+    if (step.type !== 'swap' && step.type !== 'merge' && step.type !== 'merge-set') {
       prevHighlightedIndices = { comparing, swapping, sorted: sortedArray, pivot, pending };
     }
     return { comparing, swapping, sorted: sortedArray, pivot, pending };
@@ -169,7 +187,8 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
 
     if (step.type === 'compare') {
       comparisons.value++;
-    } else if (step.type === 'swap' || step.type === 'merge' || step.type === 'set') {
+    } else if (step.type === 'swap' || step.type === 'merge' || step.type === 'set' ||
+               step.type === 'merge-set' || step.type === 'merge-back') {
       swaps.value++;
     } else if (step.type === 'sorted') {
       step.indices.forEach(idx => sortedIndices.value.add(idx));
@@ -179,6 +198,10 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
       localPlaying.value = false;
     }
     if (step.arraySnapshot) {
+      // merge-set 步骤的 arraySnapshot 是主数组未变化的快照，跳过无意义的重建
+      if (step.type === 'merge-set') {
+        return animationDelay;
+      }
       // arraySnapshot 是 number[]，需要重建为 ArrayElement[]
       // 注意：对于 swap 步骤，arraySnapshot 是交换前的状态
       // 动画完成后，需要应用实际的交换来得到交换后的状态

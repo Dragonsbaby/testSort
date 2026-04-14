@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, toRef } from "vue";
 import { mergeSort } from "@/utils/sortingAlgorithms";
-import SortBarCanvas from "@/components/SortBarCanvas.vue";
+import SortBarCanvasMerge from "@/components/SortBarCanvasMerge.vue";
 import { useSortStore } from "@/stores/sortStore";
-import { useSortAnimation } from "@/composables/useSortAnimation";
+import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimation";
 
 const props = defineProps<{ speed: number }>();
 const store = useSortStore();
-const canvasRef = ref<InstanceType<typeof SortBarCanvas> | null>(null);
+const canvasRef = ref<ISortCanvas | null>(null);
 
 const { array, steps, currentStep, comparisons, swaps, highlightedIndices, currentStepInfo, isPlaying, play, pause, step, reset, statusText, statusClass } = useSortAnimation({
   sortFn: mergeSort,
@@ -82,8 +82,8 @@ defineExpose({ reset, step });
       </div>
     </div>
 
-    <!-- Canvas -->
-    <SortBarCanvas ref="canvasRef" :array="array" :highlighted-indices="highlightedIndices" :animation-speed="speed" />
+    <!-- Canvas（双排：上排主数组 + 下排辅助区） -->
+    <SortBarCanvasMerge ref="canvasRef" :array="array" :highlighted-indices="highlightedIndices" :animation-speed="speed" />
   </div>
 </template>
 

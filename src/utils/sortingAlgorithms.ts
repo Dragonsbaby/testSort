@@ -7,8 +7,9 @@ function createStep(
   arraySnapshot?: number[],
   gap?: number,
   groupIndices?: number[],
+  tempSnapshot?: (number | null)[],
 ): SortStep {
-  return { type, indices, description, arraySnapshot, gap, groupIndices };
+  return { type, indices, description, arraySnapshot, gap, groupIndices, tempSnapshot };
 }
 
 export function bubbleSort(arr: number[]): SortStep[] {
@@ -66,42 +67,79 @@ export function mergeSort(arr: number[]): SortStep[] {
   function merge(left: number, mid: number, right: number) {
     const leftArr = array.slice(left, mid + 1);
     const rightArr = array.slice(mid + 1, right + 1);
-    let i = 0,
-      j = 0,
-      k = left;
+    // 合并区间全部索引（下排空槽范围 + 上排 pending 紫色标记）
+    const mergeRange = Array.from({ length: right - left + 1 }, (_, idx) => left + idx);
+    // 辅助数组，与主数组等长，null 表示该槽位尚未填入
+    const temp: (number | null)[] = new Array(array.length).fill(null);
 
-    steps.push(createStep("compare", [left, right], `合并区间 [${left}, ${mid}] 和 [${mid + 1}, ${right}]`, [...array]));
+    let i = 0, j = 0, k = left;
+
+    // 合并开始：通知画布显示下排空槽（temp 全为 null）
+    steps.push(createStep(
+      "compare", [left, right],
+      `合并区间 [${left}, ${mid}] 和 [${mid + 1}, ${right}]`,
+      [...array], undefined, mergeRange, [...temp]
+    ));
 
     while (i < leftArr.length && j < rightArr.length) {
-      steps.push(createStep("compare", [left + i, mid + 1 + j], `比较 leftArr[${i}]=${leftArr[i]} 和 rightArr[${j}]=${rightArr[j]}`, [...array]));
+      // 此时主数组未被覆盖，left+i 和 mid+1+j 均有效
+      steps.push(createStep(
+        "compare", [left + i, mid + 1 + j],
+        `比较 leftArr[${i}]=${leftArr[i]} 和 rightArr[${j}]=${rightArr[j]}`,
+        [...array], undefined, mergeRange, [...temp]
+      ));
 
       if (leftArr[i] <= rightArr[j]) {
-        steps.push(createStep("set", [k], `将 ${leftArr[i]} 放到位置 ${k}`, [...array]));
-        array[k] = leftArr[i];
+        temp[k] = leftArr[i];
+        steps.push(createStep(
+          "merge-set", [k],
+          `将 ${leftArr[i]} 放入辅助区位置 ${k}`,
+          [...array], undefined, mergeRange, [...temp]
+        ));
         i++;
       } else {
-        steps.push(createStep("set", [k], `将 ${rightArr[j]} 放到位置 ${k}`, [...array]));
-        array[k] = rightArr[j];
+        temp[k] = rightArr[j];
+        steps.push(createStep(
+          "merge-set", [k],
+          `将 ${rightArr[j]} 放入辅助区位置 ${k}`,
+          [...array], undefined, mergeRange, [...temp]
+        ));
         j++;
       }
       k++;
     }
 
     while (i < leftArr.length) {
-      steps.push(createStep("set", [k], `将剩余 leftArr[${i}]=${leftArr[i]} 放到位置 ${k}`, [...array]));
-      array[k] = leftArr[i];
-      i++;
-      k++;
+      temp[k] = leftArr[i];
+      steps.push(createStep(
+        "merge-set", [k],
+        `将剩余 leftArr[${i}]=${leftArr[i]} 放入辅助区位置 ${k}`,
+        [...array], undefined, mergeRange, [...temp]
+      ));
+      i++; k++;
     }
 
     while (j < rightArr.length) {
-      steps.push(createStep("set", [k], `将剩余 rightArr[${j}]=${rightArr[j]} 放到位置 ${k}`, [...array]));
-      array[k] = rightArr[j];
-      j++;
-      k++;
+      temp[k] = rightArr[j];
+      steps.push(createStep(
+        "merge-set", [k],
+        `将剩余 rightArr[${j}]=${rightArr[j]} 放入辅助区位置 ${k}`,
+        [...array], undefined, mergeRange, [...temp]
+      ));
+      j++; k++;
     }
 
-    steps.push(createStep("merge", Array.from({ length: right - left + 1 }, (_, idx) => left + idx), `区间 [${left}, ${right}] 合并完成`, [...array]));
+    // 将辅助数组复写回主数组
+    for (let m = left; m <= right; m++) {
+      array[m] = temp[m]!;
+    }
+    // 通知画布：合并完成，清空下排，上排更新为合并后状态
+    steps.push(createStep(
+      "merge-back", mergeRange,
+      `区间 [${left}, ${right}] 合并完成，复写回主数组`,
+      [...array], undefined, undefined,
+      new Array(array.length).fill(null) // temp 清空
+    ));
   }
 
   function sort(left: number, right: number) {

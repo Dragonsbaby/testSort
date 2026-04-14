@@ -3,11 +3,11 @@ import { ref, toRef } from "vue";
 import { insertionSort } from "@/utils/sortingAlgorithms";
 import SortBarCanvas from "@/components/SortBarCanvas.vue";
 import { useSortStore } from "@/stores/sortStore";
-import { useSortAnimation } from "@/composables/useSortAnimation";
+import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimation";
 
 const props = defineProps<{ speed: number }>();
 const store = useSortStore();
-const canvasRef = ref<InstanceType<typeof SortBarCanvas> | null>(null);
+const canvasRef = ref<ISortCanvas | null>(null);
 
 const { array, steps, currentStep, comparisons, swaps, highlightedIndices, currentStepInfo, isPlaying, play, pause, step, reset, statusText, statusClass } = useSortAnimation({
   sortFn: insertionSort,

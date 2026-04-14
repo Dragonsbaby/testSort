@@ -4,15 +4,18 @@ export type StepType =
   | "merge"
   | "set"
   | "sorted"
-  | "pivot";
+  | "pivot"
+  | "merge-set"   // 归并排序：将元素写入下排辅助数组
+  | "merge-back"; // 归并排序：将辅助数组整段复写回上排主数组
 
 export interface SortStep {
   type: StepType;
   indices: number[];
   description: string;
   arraySnapshot?: number[];
-  gap?: number; // 步长（希尔排序用）
-  groupIndices?: number[]; // 当前排序组的全部索引（待排序）
+  gap?: number;            // 步长（希尔排序用）
+  groupIndices?: number[]; // 当前排序组的全部索引（待排序/合并区间）
+  tempSnapshot?: (number | null)[]; // 辅助数组快照（归并排序下排专用）
 }
 
 export type SortAlgorithm = "bubble" | "insertion" | "merge" | "quick" | "shell";
