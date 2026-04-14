@@ -25,9 +25,8 @@ const {
   startRenderLoop,
   stopRenderLoop,
   onStep,
-  setActiveMergeRange,
-  updateTempBars,
-  clearTempBars,
+  moveBarDown,
+  moveAllBarsUp,
 } = useMergeSortRenderer(canvasRef, displayArray, highlighted);
 
 let resizeObserver: ResizeObserver | null = null;
@@ -69,11 +68,11 @@ watch(
 /**
  * 执行一个排序步骤，驱动上排/下排视觉更新
  *
- * - compare（含 groupIndices）: 设置下排合并区间 + 同步 temp 空槽显示
- * - merge-set              : 将元素放入下排对应位置
- * - merge-back             : 清空下排，上排刷新
- * - swap                   : 标准交换动画（归并排序不产生，预留兼容）
- * - 其余类型（sorted/pivot）: 仅等待间隔
+ * - compare（含 groupIndices）: 高亮上排两个待比较元素（无额外操作）
+ * - merge-set [sourceIndex, destIndex]: 胜出元素从上排飞到下排
+ * - merge-back               : 下排所有元素并行飞回上排
+ * - swap                     : 标准交换动画（归并排序不产生，预留兼容）
+ * - 其余类型                 : 仅等待间隔
  */
 async function applyStep(step: SortStep): Promise<number | undefined> {
   isApplyingStep = true;
@@ -88,32 +87,17 @@ async function applyStep(step: SortStep): Promise<number | undefined> {
     });
     delay = await onStep(step, props.animationSpeed, oldPositions) as number | undefined;
 
-  } else if (step.type === 'compare') {
-    // 有 groupIndices 代表这是合并阶段的 compare（分割阶段的 compare 没有 groupIndices）
-    if (step.groupIndices && step.groupIndices.length > 0 && step.tempSnapshot !== undefined) {
-      const left  = Math.min(...step.groupIndices);
-      const right = Math.max(...step.groupIndices);
-      setActiveMergeRange([left, right]);
-      updateTempBars(step.tempSnapshot);
-    }
-    delay = props.animationSpeed;
-
   } else if (step.type === 'merge-set') {
-    // 将元素放入下排辅助区
-    if (step.tempSnapshot) {
-      // step.indices[0] 是本次刚放入的位置，用于橙色高亮
-      updateTempBars(step.tempSnapshot, step.indices[0]);
-    }
-    delay = props.animationSpeed;
+    // indices[0] = 源（上排索引），indices[1] = 目标（下排输出列）
+    const [sourceIndex, destIndex] = step.indices;
+    delay = await moveBarDown(sourceIndex, destIndex, props.animationSpeed);
 
   } else if (step.type === 'merge-back') {
-    // 合并完成：清空下排，上排由 useSortAnimation 更新 displayArray 后 watcher 触发 updateBars
-    clearTempBars();
-    setActiveMergeRange(null);
-    delay = props.animationSpeed;
+    // 下排全部元素一起飞回上排
+    delay = await moveAllBarsUp(props.animationSpeed);
 
   } else {
-    // set / merge / sorted / pivot 等：仅等待间隔
+    // compare / sorted / pivot / set 等：仅等待间隔
     delay = props.animationSpeed;
   }
 

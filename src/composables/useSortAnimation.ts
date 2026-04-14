@@ -110,8 +110,8 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
         swapping = step.indices;
         break;
       case 'merge-set':
-        // 下排正在放入元素：上排继承上一步的比较高亮，整个合并区间保持待排序标记
-        comparing = prevHighlightedIndices.comparing;
+        // 胜出元素正在飞向下排，清除比较高亮；保持 pending 范围不变
+        comparing = [];
         pending = step.groupIndices ?? prevHighlightedIndices.pending;
         break;
       case 'merge-back':
@@ -197,11 +197,12 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     if (currentStep.value >= steps.value.length) {
       localPlaying.value = false;
     }
-    if (step.arraySnapshot) {
-      // merge-set 步骤的 arraySnapshot 是主数组未变化的快照，跳过无意义的重建
-      if (step.type === 'merge-set') {
-        return animationDelay;
-      }
+    // 只有真正修改主数组的步骤才需要重建 array 和调用 updateBars。
+    // compare / pivot / sorted / merge-set 步骤中主数组未改变，跳过重建；
+    // 否则 updateBars(clearQueue=true) 会清空 bottomBars / ghostTopIndices，
+    // 导致正在飞行的下排柱子和幽灵占位被意外抹除。
+    const ARRAY_MUTATING_TYPES = new Set<SortStep['type']>(['swap', 'merge', 'set', 'merge-back']);
+    if (step.arraySnapshot && ARRAY_MUTATING_TYPES.has(step.type)) {
       // arraySnapshot 是 number[]，需要重建为 ArrayElement[]
       // 注意：对于 swap 步骤，arraySnapshot 是交换前的状态
       // 动画完成后，需要应用实际的交换来得到交换后的状态
