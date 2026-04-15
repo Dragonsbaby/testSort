@@ -42,6 +42,7 @@ interface BottomBar {
   height: number;
   color: { r: number; g: number; b: number };
   glowIntensity: number;
+  isLatest: boolean;  // true = 橙色高亮（最新飞下来的），false = 青色（已在下排）
 }
 
 // ─── 对角线移动任务（上↔下排之间） ──────────────────────────────────────
@@ -103,6 +104,8 @@ export function useMergeSortRenderer(
   // ── 画布尺寸 ──────────────────────────────────────────────────────────────
   let containerWidth = 800;
   let containerHeight = 360;
+  /** 数组最大值缓存，updateBars 时更新，避免 moveBarDown/moveAllBarsUp 重复遍历 */
+  let cachedMaxValue = 1;
 
   // ─── 布局计算 ─────────────────────────────────────────────────────────────
   function dividerY()          { return Math.floor(containerHeight * DIVIDER_RATIO); }
@@ -167,6 +170,7 @@ export function useMergeSortRenderer(
     if (!layout) return;
     const { barWidth, startX } = layout;
     const maxValue = Math.max(...arr.map(e => e.value));
+    cachedMaxValue = maxValue;
     const maxH = topRowMaxHeight();
 
     const oldStates = new Map(barStates.value.map(b => [b.displayIndex, b]));
@@ -240,14 +244,15 @@ export function useMergeSortRenderer(
     const layout = getBarLayout();
     if (!layout) return Promise.resolve(speed);
     const { barWidth, startX } = layout;
-    const maxValue = Math.max(...displayArray.value.map(e => e.value));
     const maxH = bottomRowMaxHeight();
 
     const destX = Math.round(startX + destIndex * (barWidth + GAP));
     const destY = Math.round(bottomRowBottomY());
 
-    // 把已在下排的柱子（之前的橙色）变为青色
-    bottomBars.forEach(b => { b.color = COLORS.tempFill; b.glowIntensity = 0.2; });
+    // 只把上一个橙色（isLatest）改为青色；绿色等其他状态保持不变
+    bottomBars.forEach(b => {
+      if (b.isLatest) { b.color = COLORS.tempFill; b.glowIntensity = 0.2; b.isLatest = false; }
+    });
 
     // 创建新的下排柱子（橙色，从上排位置出发）
     const bottomBar: BottomBar = {
@@ -258,9 +263,10 @@ export function useMergeSortRenderer(
       y: topRowBottomY(),
       width: bar.width,
       // 下排高度按下排可用空间重新计算
-      height: maxValue > 0 ? Math.max(5, Math.round((bar.value / maxValue) * maxH)) : bar.height,
+      height: cachedMaxValue > 0 ? Math.max(5, Math.round((bar.value / cachedMaxValue) * maxH)) : bar.height,
       color: COLORS.tempNew,
       glowIntensity: 0.7,
+      isLatest: true,
     };
     bottomBars.push(bottomBar);
 
@@ -294,11 +300,10 @@ export function useMergeSortRenderer(
     const layout = getBarLayout();
     if (!layout) return Promise.resolve(speed);
     const { barWidth, startX } = layout;
-    const maxValue = Math.max(...displayArray.value.map(e => e.value));
     const maxH = topRowMaxHeight();
 
-    // 飞回时全部染成绿色（表示已排好序）
-    bottomBars.forEach(b => { b.color = COLORS.sorted; b.glowIntensity = 0.4; });
+    // 飞回时染绿色，表示本轮子合并完成
+    bottomBars.forEach(b => { b.color = COLORS.sorted; b.glowIntensity = 0.4; b.isLatest = false; });
 
     const movers = bottomBars.map(bar => ({
       target: bar,
@@ -310,7 +315,7 @@ export function useMergeSortRenderer(
 
     // 恢复下排柱子的高度为上排高度（避免飞回时高度跳变）
     bottomBars.forEach(b => {
-      b.height = maxValue > 0 ? Math.max(5, Math.round((b.value / maxValue) * maxH)) : b.height;
+      b.height = cachedMaxValue > 0 ? Math.max(5, Math.round((b.value / cachedMaxValue) * maxH)) : b.height;
     });
 
     const duration = Math.max(speed * 1.2, 260); // 飞回稍慢，更有仪式感
@@ -511,7 +516,7 @@ export function useMergeSortRenderer(
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 2;
-    ctx.fillStyle = color === COLORS.tempNew ? '#fff' : '#e0f7f6';
+    ctx.fillStyle = bar.isLatest ? '#fff' : '#e0f7f6';
     let textY = barTop - 8;
     if (textY < dividerY() + 5) textY = dividerY() + 14;
     ctx.fillText(bar.value.toString(), bx + bw / 2, textY);
@@ -545,7 +550,7 @@ export function useMergeSortRenderer(
     swapQueue.forEach((task, i) => {
       const elapsed = timestamp - task.startTime;
       const rawProgress = elapsed / task.duration;
-      const t = 1 - Math.pow(1 - Math.min(1, rawProgress), 3); // easeOutCubic
+      const t = EASING.easeOutCubic(Math.min(1, rawProgress));
       const [val1, val2] = task.indices;
       const bar1 = barStates.value.find(b => b.value === val1);
       const bar2 = barStates.value.find(b => b.value === val2);

@@ -15,6 +15,9 @@ export interface ISortCanvas {
 /** 排序函数类型：输入数组，输出排序步骤数组 */
 type SortFn = (arr: number[]) => SortStep[];
 
+/** 真正修改主数组内容的步骤类型（需重建 array 并调用 updateBars） */
+const ARRAY_MUTATING_TYPES = new Set<SortStep['type']>(['swap', 'merge', 'set', 'merge-back']);
+
 /**
  * 排序动画组合式函数
  * 封装排序动画的状态管理、步骤执行、播放控制
@@ -201,7 +204,6 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     // compare / pivot / sorted / merge-set 步骤中主数组未改变，跳过重建；
     // 否则 updateBars(clearQueue=true) 会清空 bottomBars / ghostTopIndices，
     // 导致正在飞行的下排柱子和幽灵占位被意外抹除。
-    const ARRAY_MUTATING_TYPES = new Set<SortStep['type']>(['swap', 'merge', 'set', 'merge-back']);
     if (step.arraySnapshot && ARRAY_MUTATING_TYPES.has(step.type)) {
       // arraySnapshot 是 number[]，需要重建为 ArrayElement[]
       // 注意：对于 swap 步骤，arraySnapshot 是交换前的状态
