@@ -11,7 +11,7 @@ export interface ArrayElement {
 export const useSortStore = defineStore("sort", () => {
   // 状态
   const originalArray = ref<ArrayElement[]>([]);
-  const animationSpeed = ref(500);
+  const animationSpeed = ref(200);
   const arraySize = ref(10);
   const algorithm = ref<SortAlgorithm>("quick");
 

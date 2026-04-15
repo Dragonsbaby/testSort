@@ -8,8 +8,10 @@ function createStep(
   gap?: number,
   groupIndices?: number[],
   tempSnapshot?: (number | null)[],
+  bucketIndex?: number,
+  bucketPos?: number,
 ): SortStep {
-  return { type, indices, description, arraySnapshot, gap, groupIndices, tempSnapshot };
+  return { type, indices, description, arraySnapshot, gap, groupIndices, tempSnapshot, bucketIndex, bucketPos };
 }
 
 export function bubbleSort(arr: number[]): SortStep[] {
@@ -237,5 +239,73 @@ export function shellSort(arr: number[]): SortStep[] {
 
   const sortedIndices = Array.from({ length: n }, (_, i) => i);
   steps.push(createStep("sorted", sortedIndices, "排序完成"));
+  return steps;
+}
+
+/** 桶排序（动态桶数：每 10 个元素一个桶，上限 9，与 useBucketSortRenderer.ts 保持一致） */
+export function bucketSort(arr: number[]): SortStep[] {
+  const steps: SortStep[] = [];
+  const a = [...arr];
+  const n = a.length;
+  const K = Math.min(9, Math.max(3, Math.round(n / 10)));
+  const minV = Math.min(...a);
+  const maxV = Math.max(...a);
+  const range = maxV - minV + 1;
+
+  // ── 分桶 ────────────────────────────────────────────────────────────
+  const bkts: number[][] = Array.from({ length: K }, () => []);
+  for (let i = 0; i < n; i++) {
+    const bi = Math.min(K - 1, Math.floor(((a[i] - minV) / range) * K));
+    steps.push(createStep(
+      "bucket-scatter", [i],
+      `分桶：将 arr[${i}]=${a[i]} 放入桶 ${bi}`,
+      undefined, undefined, undefined, undefined,
+      bi, bkts[bi].length,
+    ));
+    bkts[bi].push(a[i]);
+  }
+
+  // ── 桶内插入排序 ──────────────────────────────────────────────────
+  for (let bi = 0; bi < K; bi++) {
+    const b = bkts[bi];
+    for (let i = 1; i < b.length; i++) {
+      let j = i;
+      while (j > 0) {
+        steps.push(createStep(
+          "bucket-compare", [j - 1, j],
+          `桶 ${bi} 内排序：比较 ${b[j - 1]} 与 ${b[j]}`,
+          undefined, undefined, undefined, undefined, bi,
+        ));
+        if (b[j - 1] > b[j]) {
+          steps.push(createStep(
+            "bucket-swap", [j - 1, j],
+            `桶 ${bi} 内排序：交换 ${b[j - 1]} ↔ ${b[j]}`,
+            undefined, undefined, undefined, undefined, bi,
+          ));
+          [b[j - 1], b[j]] = [b[j], b[j - 1]];
+          j--;
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  // ── 收集归位 ──────────────────────────────────────────────────────
+  const result = [...a];
+  let gp = 0;
+  for (let bi = 0; bi < K; bi++) {
+    for (let k = 0; k < bkts[bi].length; k++) {
+      result[gp] = bkts[bi][k];
+      steps.push(createStep(
+        "bucket-gather", [gp],
+        `收集：桶 ${bi} 中的 ${bkts[bi][k]} 归位到 arr[${gp}]`,
+        [...result], undefined, undefined, undefined, bi,
+      ));
+      gp++;
+    }
+  }
+
+  steps.push(createStep("sorted", Array.from({ length: n }, (_, i) => i), "排序完成", [...result]));
   return steps;
 }

@@ -59,7 +59,7 @@ function handleNewArray() {
 
     <div class="panel-section speed-section">
       <div class="speed-control">
-        <input type="range" v-model="sliderValue" min="50" max="500" step="10" class="speed-slider" />
+        <input type="range" v-model="sliderValue" min="20" max="500" step="10" class="speed-slider" />
         <span class="speed-value">{{ sliderValue }}ms</span>
       </div>
       <div class="speed-marks">

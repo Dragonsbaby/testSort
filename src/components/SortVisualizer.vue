@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { useSortStore } from "@/stores/sortStore";
 import {
   BubbleSort,
+  BucketSort,
   InsertionSort,
   MergeSort,
   QuickSort,
@@ -14,6 +15,7 @@ const algorithmRef = ref<InstanceType<typeof MergeSort> | null>(null);
 
 const componentMap = {
   bubble: BubbleSort,
+  bucket: BucketSort,
   insertion: InsertionSort,
   merge: MergeSort,
   quick: QuickSort,

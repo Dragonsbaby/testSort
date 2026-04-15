@@ -46,6 +46,15 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
   const localPlaying = ref(false);
   /** setTimeout 定时器 ID */
   let timer: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * 动画执行中标志：true 表示 applyStep 正在 await Canvas 的 rAF 动画。
+   * 速度变化时若此标志为 true，跳过本次 stop/play 重启——
+   * 因为 stop() 无法中断正在等待的 Promise，强制重启会导致两个 applyStep
+   * 并发执行同一步骤，造成动画叠加（两个柱子飞行轨迹重叠）。
+   * 跳过重启不影响最终速度：下一步调用 moveBarDown/moveAllBarsUp 时会读取
+   * 最新的 props.animationSpeed（响应式 prop），自然生效。
+   */
+  let isAnimating = false;
 
   /** 已排序元素的索引集合（增量维护，避免 O(n) 遍历） */
   const sortedIndices = ref<Set<number>>(new Set());
@@ -53,32 +62,23 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
   let prevHighlightedIndices: HighlightedIndices = { comparing: [], swapping: [], sorted: [], pivot: [], pending: [] };
 
   /**
-   * 缓存：value -> 所有对应 displayIndex 的映射
+   * 缓存：value -> displayIndex 的一对一映射
    *
-   * 背景：arraySnapshot 只记录数值序列（如 [3, 1, 4, 3]），重建 ArrayElement[] 时
-   * 需要知道每个值对应的 displayIndex（原始序号）。如果有重复值，必须按出现顺序
-   * 逐一分配，不能混淆。
+   * arraySnapshot 只记录数值序列（如 [5, 3, 1]），重建 ArrayElement[] 时
+   * 需要通过 value 反查其原始 displayIndex（初始位置序号）。
+   * 由于 generateArray 始终生成 1..n 的无重复数组，每个 value 唯一对应一个 displayIndex，
+   * 直接用 Map<number, number> 即可，无需处理重复值的 round-robin 逻辑。
    *
-   * 示例：originalArray = [{value:3, displayIndex:0}, {value:1, displayIndex:1},
-   *                        {value:3, displayIndex:2}, {value:3, displayIndex:3}]
-   * 构建后: Map(3) → [0, 2, 3], Map(1) → [1]
+   * 示例：originalArray = [{value:5, displayIndex:1}, {value:3, displayIndex:2}, {value:1, displayIndex:3}]
+   * 构建后: Map(5→1, 3→2, 1→3)
    */
-  let valueToDisplayIndices: Map<number, number[]> | null = null;
+  let valueToDisplayIndex: Map<number, number> | null = null;
 
   /**
-   * 构建 value -> displayIndices 映射
-   *
-   * 在 initFromOriginal() 时构建一次并缓存，之后重建 snapshot 时复用。
-   * 不需要每次步骤都重建，因为 originalArray 本身不会变。
+   * 构建 value -> displayIndex 映射（初始化时构建一次，之后复用）
    */
-  function buildValueToDisplayIndices() {
-    const map = new Map<number, number[]>();
-    for (const el of originalArray.value) {
-      const arr = map.get(el.value) ?? [];
-      arr.push(el.displayIndex);
-      map.set(el.value, arr);
-    }
-    return map;
+  function buildValueToDisplayIndex() {
+    return new Map(originalArray.value.map(el => [el.value, el.displayIndex]));
   }
 
   /**
@@ -121,6 +121,13 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
         // 合并完成：清除所有上排高亮，由后续 sorted 步骤更新 sortedIndices
         comparing = []; pending = []; swapping = [];
         break;
+      case 'bucket-scatter':
+      case 'bucket-compare':
+      case 'bucket-swap':
+      case 'bucket-gather':
+        // 桶排序：主数组高亮由 SortBarCanvasBucket 内部管理，此处全部置空
+        comparing = []; swapping = []; pivot = []; pending = [];
+        break;
       // "sorted" 类型不需要设置高亮，仅更新 sortedIndices
     }
     const sortedArray = Array.from(sortedIndices.value);
@@ -151,8 +158,8 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     swaps.value = 0;
     sortedIndices.value = new Set();
     localPlaying.value = false;
-    // 构建 value -> displayIndices 映射（只需构建一次）
-    valueToDisplayIndices = buildValueToDisplayIndices();
+    // 构建 value -> displayIndex 映射（只需构建一次）
+    valueToDisplayIndex = buildValueToDisplayIndex();
   }
 
   /** 开始连续播放 */
@@ -183,7 +190,10 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
   async function applyStep(step: SortStep) {
     // 先等待动画完成，再递增 currentStep
     // 这样 highlightedIndices 的更新会与动画同步，避免比较高亮在动画结束前被清除
+    isAnimating = true;
     const animationDelay = await canvasRef.value?.applyStep(step);
+    // isAnimating 在所有同步后续操作完成后才释放，
+    // 防止 watch(speed) 在 currentStep++ / array.value= / updateBars() 执行期间并发触发重播
 
     // 动画完成后才更新 currentStep，让 highlightedIndices 与视觉状态一致
     currentStep.value++;
@@ -192,6 +202,10 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
       comparisons.value++;
     } else if (step.type === 'swap' || step.type === 'merge' || step.type === 'set' ||
                step.type === 'merge-set' || step.type === 'merge-back') {
+      swaps.value++;
+    } else if (step.type === 'bucket-compare') {
+      comparisons.value++;
+    } else if (step.type === 'bucket-swap') {
       swaps.value++;
     } else if (step.type === 'sorted') {
       step.indices.forEach(idx => sortedIndices.value.add(idx));
@@ -214,20 +228,16 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
         finalSnapshot = [...step.arraySnapshot];
         [finalSnapshot[i], finalSnapshot[j]] = [finalSnapshot[j], finalSnapshot[i]];
       }
-      // 使用 round-robin 分配 displayIndex：遇到重复值时交替使用不同的序号
-      // 例如 snapshot = [3, 3]，缓存 Map(3) = [0, 2] 时，
-      // 第一个 3 分配 displayIndex=0，第二个 3 分配 displayIndex=2
-      const roundRobin = new Map<number, number>();
-      array.value = finalSnapshot.map(value => {
-        const available = valueToDisplayIndices?.get(value) ?? [0];
-        const idx = roundRobin.get(value) ?? 0;
-        const displayIndex = available[idx % available.length];
-        roundRobin.set(value, idx + 1);
-        return { value, displayIndex };
-      });
+      // 通过 value 直接反查其 displayIndex（原始位置序号）
+      // 由于数组中值唯一，Map 查找是 O(1) 的一对一映射，无需 round-robin
+      array.value = finalSnapshot.map(value => ({
+        value,
+        displayIndex: valueToDisplayIndex?.get(value) ?? 0,
+      }));
       // 同步更新 barStates，避免被下一步骤的 isApplyingStep 打断
       canvasRef.value?.updateBars();
     }
+    isAnimating = false;
     return animationDelay;
   }
 
@@ -258,8 +268,11 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
   watch(originalArray, () => initFromOriginal(),{ immediate: true });
 
   // 速度变化时重启播放（确保使用新速度）
+  // 注意：若 isAnimating 为 true，说明 await applyStep 正在等待 rAF 动画完成。
+  // 此时 stop() 无法中断 Promise，强制重启会并发两个动画（叠加 bug），故跳过。
+  // 跳过后当前动画自然结束，下一步 applyStep 读取最新 props.animationSpeed 即可生效。
   watch(speed, () => {
-    if (localPlaying.value && currentStep.value < steps.value.length) {
+    if (localPlaying.value && currentStep.value < steps.value.length && !isAnimating) {
       stop();
       play();
     }

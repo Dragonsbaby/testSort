@@ -447,8 +447,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>, disp
     const bar2 = barStates.value.find((b) => b.value === values[1]);
     if (!bar1 || !bar2) return Promise.resolve(0);
 
-    // 确保动画时长至少 200ms
-    const duration = Math.max(speed, 200);
+    const duration = speed;
 
     const startX1 = oldPositions?.get(values[0]) ?? bar1.x;
     const startX2 = oldPositions?.get(values[1]) ?? bar2.x;

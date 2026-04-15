@@ -15,7 +15,8 @@ const TOP_LABEL_OFFSET = 28;    // 上排顶部留给数值标签
 const BOTTOM_LABEL_OFFSET = 18; // 下排底部标签高度
 
 // ─── 颜色表 ──────────────────────────────────────────────────────────────────
-const COLORS = {
+// 导出供外部组件（如 SortBarCanvasMerge.vue）直接引用，避免跨文件硬编码 RGB 值
+export const COLORS = {
   default:   { r: 74,  g: 158, b: 255 }, // 蓝色 - 默认
   comparing: { r: 255, g: 204, b: 0   }, // 黄色 - 比较中
   swapping:  { r: 255, g: 107, b: 107 }, // 红色 - 交换中
@@ -25,6 +26,9 @@ const COLORS = {
   tempNew:   { r: 255, g: 160, b: 50  }, // 橙色 - 最新飞下来的
   tempFill:  { r: 78,  g: 205, b: 196 }, // 青色 - 已到下排的
 };
+
+/** merge-back 完成后柱子的辉光强度（与普通 sorted 态一致） */
+const MERGE_BACK_GLOW = 0.3;
 
 const EASING = {
   easeOutCubic: (t: number) => 1 - Math.pow(1 - t, 3),
@@ -156,7 +160,12 @@ export function useMergeSortRenderer(
   }
 
   // ─── 上排：更新 barStates ─────────────────────────────────────────────────
-  function updateBars(clearQueue = true) {
+  /**
+   * @param clearQueue     true（默认）时清空动画队列和下排状态；false 用于仅刷新颜色
+   * @param mergeBackColor 传入时，所有柱子的初始颜色强制使用该颜色（绕过 displayIndex 继承），
+   *                       用于 merge-back 完成后颜色无法通过 displayIndex 正确继承的场景
+   */
+  function updateBars(clearQueue = true, mergeBackColor?: { r: number; g: number; b: number }) {
     const arr = displayArray.value as ArrayElement[];
     if (!arr || arr.length === 0) return;
     if (clearQueue) {
@@ -173,10 +182,11 @@ export function useMergeSortRenderer(
     cachedMaxValue = maxValue;
     const maxH = topRowMaxHeight();
 
-    const oldStates = new Map(barStates.value.map(b => [b.displayIndex, b]));
+    // mergeBackColor 模式：不依赖 displayIndex 继承，直接使用指定颜色（避免 round-robin 不连续导致颜色丢失）
+    const oldStates = mergeBackColor ? null : new Map(barStates.value.map(b => [b.displayIndex, b]));
 
     barStates.value = arr.map((element, index) => {
-      const old = oldStates.get(element.displayIndex);
+      const old = oldStates?.get(element.displayIndex);
       const x = Math.round(startX + index * (barWidth + GAP));
       return {
         index,
@@ -187,12 +197,16 @@ export function useMergeSortRenderer(
         y: Math.round(topRowBottomY()),
         width: barWidth,
         height: maxValue > 0 ? Math.max(5, Math.round((element.value / maxValue) * maxH)) : 0,
-        color: old?.color ?? COLORS.default,
-        glowIntensity: old?.glowIntensity ?? 0,
+        color: mergeBackColor ?? old?.color ?? COLORS.default,
+        glowIntensity: mergeBackColor ? MERGE_BACK_GLOW : (old?.glowIntensity ?? 0),
       };
     });
 
-    updateColors();
+    // mergeBackColor 模式下不调用 updateColors：
+    // merge-back 后 highlightedIndices 为空（sorted 集合尚未更新），
+    // updateColors 会把所有柱子重置为蓝色，覆盖掉传入的绿色。
+    // 等待下一个步骤（sorted / compare）自然触发 updateColors。
+    if (!mergeBackColor) updateColors();
   }
 
   // ─── 上排：颜色更新（跳过幽灵柱子） ──────────────────────────────────────
@@ -270,7 +284,7 @@ export function useMergeSortRenderer(
     };
     bottomBars.push(bottomBar);
 
-    const duration = Math.max(speed * 0.8, 180);
+    const duration = speed * 0.8;
     return new Promise<number>(resolve => {
       diagonalQueue.push({
         movers: [{
@@ -318,16 +332,17 @@ export function useMergeSortRenderer(
       b.height = cachedMaxValue > 0 ? Math.max(5, Math.round((b.value / cachedMaxValue) * maxH)) : b.height;
     });
 
-    const duration = Math.max(speed * 1.2, 260); // 飞回稍慢，更有仪式感
+    const duration = speed * 1.2; // 飞回稍慢，更有仪式感
     return new Promise<number>(resolve => {
       diagonalQueue.push({
         movers,
         startTime: performance.now(),
         duration,
         resolve: () => {
-          // 动画完成：清空下排和幽灵标记（updateBars 会在之后重建 barStates）
-          bottomBars.length = 0;
-          ghostTopIndices.clear();
+          // 注意：不在此处清空 bottomBars / ghostTopIndices。
+          // 清空操作由后续 updateBars(clearQueue=true) 统一完成，
+          // 确保清空与 barStates 重建在同一同步调用内，避免 rAF 帧内出现
+          // "下排消失但上排还未重建"的状态撕裂（空帧闪动）。
           resolve(duration);
         },
       });
@@ -576,7 +591,7 @@ export function useMergeSortRenderer(
     const bar1 = barStates.value.find(b => b.value === values[0]);
     const bar2 = barStates.value.find(b => b.value === values[1]);
     if (!bar1 || !bar2) return Promise.resolve(0);
-    const duration = Math.max(speed, 200);
+    const duration = speed;
     const startX1 = oldPositions?.get(values[0]) ?? bar1.x;
     const startX2 = oldPositions?.get(values[1]) ?? bar2.x;
     return new Promise<number>(resolve => {
