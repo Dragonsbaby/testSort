@@ -1,3 +1,8 @@
+/** 桶数动态计算：每 10 个元素一个桶，下限 3，上限 9 */
+export function calcBucketCount(n: number): number {
+  return Math.min(9, Math.max(3, Math.round(n / 10)));
+}
+
 export type StepType =
   | "compare"
   | "swap"

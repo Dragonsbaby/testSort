@@ -1,11 +1,7 @@
 import { type Ref } from 'vue';
 import type { ArrayElement } from '@/stores/sortStore';
 import type { SortStep } from '@/types/sorting';
-
-// ── 桶数动态计算（与 bucketSort 算法保持一致：每 10 个元素一个桶，上限 9） ──
-function calcBucketCount(n: number): number {
-  return Math.min(9, Math.max(3, Math.round(n / 10)));
-}
+import { calcBucketCount } from '@/types/sorting';
 
 type Color = { r: number; g: number; b: number };
 
@@ -149,6 +145,9 @@ export function useBucketSortRenderer(
   let flyingBars: FlyingBar[] = [];
   let bucketStateActive = false;
   let animationFrameId: number | null = null;
+  // 背景网格离屏缓存（尺寸变化时重建）
+  let bgCanvas: HTMLCanvasElement | null = null;
+  let bgW = 0, bgH = 0;
 
   // ── 飞行动画 ────────────────────────────────────────────────────────────
   function flyBar(
@@ -224,22 +223,34 @@ export function useBucketSortRenderer(
   }
 
   // ── 各区域绘制 ────────────────────────────────────────────────────────────
-  function drawBackground(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = '#0f1219';
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = 'rgba(255,255,255,0.028)';
-    ctx.lineWidth = 1;
+
+  /** 重建背景网格离屏缓存（尺寸变化或首次调用时触发） */
+  function rebuildBgCache() {
+    bgCanvas = document.createElement('canvas');
+    bgCanvas.width  = W;
+    bgCanvas.height = H;
+    bgW = W; bgH = H;
+    const c = bgCanvas.getContext('2d')!;
+    c.fillStyle = '#0f1219';
+    c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(255,255,255,0.028)';
+    c.lineWidth = 1;
     for (let x = 0; x < W; x += 40) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke();
     }
     for (let y = 0; y < H; y += 40) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
     }
-    // 主数组与分隔区的分界线
+  }
+
+  function drawBackground(ctx: CanvasRenderingContext2D) {
+    // 尺寸变化时重建缓存，否则直接 drawImage
+    if (!bgCanvas || bgW !== W || bgH !== H) rebuildBgCache();
+    ctx.drawImage(bgCanvas!, 0, 0);
+    // 分界线和文字依赖动态布局（MAIN_H/SEP_H），每帧绘制
     ctx.strokeStyle = 'rgba(78,205,196,0.18)';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, MAIN_H); ctx.lineTo(W, MAIN_H); ctx.stroke();
-    // 分隔区底部装饰文字
     const my = MAIN_H + SEP_H / 2;
     ctx.font = '11px Consolas,monospace';
     ctx.textAlign = 'left';
@@ -390,17 +401,16 @@ export function useBucketSortRenderer(
   }
 
   function processFly(ctx: CanvasRenderingContext2D, ts: number) {
-    const done: number[] = [];
-    flyingBars.forEach((fb, i) => {
+    flyingBars = flyingBars.filter(fb => {
       const rawT = Math.min(1, (ts - fb.t0) / fb.dur);
       const t    = easeInOut(rawT);
       const arc  = Math.sin(rawT * Math.PI) * Math.min(60, H * 0.15);
       const cx   = fb.fromX + (fb.toX - fb.fromX) * t;
       const cy   = fb.fromY + (fb.toY - fb.fromY) * t - arc;
       drawSingleBar(ctx, cx, cy, fb.w, fb.h, COLORS.flying, 0.75, fb.value);
-      if (rawT >= 1) { done.push(i); fb.resolve(); }
+      if (rawT >= 1) { fb.resolve(); return false; }
+      return true;
     });
-    done.reverse().forEach(i => flyingBars.splice(i, 1));
   }
 
   // ── 渲染循环 ─────────────────────────────────────────────────────────────
@@ -421,9 +431,14 @@ export function useBucketSortRenderer(
   }
 
   // ── 步骤执行 ─────────────────────────────────────────────────────────────
-  async function applyStep(step: SortStep, animationSpeed: number): Promise<number | undefined> {
-    const FLY_MS = animationSpeed;
+  /** 将桶内两个位置的柱子颜色/发光恢复为该桶的默认色 */
+  function resetBucketBarColors(b: BucketBar[], bi: number, p0: number, p1: number) {
+    const bc = BUCKET_COLORS[bi];
+    if (b[p0]) { b[p0].color = { ...bc }; b[p0].glow = 0; }
+    if (b[p1]) { b[p1].color = { ...bc }; b[p1].glow = 0; }
+  }
 
+  async function applyStep(step: SortStep, animationSpeed: number): Promise<number | undefined> {
     if (step.type === 'bucket-scatter') {
       bucketStateActive = true;
       const si = step.indices[0];
@@ -437,7 +452,7 @@ export function useBucketSortRenderer(
         slot.value, slot.displayIndex,
         mBarX(si), mBarY(),
         bBarX(bi, bp), bBarY(),
-        BB_W, bBarH(slot.value), bc, FLY_MS,
+        BB_W, bBarH(slot.value), bc, animationSpeed,
       );
       await flyPromise;
       buckets[bi].push({ value: slot.value, displayIndex: slot.displayIndex, color: { ...bc }, glow: 0 });
@@ -451,10 +466,7 @@ export function useBucketSortRenderer(
       if (b[p0]) { b[p0].color = { ...COLORS.compare }; b[p0].glow = 0.55; }
       if (b[p1]) { b[p1].color = { ...COLORS.compare }; b[p1].glow = 0.55; }
       await wait(animationSpeed * 0.65);
-      // 恢复桶颜色
-      const bc = BUCKET_COLORS[bi];
-      if (b[p0]) { b[p0].color = { ...bc }; b[p0].glow = 0; }
-      if (b[p1]) { b[p1].color = { ...bc }; b[p1].glow = 0; }
+      resetBucketBarColors(b, bi, p0, p1);
       return animationSpeed;
 
     } else if (step.type === 'bucket-swap') {
@@ -466,9 +478,7 @@ export function useBucketSortRenderer(
       await wait(animationSpeed * 0.4);
       if (b[p0] && b[p1]) [b[p0], b[p1]] = [b[p1], b[p0]];
       await wait(animationSpeed * 0.25);
-      const bc = BUCKET_COLORS[bi];
-      if (b[p0]) { b[p0].color = { ...bc }; b[p0].glow = 0; }
-      if (b[p1]) { b[p1].color = { ...bc }; b[p1].glow = 0; }
+      resetBucketBarColors(b, bi, p0, p1);
       return animationSpeed;
 
     } else if (step.type === 'bucket-gather') {
@@ -483,7 +493,7 @@ export function useBucketSortRenderer(
         bar.value, bar.displayIndex,
         bBarX(bi, 0), bBarY(),
         mBarX(dest), mBarY(),
-        BAR_W, mBarH(bar.value), COLORS.sorted, FLY_MS,
+        BAR_W, mBarH(bar.value), COLORS.sorted, animationSpeed,
       );
       await flyPromise;
 

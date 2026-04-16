@@ -1,4 +1,5 @@
 import type { SortStep } from "@/types/sorting";
+import { calcBucketCount } from "@/types/sorting";
 
 function createStep(
   type: SortStep["type"],
@@ -247,7 +248,7 @@ export function bucketSort(arr: number[]): SortStep[] {
   const steps: SortStep[] = [];
   const a = [...arr];
   const n = a.length;
-  const K = Math.min(9, Math.max(3, Math.round(n / 10)));
+  const K = calcBucketCount(n);
   const minV = Math.min(...a);
   const maxV = Math.max(...a);
   const range = maxV - minV + 1;
