@@ -60,10 +60,10 @@ async function applyStep(step: SortStep): Promise<number | undefined> {
 
 /**
  * 暴露给 useSortAnimation 的 updateBars 入口。
- * 桶排序动画期间（bucketStateActive=true）由渲染器内部忽略，避免干扰视觉状态。
+ * 直接调用 forceReset() 绕过 bucketStateActive 守卫，确保上一步回退时状态完整重建。
  */
 function exposedUpdateBars() {
-  updateBars();
+  forceReset();
 }
 
 defineExpose({ applyStep, updateBars: exposedUpdateBars });

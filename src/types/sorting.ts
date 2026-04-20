@@ -29,7 +29,7 @@ export interface SortStep {
   bucketPos?: number;      // 桶排序：桶内目标位置
 }
 
-export type SortAlgorithm = "bubble" | "insertion" | "merge" | "quick" | "shell" | "bucket";
+export type SortAlgorithm = "bubble" | "insertion" | "merge" | "quick" | "shell" | "bucket" | "heap";
 
 export interface AlgorithmInfo {
   name: string;
@@ -67,5 +67,10 @@ export const algorithmInfo: Record<SortAlgorithm, AlgorithmInfo> = {
     name: "桶排序",
     description: "将元素按值域分配到若干桶中，对每个桶内部排序，再依次收集归位。",
     complexity: "O(n + k)",
+  },
+  heap: {
+    name: "堆排序",
+    description: "利用二叉堆结构，建堆后逐次将堆顶与末尾交换并缩小堆范围，支持最大堆（升序）和最小堆（降序）。",
+    complexity: "O(n log n)",
   },
 };

@@ -310,3 +310,61 @@ export function bucketSort(arr: number[]): SortStep[] {
   steps.push(createStep("sorted", Array.from({ length: n }, (_, i) => i), "排序完成", [...result]));
   return steps;
 }
+
+/**
+ * 堆排序
+ * @param arr   原始数组（数值）
+ * @param mode  'max' = 最大堆 → 升序；'min' = 最小堆 → 降序
+ */
+export function heapSort(arr: number[], mode: "max" | "min" = "max"): SortStep[] {
+  const steps: SortStep[] = [];
+  const a = [...arr];
+  const n = a.length;
+
+  // 比较器：最大堆要求父 ≥ 子，最小堆要求父 ≤ 子
+  const shouldSwap = (parent: number, child: number) =>
+    mode === "max" ? a[parent] < a[child] : a[parent] > a[child];
+
+  // sift-down：将 root 节点向下调整到 [root, end] 范围内满足堆性质
+  function siftDown(root: number, end: number) {
+    const heapRange = Array.from({ length: end + 1 }, (_, k) => k);
+    steps.push(createStep("pivot", [root], `sift-down 根节点 [${root}]=${a[root]}`, undefined, undefined, heapRange));
+
+    while (true) {
+      let target = root;
+      const l = 2 * root + 1;
+      const r = 2 * root + 2;
+
+      if (l <= end) {
+        steps.push(createStep("compare", [target, l], `比较 [${target}]=${a[target]} 和左子 [${l}]=${a[l]}`, undefined, undefined, heapRange));
+        if (shouldSwap(target, l)) target = l;
+      }
+      if (r <= end) {
+        steps.push(createStep("compare", [target, r], `比较 [${target}]=${a[target]} 和右子 [${r}]=${a[r]}`, undefined, undefined, heapRange));
+        if (shouldSwap(target, r)) target = r;
+      }
+
+      if (target === root) break;
+
+      steps.push(createStep("swap", [root, target], `交换 [${root}]=${a[root]} 和 [${target}]=${a[target]}`, [...a], undefined, heapRange));
+      [a[root], a[target]] = [a[target], a[root]];
+      root = target;
+    }
+  }
+
+  // 阶段一：建堆（从最后一个非叶节点向上 sift-down）
+  for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+    siftDown(i, n - 1);
+  }
+
+  // 阶段二：逐个将堆顶提取到末尾
+  for (let end = n - 1; end > 0; end--) {
+    steps.push(createStep("swap", [0, end], `提取堆顶 [0]=${a[0]} → 末尾 [${end}]`, [...a]));
+    [a[0], a[end]] = [a[end], a[0]];
+    steps.push(createStep("sorted", [end], `[${end}]=${a[end]} 已就位`, [...a]));
+    if (end > 1) siftDown(0, end - 1);
+  }
+  steps.push(createStep("sorted", [0], `[0]=${a[0]} 已就位，排序完成`, [...a]));
+
+  return steps;
+}

@@ -4,6 +4,7 @@ import { useSortStore } from "@/stores/sortStore";
 import {
   BubbleSort,
   BucketSort,
+  HeapSort,
   InsertionSort,
   MergeSort,
   QuickSort,
@@ -16,6 +17,7 @@ const algorithmRef = ref<InstanceType<typeof MergeSort> | null>(null);
 const componentMap = {
   bubble: BubbleSort,
   bucket: BucketSort,
+  heap: HeapSort,
   insertion: InsertionSort,
   merge: MergeSort,
   quick: QuickSort,

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>堆排序 — 二叉树小球效果图</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #080c14;
+    color: #b4bcc8;
+    font-family: "JetBrains Mono", "Consolas", monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+    min-height: 100vh;
+    gap: 24px;
+  }
+  h2 { color: #5dddd4; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
+
+  .scene-tabs { display: flex; gap: 8px; }
+  .scene-tab {
+    padding: 6px 14px; font-family: monospace; font-size: 11px;
+    border: 1px solid rgba(74,158,255,0.2); background: rgba(10,10,20,0.6);
+    color: #8b95a8; border-radius: 6px; cursor: pointer; transition: all 0.15s;
+  }
+  .scene-tab:hover, .scene-tab.active {
+    background: rgba(74,158,255,0.1); color: #6bb3ff; border-color: rgba(74,158,255,0.4);
+  }
+
+  .algorithm-view { display: flex; flex-direction: column; gap: 14px; width: 1100px; }
+
+  /* Stats Bar */
+  .stats-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    padding: 10px 20px;
+    background: rgba(10,10,20,0.7); border: 1px solid rgba(74,158,255,0.12);
+    border-radius: 10px; backdrop-filter: blur(12px);
+  }
+  .stats-left { display: flex; align-items: center; gap: 14px; }
+  .stats-right { display: flex; align-items: center; gap: 10px; }
+  .ctrl-group { display: flex; gap: 6px; }
+  .ctrl-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    border: 1px solid rgba(74,158,255,0.25); background: rgba(74,158,255,0.06);
+    color: #b4bcc8; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-size: 13px;
+  }
+  .ctrl-btn:hover { background: rgba(74,158,255,0.12); border-color: rgba(74,158,255,0.4); color: #e0e0e0; }
+  .ctrl-btn.active { background: rgba(255,107,107,0.12); border-color: rgba(255,107,107,0.35); color: #ff6b6b; }
+  .stat-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .stat-label { font-size: 9px; color: #8b95a8; letter-spacing: 0.5px; text-transform: uppercase; }
+  .stat-value { font-size: 15px; font-weight: 600; color: #5dddd4; }
+  .stat-value.comparisons { color: #6bb3ff; }
+  .stat-value.swaps { color: #ff8a8a; }
+  .stat-divider { width: 1px; height: 28px; background: linear-gradient(180deg, transparent, rgba(74,158,255,0.2) 50%, transparent); }
+  .status-indicator { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #8b95a8; }
+  .status-indicator.playing .dot { background: #5dddd4; box-shadow: 0 0 8px rgba(93,221,212,0.5); animation: pulse 1s ease-in-out infinite; }
+  .status-indicator.paused .dot { background: #ff8a8a; }
+  .status-indicator.done .dot { background: #6bff6b; }
+  .status-text { font-size: 11px; color: #8b95a8; }
+  .status-indicator.playing .status-text { color: #5dddd4; }
+  .status-indicator.paused .status-text { color: #ff8a8a; }
+  .status-indicator.done .status-text { color: #6bff6b; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.6;transform:scale(0.85);} }
+  .mode-toggle { display: flex; border: 1px solid rgba(74,158,255,0.2); border-radius: 7px; overflow: hidden; }
+  .mode-btn { padding: 5px 13px; font-family: monospace; font-size: 11px; font-weight: 600; border: none; cursor: pointer; background: rgba(10,10,20,0.6); color: #8b95a8; transition: all 0.18s; }
+  .mode-btn:first-child { border-right: 1px solid rgba(74,158,255,0.15); }
+  .mode-btn.active-max { background: rgba(255,159,64,0.18); color: #ff9f40; }
+  .mode-btn.active-min { background: rgba(93,221,212,0.15); color: #5dddd4; }
+  .mode-label { font-size: 9px; color: #8b95a8; letter-spacing: 0.5px; text-transform: uppercase; text-align: center; margin-bottom: 3px; }
+  .operation-wrap { display: flex; flex-direction: column; align-items: flex-end; min-width: 220px; }
+  .operation-text { font-size: 11px; color: #a8b2c8; text-align: right; }
+
+  /* Canvas 区域 */
+  .canvas-wrap {
+    position: relative; background: #0f1219; border-radius: 4px; overflow: hidden;
+  }
+  canvas { display: block; }
+  .corner { position: absolute; width: 24px; height: 24px; border-color: rgba(74,158,255,0.8); border-style: solid; border-width: 0; pointer-events: none; }
+  .corner.tl { top:0; left:0;  border-top-width:3px; border-left-width:3px;  border-top-left-radius:8px; }
+  .corner.tr { top:0; right:0; border-top-width:3px; border-right-width:3px; border-top-right-radius:8px; }
+  .corner.bl { bottom:0; left:0;  border-bottom-width:3px; border-left-width:3px;  border-bottom-left-radius:8px; }
+  .corner.br { bottom:0; right:0; border-bottom-width:3px; border-right-width:3px; border-bottom-right-radius:8px; }
+
+  /* 图例 */
+  .legend { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8b95a8; }
+  .legend-ball { width: 14px; height: 14px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<h2>HeapSort — Binary Tree Ball Mockup</h2>
+
+<div class="scene-tabs">
+  <button class="scene-tab active" onclick="setScene('build')">建堆中（sift-down）</button>
+  <button class="scene-tab" onclick="setScene('extract')">提取阶段</button>
+  <button class="scene-tab" onclick="setScene('done')">排序完成</button>
+  <button class="scene-tab" onclick="setScene('minheap')">最小堆模式</button>
+</div>
+
+<div class="algorithm-view">
+  <div class="stats-bar">
+    <div class="stats-left">
+      <div class="ctrl-group">
+        <button class="ctrl-btn active" onclick="togglePlay(this)">⏸</button>
+        <button class="ctrl-btn">⏭</button>
+        <button class="ctrl-btn">↺</button>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><span class="stat-label">比较</span><span class="stat-value comparisons" id="cmp">18</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><span class="stat-label">交换</span><span class="stat-value swaps" id="swp">7</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><span class="stat-label">步骤</span><span class="stat-value" id="stp">31/96</span></div>
+      <div class="stat-divider"></div>
+      <div class="status-indicator playing" id="status-ind">
+        <span class="dot"></span>
+        <span class="status-text" id="status-txt">播放中</span>
+      </div>
+    </div>
+    <div class="stats-right">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+        <span class="mode-label">堆模式</span>
+        <div class="mode-toggle">
+          <button class="mode-btn active-max" id="btn-max" onclick="switchMode('max')">最大堆</button>
+          <button class="mode-btn" id="btn-min" onclick="switchMode('min')">最小堆</button>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="operation-wrap">
+        <span class="stat-label" style="margin-bottom:3px;">当前操作</span>
+        <span class="operation-text" id="op-text">sift-down：节点[1]=3 与子节点[3]=9 比较</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="c" width="1100" height="520"></canvas>
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-ball" style="background:linear-gradient(135deg,#74b8ff,#3a7ed4)"></div>堆中（默认）</div>
+  <div class="legend-item"><div class="legend-ball" style="background:linear-gradient(135deg,#ffe566,#d4a800)"></div>比较中</div>
+  <div class="legend-item"><div class="legend-ball" style="background:linear-gradient(135deg,#c97eff,#7b3fa0)"></div>sift-down 根节点</div>
+  <div class="legend-item"><div class="legend-ball" style="background:linear-gradient(135deg,#ff8a8a,#c94040)"></div>交换中</div>
+  <div class="legend-item"><div class="legend-ball" style="background:linear-gradient(135deg,#6bff6b,#38a838)"></div>已就位（升序）</div>
+  <div class="legend-item"><div class="legend-ball" style="background:linear-gradient(135deg,#5dddd4,#2a9e96)"></div>已就位（降序）</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 1100, H = 520;
+
+// ── 堆数据（15个元素，4层完全二叉树）──
+let VALUES = [13, 9, 11, 7, 8, 10, 5, 3, 4, 6, 2, 1];
+const n = VALUES.length;
+
+// 各场景状态
+const SCENES = {
+  build: {
+    values:  [13, 9, 11, 7, 8, 10, 5, 3, 4, 6, 2, 1],
+    pivot:   [1],        // 紫：sift-down 当前根
+    compare: [1, 3],     // 黄：正在比较
+    swapping:[],
+    sorted:  [],
+    heapEnd: 11,
+    op: 'sift-down：节点[1]=9 与子节点[3]=7 比较，不需要交换',
+    cmp:'18', swp:'7', stp:'31/96', status:'playing',
+  },
+  extract: {
+    values:  [9, 7, 8, 3, 6, 5, 4, 1, 2, 0, 0, 0],
+    pivot:   [],
+    compare: [],
+    swapping:[0, 8],   // 堆顶→末位，展示弧线飞行
+    sorted:  [9,10,11],
+    heapEnd: 8,
+    op: '提取堆顶 arr[0]=9 → arr[8]，弧线飞行（路径跨越多层）',
+    cmp:'44', swp:'19', stp:'72/96', status:'playing',
+  },
+  done: {
+    values:  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13],
+    pivot:[], compare:[], swapping:[],
+    sorted:  [0,1,2,3,4,5,6,7,8,9,10,11],
+    heapEnd: -1,
+    op: '排序完成 ✓',
+    cmp:'58', swp:'31', stp:'96/96', status:'done',
+  },
+  minheap: {
+    values:  [1, 2, 3, 4, 6, 5, 7, 8, 9, 0, 0, 0],
+    pivot:   [0],
+    compare: [0, 1],
+    swapping:[],
+    sorted:  [9,10,11],
+    heapEnd: 8,
+    op: '最小堆：根节点[0]=1 是最小值，已就位',
+    cmp:'36', swp:'14', stp:'55/96', status:'playing',
+    modeForce: 'min',
+  },
+};
+
+let scene = 'build';
+let mode = 'max';
+
+// ── 节点位置计算（二叉树布局）──
+function getNodePos(idx, totalNodes) {
+  // 计算树高
+  const depth = Math.floor(Math.log2(idx + 1));
+  const maxDepth = Math.floor(Math.log2(totalNodes));
+  const levelCount = Math.pow(2, depth);
+  const posInLevel = idx - (Math.pow(2, depth) - 1);
+
+  const TOP_PAD = 52;
+  const BOT_PAD = 90; // 底部留给数组排列
+  const treeH = H - TOP_PAD - BOT_PAD;
+  const levelH = treeH / (maxDepth + 1);
+
+  const y = TOP_PAD + depth * levelH + levelH * 0.35;
+  const xTotal = W - 80;
+  const cellW = xTotal / levelCount;
+  const x = 40 + posInLevel * cellW + cellW / 2;
+
+  return { x, y };
+}
+
+// ── 小球半径（受层数和底层格宽双重约束）──
+function getBallRadius(totalNodes) {
+  const maxDepth = Math.floor(Math.log2(Math.max(totalNodes, 1)));
+  const bottomSlots = Math.pow(2, maxDepth);
+  const slotW = (W - 80) / bottomSlots;
+  const rByDepth = Math.min(26, 110 / (maxDepth + 1));
+  const rBySlot  = slotW / 2 - 2;
+  return Math.max(8, Math.round(Math.min(rByDepth, rBySlot)));
+}
+
+// ── 颜色方案（与柱状图渲染器 COLORS 对齐）──
+// default  rgb(74,158,255)   comparing rgb(255,204,0)   swapping rgb(255,107,107)
+// sorted   rgb(103,194,58)   pivot     rgb(155,89,182)
+const CLR = {
+  default:  { fill:'#0d2540', border:'#4a9eff', text:'#a8d0ff', shadow:'rgba(4,14,40,0.9)'   },
+  compare:  { fill:'#3d2e00', border:'#ffcc00', text:'#fff0aa', shadow:'rgba(50,36,0,0.9)'   },
+  pivot:    { fill:'#28133a', border:'#9b59b6', text:'#dab8f0', shadow:'rgba(30,8,50,0.9)'   },
+  swapping: { fill:'#3d1212', border:'#ff6b6b', text:'#ffc8c8', shadow:'rgba(50,8,8,0.9)'    },
+  sorted:   { fill:'#0e2e08', border:'#67c23a', text:'#b8f0a0', shadow:'rgba(6,24,4,0.9)'    },
+  sortedMin:{ fill:'#083230', border:'#4ecdc4', text:'#b0f0ec', shadow:'rgba(4,24,22,0.9)'   },
+  outside:  { fill:'#0c0f16', border:'#1e2430', text:'#2e3545', shadow:'rgba(0,0,0,0.6)'     },
+};
+
+function getNodeColor(idx) {
+  const s = SCENES[scene];
+  const isMin = (mode === 'min' || s.modeForce === 'min');
+  if (s.sorted.includes(idx)) return isMin ? CLR.sortedMin : CLR.sorted;
+  if (idx > s.heapEnd && s.heapEnd >= 0) return CLR.outside;
+  if (s.swapping.includes(idx)) return CLR.swapping;
+  if (s.compare.includes(idx)) return CLR.compare;
+  if (s.pivot.includes(idx))   return CLR.pivot;
+  return CLR.default;
+}
+
+// ── 平面圆形小球（暗底 + 彩色描边 + 向下投影）──
+function drawBall(x, y, r, val, clr, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // 向下投影
+  ctx.shadowColor = clr.shadow;
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 3;
+
+  // 平面填充
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = clr.fill;
+  ctx.fill();
+
+  // 关闭投影后画描边
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.strokeStyle = clr.border;
+  ctx.lineWidth = r < 12 ? 1.5 : 2;
+  ctx.stroke();
+
+  // 数字（字号随半径缩放）
+  const fs = r < 12 ? 9 : r < 18 ? 11 : 13;
+  ctx.font = `bold ${fs}px "JetBrains Mono", monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = clr.text;
+  ctx.fillText(val !== '' ? val.toString() : '', x, y + 0.5);
+
+  ctx.restore();
+}
+
+function drawEdge(x1, y1, x2, y2, active) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.strokeStyle = active ? 'rgba(255,220,80,0.55)' : 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = active ? 2 : 1;
+  ctx.setLineDash(active ? [] : []);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ── 飞行路径：父子节点用直线，跨层远距离用弧线 ──
+function isParentChild(i, j) {
+  return 2*i+1 === j || 2*i+2 === j || 2*j+1 === i || 2*j+2 === i;
+}
+
+function drawFlightPath(idx1, idx2, totalNodes, r) {
+  const p1 = getNodePos(idx1, totalNodes);
+  const p2 = getNodePos(idx2, totalNodes);
+  const direct = isParentChild(idx1, idx2);
+
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(255,210,60,0.65)';
+  ctx.setLineDash([5, 4]);
+
+  if (direct) {
+    // 直线：两点间没有遮挡节点，直接飞过
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+  } else {
+    // 弧线：跨越多个节点，弧高与水平距离成比例
+    const mx = (p1.x + p2.x) / 2;
+    const arcH = Math.abs(p2.x - p1.x) * 0.4 + 40;
+    const topY = Math.min(p1.y, p2.y) - arcH;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.quadraticCurveTo(mx, topY, p2.x, p2.y);
+    ctx.stroke();
+    // 在终点画小箭头
+    const ang = Math.atan2(p2.y - topY, p2.x - mx);
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(p2.x, p2.y);
+    ctx.lineTo(p2.x - 10*Math.cos(ang-0.4), p2.y - 10*Math.sin(ang-0.4));
+    ctx.moveTo(p2.x, p2.y);
+    ctx.lineTo(p2.x - 10*Math.cos(ang+0.4), p2.y - 10*Math.sin(ang+0.4));
+    ctx.stroke();
+  }
+
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// 底部数组小球
+function drawArrayRow(vals, sorted, heapEnd, isMin, r) {
+  const arrN = vals.length;
+  const totalW = arrN * (r * 2 + 6) - 6;
+  const startX = (W - totalW) / 2;
+  const y = H - 42;
+
+  for (let i = 0; i < arrN; i++) {
+    const x = startX + i * (r * 2 + 6) + r;
+    let clr;
+    if (sorted.includes(i)) clr = isMin ? CLR.sortedMin : CLR.sorted;
+    else if (i > heapEnd && heapEnd >= 0) clr = CLR.outside;
+    else clr = CLR.default;
+    drawBall(x, y, r * 0.75, vals[i] || '', clr, vals[i] ? 1 : 0.2);
+
+    // 下标
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#556';
+    ctx.fillText(i.toString(), x, y + r * 0.75 + 3);
+  }
+
+  // 标签
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#556';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('array[]', startX - 52, y);
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+
+  // 背景
+  ctx.fillStyle = '#0f1219';
+  ctx.fillRect(0, 0, W, H);
+
+  // 网格
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const s = SCENES[scene];
+  const vals = s.values;
+  const heapN = s.heapEnd >= 0 ? s.heapEnd + 1 : 0;
+  const isMin = (mode === 'min' || s.modeForce === 'min');
+  const r = getBallRadius(n);
+
+  // 分隔线（树与数组之间）
+  ctx.strokeStyle = 'rgba(74,158,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath(); ctx.moveTo(20, H - 75); ctx.lineTo(W - 20, H - 75); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = '9px monospace'; ctx.fillStyle = '#445'; ctx.textAlign = 'right';
+  ctx.fillText('TREE', W - 25, H - 80);
+  ctx.fillText('ARRAY', W - 25, H - 55);
+
+  // ── 边（先画，在球后面）──
+  for (let i = 0; i < n; i++) {
+    const l = 2*i+1, r2 = 2*i+2;
+    const pos1 = getNodePos(i, n);
+    [l, r2].forEach(c => {
+      if (c >= n) return;
+      const pos2 = getNodePos(c, n);
+      // 从球边缘到球边缘
+      const dx = pos2.x - pos1.x, dy = pos2.y - pos1.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const ux = dx/dist, uy = dy/dist;
+      const active = (s.compare.includes(i) && s.compare.includes(c)) ||
+                     (s.pivot.includes(i) && (s.compare.includes(c)||s.swapping.includes(c)));
+      drawEdge(
+        pos1.x + ux*r, pos1.y + uy*r,
+        pos2.x - ux*r, pos2.y - uy*r,
+        active
+      );
+    });
+  }
+
+  // ── 飞行路径（在节点之下绘制）──
+  const flightPair = [...s.swapping, ...s.compare].slice(0, 2);
+  if (flightPair.length === 2) {
+    drawFlightPath(flightPair[0], flightPair[1], n, r);
+  }
+
+  // ── 节点 ──
+  for (let i = 0; i < n; i++) {
+    const pos = getNodePos(i, n);
+    const clr = getNodeColor(i);
+    const alpha = (i > s.heapEnd && s.heapEnd >= 0 && !s.sorted.includes(i)) ? 0.3 : 1;
+    drawBall(pos.x, pos.y, r, vals[i], clr, alpha);
+  }
+
+  // ── 底部数组 ──
+  drawArrayRow(vals, s.sorted, s.heapEnd, isMin, r);
+}
+
+function updateUI() {
+  const s = SCENES[scene];
+  const eff = s.modeForce ?? mode;
+  document.getElementById('cmp').textContent = s.cmp;
+  document.getElementById('swp').textContent = s.swp;
+  document.getElementById('stp').textContent = s.stp;
+  document.getElementById('op-text').textContent = s.op;
+  const ind = document.getElementById('status-ind');
+  ind.className = `status-indicator ${s.status}`;
+  document.getElementById('status-txt').textContent =
+    {playing:'播放中',paused:'已暂停',done:'已完成',ready:'就绪'}[s.status];
+  document.getElementById('btn-max').className = 'mode-btn' + (eff==='max' ? ' active-max' : '');
+  document.getElementById('btn-min').className = 'mode-btn' + (eff==='min' ? ' active-min' : '');
+}
+
+function setScene(s) {
+  scene = s;
+  document.querySelectorAll('.scene-tab').forEach((t, i) => {
+    t.classList.toggle('active', ['build','extract','done','minheap'][i] === s);
+  });
+  if (s === 'minheap') mode = 'min'; else if (s !== 'minheap') mode = 'max';
+  updateUI(); render();
+}
+
+function switchMode(m) {
+  mode = m;
+  if (m === 'min') scene = 'minheap'; else if (scene === 'minheap') scene = 'build';
+  document.querySelectorAll('.scene-tab').forEach((t, i) => {
+    t.classList.toggle('active', ['build','extract','done','minheap'][i] === scene);
+  });
+  updateUI(); render();
+}
+
+function togglePlay(btn) {
+  const playing = btn.textContent === '⏸';
+  btn.textContent = playing ? '▶' : '⏸';
+  btn.classList.toggle('active', !playing);
+  const ind = document.getElementById('status-ind');
+  ind.className = `status-indicator ${playing ? 'paused' : 'playing'}`;
+  document.getElementById('status-txt').textContent = playing ? '已暂停' : '播放中';
+}
+
+updateUI(); render();
+</script>
+</body>
+</html>

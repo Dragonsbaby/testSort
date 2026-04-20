@@ -29,6 +29,14 @@ const ARRAY_MUTATING_TYPES = new Set<SortStep['type']>(['swap', 'merge', 'set', 
  */
 import type { ArrayElement } from "@/stores/sortStore";
 
+/** 每步结束后的完整状态快照，用于上一步回退 */
+interface StepSnapshot {
+  array: ArrayElement[];
+  sortedIndices: Set<number>;
+  comparisons: number;
+  swaps: number;
+}
+
 export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>; canvasRef: Ref<ISortCanvas | null>; originalArray: ToRef<ArrayElement[]> }) {
   const { sortFn, speed, canvasRef, originalArray } = params;
 
@@ -46,6 +54,8 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
   const localPlaying = ref(false);
   /** setTimeout 定时器 ID */
   let timer: ReturnType<typeof setTimeout> | null = null;
+  /** 每步结束后的完整状态快照（索引 i 对应执行完 steps[i] 后的状态） */
+  let stepSnapshots: StepSnapshot[] = [];
   /**
    * 动画执行中标志：true 表示 applyStep 正在 await Canvas 的 rAF 动画。
    * 速度变化时若此标志为 true，跳过本次 stop/play 重启——
@@ -145,6 +155,46 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
   });
 
   /**
+   * 干跑所有步骤，预计算每步结束后的完整状态快照
+   * 使 stepBack() 能在 O(1) 时间内还原任意步骤的状态
+   */
+  function buildStepSnapshots(): StepSnapshot[] {
+    const snapshots: StepSnapshot[] = [];
+    let arr = originalArray.value.map(e => e.value);
+    const sorted = new Set<number>();
+    let comps = 0, sws = 0;
+
+    for (const s of steps.value) {
+      if (s.type === 'compare' || s.type === 'bucket-compare') {
+        comps++;
+      } else if (s.type === 'swap' || s.type === 'merge' || s.type === 'set' ||
+                 s.type === 'merge-set' || s.type === 'merge-back' || s.type === 'bucket-swap') {
+        sws++;
+      } else if (s.type === 'sorted') {
+        s.indices.forEach(i => sorted.add(i));
+      }
+
+      if (s.arraySnapshot && ARRAY_MUTATING_TYPES.has(s.type)) {
+        let final = s.arraySnapshot;
+        if (s.type === 'swap' && s.indices.length === 2) {
+          const [i, j] = s.indices;
+          final = [...s.arraySnapshot];
+          [final[i], final[j]] = [final[j], final[i]];
+        }
+        arr = final;
+      }
+
+      snapshots.push({
+        array: arr.map(v => ({ value: v, displayIndex: valueToDisplayIndex?.get(v) ?? 0 })),
+        sortedIndices: new Set(sorted),
+        comparisons: comps,
+        swaps: sws,
+      });
+    }
+    return snapshots;
+  }
+
+  /**
    * 只要 originalArray 更新就会要重载 数组和步骤
    */
   function initFromOriginal() {
@@ -160,6 +210,7 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     localPlaying.value = false;
     // 构建 value -> displayIndex 映射（只需构建一次）
     valueToDisplayIndex = buildValueToDisplayIndex();
+    stepSnapshots = buildStepSnapshots();
   }
 
   /** 开始连续播放 */
@@ -254,13 +305,45 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
    * 重置到初始状态
    * 恢复原始数组，清除所有统计和步骤进度
    */
-  function reset() {
+  function reset(regenerate = false) {
     stop();
     array.value = [...originalArray.value];
+    if (regenerate && originalArray.value.length > 0) {
+      steps.value = sortFn(originalArray.value.map(e => e.value));
+      valueToDisplayIndex = buildValueToDisplayIndex();
+      stepSnapshots = buildStepSnapshots();
+    }
     currentStep.value = 0;
     comparisons.value = 0;
     swaps.value = 0;
     sortedIndices.value = new Set();
+    canvasRef.value?.updateBars();
+  }
+
+  /**
+   * 回退一步（不播放动画，直接还原到上一步结束时的状态）
+   * 只在非播放、非动画进行中时可用
+   */
+  function stepBack() {
+    if (isAnimating || localPlaying.value) return;
+    if (currentStep.value <= 0) return;
+
+    const target = currentStep.value - 1;
+    if (target === 0) {
+      array.value = [...originalArray.value];
+      sortedIndices.value = new Set();
+      comparisons.value = 0;
+      swaps.value = 0;
+    } else {
+      const snap = stepSnapshots[target - 1];
+      array.value = [...snap.array];
+      sortedIndices.value = new Set(snap.sortedIndices);
+      comparisons.value = snap.comparisons;
+      swaps.value = snap.swaps;
+    }
+    // 重置 prevHighlightedIndices，避免 swap/merge 步骤错误继承退步前的状态
+    prevHighlightedIndices = { comparing: [], swapping: [], sorted: [], pivot: [], pending: [] };
+    currentStep.value = target;
     canvasRef.value?.updateBars();
   }
 
@@ -319,6 +402,7 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     play,
     pause: stop,
     step: stepOnce,
+    stepBack,
     reset,
     statusText,
     statusClass,

@@ -9,7 +9,7 @@ const props = defineProps<{ speed: number }>();
 const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
 
-const { array, steps, currentStep, comparisons, swaps, highlightedIndices, currentStepInfo, isPlaying, play, pause, step, reset, statusText, statusClass } = useSortAnimation({
+const { array, steps, currentStep, comparisons, swaps, highlightedIndices, currentStepInfo, isPlaying, play, pause, step, stepBack, reset, statusText, statusClass } = useSortAnimation({
   sortFn: shellSort,
   speed: toRef(props, "speed"),
   canvasRef,
@@ -39,6 +39,13 @@ const currentGap = computed(() => {
             <svg v-else class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
               <rect x="6" y="4" width="4" height="16"/>
               <rect x="14" y="4" width="4" height="16"/>
+            </svg>
+          </button>
+
+          <button class="ctrl-btn" @click="stepBack()" :disabled="isPlaying || currentStep <= 0">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="19,4 9,12 19,20"/>
+              <rect x="5" y="4" width="3" height="16"/>
             </svg>
           </button>
 
