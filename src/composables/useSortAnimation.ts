@@ -17,6 +17,9 @@ type SortFn = (arr: number[]) => SortStep[];
 
 /** 真正修改主数组内容的步骤类型（需重建 array 并调用 updateBars） */
 const ARRAY_MUTATING_TYPES = new Set<SortStep['type']>(['swap', 'merge', 'set', 'merge-back']);
+const COMPARISON_STEP_TYPES = new Set<SortStep['type']>(['compare', 'bucket-compare']);
+const SWAP_COUNT_STEP_TYPES = new Set<SortStep['type']>(['swap', 'merge', 'set', 'merge-set', 'merge-back', 'bucket-swap']);
+const PREVIOUS_HIGHLIGHT_STEP_TYPES = new Set<SortStep['type']>(['swap', 'merge', 'merge-set']);
 
 /**
  * 排序动画组合式函数
@@ -100,10 +103,10 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
       return { comparing: [], swapping: [], sorted: [], pivot: [], pending: [] };
     }
     const step = steps.value[currentStep.value - 1];
-    let comparing: number[] = [],
-      swapping: number[] = [],
-      pivot: number[] = [],
-      pending: number[] = [];
+    let comparing: number[] = [];
+    let swapping: number[] = [];
+    let pivot: number[] = [];
+    let pending: number[] = [];
     switch (step.type) {
       case 'compare':
         comparing = step.indices;
@@ -142,7 +145,7 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     }
     const sortedArray = Array.from(sortedIndices.value);
     // merge-set 继承上一步状态，不更新 prevHighlightedIndices
-    if (step.type !== 'swap' && step.type !== 'merge' && step.type !== 'merge-set') {
+    if (!PREVIOUS_HIGHLIGHT_STEP_TYPES.has(step.type)) {
       prevHighlightedIndices = { comparing, swapping, sorted: sortedArray, pivot, pending };
     }
     return { comparing, swapping, sorted: sortedArray, pivot, pending };
@@ -165,10 +168,9 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     let comps = 0, sws = 0;
 
     for (const s of steps.value) {
-      if (s.type === 'compare' || s.type === 'bucket-compare') {
+      if (COMPARISON_STEP_TYPES.has(s.type)) {
         comps++;
-      } else if (s.type === 'swap' || s.type === 'merge' || s.type === 'set' ||
-                 s.type === 'merge-set' || s.type === 'merge-back' || s.type === 'bucket-swap') {
+      } else if (SWAP_COUNT_STEP_TYPES.has(s.type)) {
         sws++;
       } else if (s.type === 'sorted') {
         s.indices.forEach(i => sorted.add(i));
@@ -249,14 +251,9 @@ export function useSortAnimation(params: { sortFn: SortFn; speed: ToRef<number>;
     // 动画完成后才更新 currentStep，让 highlightedIndices 与视觉状态一致
     currentStep.value++;
 
-    if (step.type === 'compare') {
+    if (COMPARISON_STEP_TYPES.has(step.type)) {
       comparisons.value++;
-    } else if (step.type === 'swap' || step.type === 'merge' || step.type === 'set' ||
-               step.type === 'merge-set' || step.type === 'merge-back') {
-      swaps.value++;
-    } else if (step.type === 'bucket-compare') {
-      comparisons.value++;
-    } else if (step.type === 'bucket-swap') {
+    } else if (SWAP_COUNT_STEP_TYPES.has(step.type)) {
       swaps.value++;
     } else if (step.type === 'sorted') {
       step.indices.forEach(idx => sortedIndices.value.add(idx));

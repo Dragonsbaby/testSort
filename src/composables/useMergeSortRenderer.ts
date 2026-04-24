@@ -414,7 +414,6 @@ export function useMergeSortRenderer(
     ctx.font = '11px "JetBrains Mono", monospace';
     ctx.fillStyle = 'rgba(78, 205, 196, 0.7)';
     ctx.textAlign = 'left';
- d'w
 
     // 下排底部装饰线
     ctx.strokeStyle = 'rgba(78, 205, 196, 0.15)';

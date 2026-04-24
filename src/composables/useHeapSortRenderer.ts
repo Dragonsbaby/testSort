@@ -56,6 +56,20 @@ const BOT_PAD  = 88;  // 底部保留给 array[] 行
  * 堆排序专用渲染器
  * 将数组元素以完整二叉树布局绘制成小球，swap 动画沿直线或弧线飞行。
  */
+function resolveColorKey(
+  index: number,
+  highlighted: HighlightedIndices,
+  isMinHeapMode: boolean,
+): FillKey {
+  const { comparing, swapping, sorted, pivot, pending } = highlighted;
+  if (sorted.includes(index)) return isMinHeapMode ? 'sortedMin' : 'sorted';
+  if (pivot.includes(index)) return 'pivot';
+  if (comparing.includes(index)) return 'compare';
+  if (swapping.includes(index)) return 'swapping';
+  if (pending.includes(index)) return 'pending';
+  return 'default';
+}
+
 export function useHeapSortRenderer(
   canvasRef: Ref<HTMLCanvasElement | null>,
   displayArray: Ref<ArrayElement[]>,
@@ -108,21 +122,10 @@ export function useHeapSortRenderer(
     if (!arr || arr.length === 0) { balls.value = []; return; }
     const n = arr.length;
     const r = getBallRadius(n);
-    const { comparing, swapping, sorted, pivot, pending } = highlightedIndices.value;
-    const sortedSet  = new Set(sorted);
-    const pivotSet   = new Set(pivot);
-    const compareSet = new Set(comparing);
-    const swapSet    = new Set(swapping);
-    const pendingSet = new Set(pending);
 
     balls.value = arr.map((el, idx) => {
       const pos = getNodePos(idx, n);
-      let colorKey: FillKey = 'default';
-      if (sortedSet.has(idx))  colorKey = isMinHeap.value ? 'sortedMin' : 'sorted';
-      else if (pivotSet.has(idx))   colorKey = 'pivot';
-      else if (compareSet.has(idx)) colorKey = 'compare';
-      else if (swapSet.has(idx))    colorKey = 'swapping';
-      else if (pendingSet.has(idx)) colorKey = 'pending';
+      const colorKey = resolveColorKey(idx, highlightedIndices.value, isMinHeap.value);
 
       return {
         index: idx,
@@ -140,21 +143,9 @@ export function useHeapSortRenderer(
   /** 根据 highlightedIndices 刷新颜色（不重建位置） */
   function refreshColors() {
     const n = displayArray.value.length;
-    const { comparing, swapping, sorted, pivot, pending } = highlightedIndices.value;
-    const sortedSet  = new Set(sorted);
-    const pivotSet   = new Set(pivot);
-    const compareSet = new Set(comparing);
-    const swapSet    = new Set(swapping);
-    const pendingSet = new Set(pending);
 
     balls.value.forEach(b => {
-      const idx = b.index;
-      if (sortedSet.has(idx))       b.colorKey = isMinHeap.value ? 'sortedMin' : 'sorted';
-      else if (pivotSet.has(idx))   b.colorKey = 'pivot';
-      else if (compareSet.has(idx)) b.colorKey = 'compare';
-      else if (swapSet.has(idx))    b.colorKey = 'swapping';
-      else if (pendingSet.has(idx)) b.colorKey = 'pending';
-      else                          b.colorKey = 'default';
+      b.colorKey = resolveColorKey(b.index, highlightedIndices.value, isMinHeap.value);
       // 修正 radius（容器尺寸可能已变）
       b.radius = getBallRadius(n);
     });

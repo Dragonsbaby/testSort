@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, toRef } from 'vue';
 import { useBucketSortRenderer } from '@/composables/useBucketSortRenderer';
 import type { ArrayElement } from '@/stores/sortStore';
 import type { SortStep } from '@/types/sorting';
@@ -11,12 +11,9 @@ const props = defineProps<{
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const canvasRef    = ref<HTMLCanvasElement | null>(null);
+const displayArray = toRef(props, 'array');
 
-// 将 props.array 包装为 Ref 传给渲染器
-const displayArray = ref(props.array);
-watch(() => props.array, val => { displayArray.value = val; }, { deep: true });
-
-const { initialize, resize, updateBars, forceReset, startRenderLoop, stopRenderLoop, applyStep: rendererApplyStep } =
+const { initialize, resize, forceReset, startRenderLoop, stopRenderLoop, applyStep: rendererApplyStep } =
   useBucketSortRenderer(canvasRef, displayArray);
 
 let resizeObserver: ResizeObserver | null = null;
@@ -43,19 +40,22 @@ onUnmounted(() => {
   resizeObserver?.disconnect();
 });
 
-// array prop 变化时重置（仅在非动画期间触发，对应重置操作）
 watch(
-  () => props.array,
-  () => { if (!isApplyingStep) forceReset(); },
+  displayArray,
+  () => {
+    if (!isApplyingStep) forceReset();
+  },
   { deep: true },
 );
 
 /** 执行单个步骤，暴露给 useSortAnimation（ISortCanvas 接口） */
 async function applyStep(step: SortStep): Promise<number | undefined> {
   isApplyingStep = true;
-  const delay = await rendererApplyStep(step, props.animationSpeed);
-  isApplyingStep = false;
-  return delay;
+  try {
+    return await rendererApplyStep(step, props.animationSpeed);
+  } finally {
+    isApplyingStep = false;
+  }
 }
 
 /**
