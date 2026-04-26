@@ -1,33 +1,12 @@
+import type { SemanticStep, SemanticStepType } from "@/types/timeline";
+
 /** 桶数动态计算：每 10 个元素一个桶，下限 3，上限 9 */
 export function calcBucketCount(n: number): number {
   return Math.min(9, Math.max(3, Math.round(n / 10)));
 }
 
-export type StepType =
-  | "compare"
-  | "swap"
-  | "merge"
-  | "set"
-  | "sorted"
-  | "pivot"
-  | "merge-set"      // 归并排序：将元素写入下排辅助数组
-  | "merge-back"     // 归并排序：将辅助数组整段复写回上排主数组
-  | "bucket-scatter" // 桶排序：元素从主数组飞入桶
-  | "bucket-compare" // 桶排序：桶内两元素比较
-  | "bucket-swap"    // 桶排序：桶内两元素交换
-  | "bucket-gather"; // 桶排序：元素从桶飞回主数组归位
-
-export interface SortStep {
-  type: StepType;
-  indices: number[];
-  description: string;
-  arraySnapshot?: number[];
-  gap?: number;            // 步长（希尔排序用）
-  groupIndices?: number[]; // 当前排序组的全部索引（待排序/合并区间）
-  tempSnapshot?: (number | null)[]; // 辅助数组快照（归并排序下排专用）
-  bucketIndex?: number;    // 桶排序：目标桶编号
-  bucketPos?: number;      // 桶排序：桶内目标位置
-}
+export type StepType = SemanticStepType;
+export type SortStep = SemanticStep;
 
 export type SortAlgorithm = "bubble" | "insertion" | "merge" | "quick" | "shell" | "bucket" | "heap";
 
@@ -74,3 +53,4 @@ export const algorithmInfo: Record<SortAlgorithm, AlgorithmInfo> = {
     complexity: "O(n log n)",
   },
 };
+

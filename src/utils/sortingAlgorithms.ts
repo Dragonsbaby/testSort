@@ -1,8 +1,8 @@
-import type { SortStep } from "@/types/sorting";
+import type { SemanticStep } from "@/types/timeline";
 import { calcBucketCount } from "@/types/sorting";
 
 function createStep(
-  type: SortStep["type"],
+  type: SemanticStep["type"],
   indices: number[],
   description: string,
   arraySnapshot?: number[],
@@ -11,12 +11,12 @@ function createStep(
   tempSnapshot?: (number | null)[],
   bucketIndex?: number,
   bucketPos?: number,
-): SortStep {
+): SemanticStep {
   return { type, indices, description, arraySnapshot, gap, groupIndices, tempSnapshot, bucketIndex, bucketPos };
 }
 
-export function bubbleSort(arr: number[]): SortStep[] {
-  const steps: SortStep[] = [];
+export function bubbleSort(arr: number[]): SemanticStep[] {
+  const steps: SemanticStep[] = [];
   const n = arr.length;
   const array = [...arr];
 
@@ -36,8 +36,8 @@ export function bubbleSort(arr: number[]): SortStep[] {
   return steps;
 }
 
-export function insertionSort(arr: number[]): SortStep[] {
-  const steps: SortStep[] = [];
+export function insertionSort(arr: number[]): SemanticStep[] {
+  const steps: SemanticStep[] = [];
   const n = arr.length;
   const array = [...arr];
 
@@ -63,8 +63,8 @@ export function insertionSort(arr: number[]): SortStep[] {
   return steps;
 }
 
-export function mergeSort(arr: number[]): SortStep[] {
-  const steps: SortStep[] = [];
+export function mergeSort(arr: number[]): SemanticStep[] {
+  const steps: SemanticStep[] = [];
   const array = [...arr];
 
   function merge(left: number, mid: number, right: number) {
@@ -161,8 +161,8 @@ export function mergeSort(arr: number[]): SortStep[] {
   return steps;
 }
 
-export function quickSort(arr: number[]): SortStep[] {
-  const steps: SortStep[] = [];
+export function quickSort(arr: number[]): SemanticStep[] {
+  const steps: SemanticStep[] = [];
   const array = [...arr];
 
   function partition(low: number, high: number): number {
@@ -212,8 +212,8 @@ export function quickSort(arr: number[]): SortStep[] {
   return steps;
 }
 
-export function shellSort(arr: number[]): SortStep[] {
-  const steps: SortStep[] = [];
+export function shellSort(arr: number[]): SemanticStep[] {
+  const steps: SemanticStep[] = [];
   const a = [...arr];
   const n = a.length;
 
@@ -244,8 +244,8 @@ export function shellSort(arr: number[]): SortStep[] {
 }
 
 /** 桶排序（动态桶数：每 10 个元素一个桶，上限 9，与 useBucketSortRenderer.ts 保持一致） */
-export function bucketSort(arr: number[]): SortStep[] {
-  const steps: SortStep[] = [];
+export function bucketSort(arr: number[]): SemanticStep[] {
+  const steps: SemanticStep[] = [];
   const a = [...arr];
   const n = a.length;
   const K = calcBucketCount(n);
@@ -316,8 +316,8 @@ export function bucketSort(arr: number[]): SortStep[] {
  * @param arr   原始数组（数值）
  * @param mode  'max' = 最大堆 → 升序；'min' = 最小堆 → 降序
  */
-export function heapSort(arr: number[], mode: "max" | "min" = "max"): SortStep[] {
-  const steps: SortStep[] = [];
+export function heapSort(arr: number[], mode: "max" | "min" = "max"): SemanticStep[] {
+  const steps: SemanticStep[] = [];
   const a = [...arr];
   const n = a.length;
 
