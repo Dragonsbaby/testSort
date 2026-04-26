@@ -1,31 +1,28 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, toRef } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useBucketSortRenderer } from '@/composables/useBucketSortRenderer';
 import type { ArrayElement } from '@/stores/sortStore';
-import type { SortStep } from '@/types/sorting';
+import type { FrameState } from '@/types/timeline';
 
 const props = defineProps<{
   array: ArrayElement[];
   animationSpeed: number;
 }>();
+void props;
 
 const containerRef = ref<HTMLDivElement | null>(null);
-const canvasRef    = ref<HTMLCanvasElement | null>(null);
-const displayArray = toRef(props, 'array');
+const canvasRef = ref<HTMLCanvasElement | null>(null);
 
-const { initialize, resize, forceReset, startRenderLoop, stopRenderLoop, applyStep: rendererApplyStep } =
-  useBucketSortRenderer(canvasRef, displayArray);
+const { initialize, resize, renderFrame, startRenderLoop, stopRenderLoop } = useBucketSortRenderer(canvasRef);
 
 let resizeObserver: ResizeObserver | null = null;
-/** 步骤执行中标志，防止 array watch 误触发 forceReset */
-let isApplyingStep = false;
 
 onMounted(() => {
   if (containerRef.value) {
     const rect = containerRef.value.getBoundingClientRect();
     initialize(rect.width - 40, Math.max(420, rect.height - 40));
     startRenderLoop();
-    resizeObserver = new ResizeObserver(entries => {
+    resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         resize(width - 40, Math.max(420, height - 40));
@@ -40,33 +37,11 @@ onUnmounted(() => {
   resizeObserver?.disconnect();
 });
 
-watch(
-  displayArray,
-  () => {
-    if (!isApplyingStep) forceReset();
-  },
-  { deep: true },
-);
-
-/** 执行单个步骤，暴露给 useSortAnimation（ISortCanvas 接口） */
-async function applyStep(step: SortStep): Promise<number | undefined> {
-  isApplyingStep = true;
-  try {
-    return await rendererApplyStep(step, props.animationSpeed);
-  } finally {
-    isApplyingStep = false;
-  }
+function exposedRenderFrame(frame: FrameState) {
+  renderFrame(frame);
 }
 
-/**
- * 暴露给 useSortAnimation 的 updateBars 入口。
- * 直接调用 forceReset() 绕过 bucketStateActive 守卫，确保上一步回退时状态完整重建。
- */
-function exposedUpdateBars() {
-  forceReset();
-}
-
-defineExpose({ applyStep, updateBars: exposedUpdateBars });
+defineExpose({ renderFrame: exposedRenderFrame });
 </script>
 
 <template>

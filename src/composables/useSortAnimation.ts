@@ -2,6 +2,9 @@ import { computed, ref, watch, type Ref, type ToRef } from "vue";
 import type { SemanticStep, TimelineStep, FrameState } from "@/types/timeline";
 import type { ArrayElement } from "@/stores/sortStore";
 import { buildBasicTimeline } from "@/utils/timeline-builders/build-basic-timeline";
+import { buildMergeTimeline } from "@/utils/timeline-builders/build-merge-timeline";
+import { buildBucketTimeline } from "@/utils/timeline-builders/build-bucket-timeline";
+import { buildHeapTimeline } from "@/utils/timeline-builders/build-heap-timeline";
 import { useTimelinePlayer } from "@/composables/useTimelinePlayer";
 
 export interface ISortCanvas {
@@ -9,6 +12,7 @@ export interface ISortCanvas {
 }
 
 type BasicAlgorithm = "bubble" | "insertion" | "quick" | "shell";
+type SortAnimationAlgorithm = BasicAlgorithm | "merge" | "bucket" | "heap";
 type SortFn = (arr: number[]) => SemanticStep[];
 
 function buildDisplayArray(values: number[], displayIndexes: number[]): ArrayElement[] {
@@ -23,9 +27,10 @@ export function useSortAnimation(params: {
   speed: ToRef<number>;
   canvasRef: Ref<ISortCanvas | null>;
   originalArray: ToRef<ArrayElement[]>;
-  algorithm: BasicAlgorithm;
+  algorithm: SortAnimationAlgorithm;
+  heapMode?: ToRef<"max" | "min">;
 }) {
-  const { sortFn, speed, canvasRef, originalArray, algorithm } = params;
+  const { sortFn, speed, canvasRef, originalArray, algorithm, heapMode } = params;
 
   const semanticSteps = ref<SemanticStep[]>([]);
   const timelineSteps = ref<TimelineStep[]>([]);
@@ -40,15 +45,43 @@ export function useSortAnimation(params: {
 
     array.value = [...current];
     semanticSteps.value = sortFn(values);
-    timelineSteps.value = buildBasicTimeline({
-      algorithm,
-      steps: semanticSteps.value,
-      originalValues: values,
-      displayIndexes,
-      width: 760,
-      height: 320,
-      stepDuration: speed.value,
-    });
+    timelineSteps.value = algorithm === "merge"
+      ? buildMergeTimeline({
+          steps: semanticSteps.value,
+          originalValues: values,
+          displayIndexes,
+          width: 760,
+          height: 420,
+          stepDuration: speed.value,
+        })
+      : algorithm === "bucket"
+        ? buildBucketTimeline({
+            steps: semanticSteps.value,
+            originalValues: values,
+            displayIndexes,
+            width: 760,
+            height: 460,
+            stepDuration: speed.value,
+          })
+        : algorithm === "heap"
+          ? buildHeapTimeline({
+              steps: semanticSteps.value,
+              originalValues: values,
+              displayIndexes,
+              width: 760,
+              height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88,
+              stepDuration: speed.value,
+              isMinHeap: heapMode?.value === "min",
+            })
+          : buildBasicTimeline({
+              algorithm,
+              steps: semanticSteps.value,
+              originalValues: values,
+              displayIndexes,
+              width: 760,
+              height: 320,
+              stepDuration: speed.value,
+            });
     comparisons.value = 0;
     swaps.value = 0;
     player.reset();
@@ -73,8 +106,8 @@ export function useSortAnimation(params: {
 
     const step = timelineSteps.value[index - 1];
     const snapshot = step?.to.entities
-      .filter((entity) => entity.kind === "main-bar")
-      .sort((left, right) => left.x - right.x);
+      .filter((entity) => entity.kind === "main-bar" || entity.kind === "heap-array-node")
+      .sort((left, right) => left.x - right.x || left.displayIndex - right.displayIndex);
 
     if (!snapshot?.length) return;
 
@@ -137,6 +170,7 @@ export function useSortAnimation(params: {
     pause: player.pause,
     step,
     reset,
+    rebuild,
     statusText: computed(() => {
       if (player.isPlaying.value) return "播放中";
       if (player.currentStepIndex.value >= timelineSteps.value.length) return "已完成";

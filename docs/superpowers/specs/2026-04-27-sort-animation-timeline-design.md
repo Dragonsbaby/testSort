@@ -477,4 +477,67 @@
 最终判断：
 - 方案值得做
 - 风险可控
+
+## 9. 当前实现状态（2026-04-27）
+
+截至当前代码状态，本设计中的核心改造已基本落地。
+
+### 9.1 已完成
+
+1. 时间轴核心模型已建立
+   - 已定义 `SemanticStep`、`TimelineStep`、`FrameState`、`Transition`
+   - 已建立 `entities / regions / overlays` 三层渲染结构
+
+2. 插值与路径能力已建立
+   - `interpolate-frame.ts`
+   - `interpolate-entity.ts`
+   - `path-utils.ts`
+   - `style-utils.ts`
+   - 已支持 `instant / linear / arc / path / fade`
+
+3. `useSortAnimation.ts` 已迁移为统一时间轴控制器
+   - 算法输出 `SemanticStep[]`
+   - builder 输出 `TimelineStep[]`
+   - player 推进当前帧
+   - Canvas 组件只消费 `renderFrame(frame)`
+
+4. 通用排序链路已迁移完成
+   - 冒泡、插入、快速、希尔已接入 timeline builder
+   - `compare / swap / pivot / sorted / pending` 已走统一帧渲染
+
+5. 归并排序链路已迁移完成
+   - 已支持 main / buffer 双区布局
+   - 已支持 `merge-set` / `merge-back`
+   - 已加入 ghost 实体
+   - `merge-set` / `merge-back` 已改为 `path` 过渡
+
+6. 桶排序链路已迁移完成
+   - 已支持主数组区与多 bucket regions
+   - 已支持 `bucket-scatter` / `bucket-compare` / `bucket-swap` / `bucket-gather`
+   - 已加入桶标题、badge、值域标签、divider overlays
+   - `bucket-scatter` / `bucket-gather` 已改为 `path` 过渡
+
+7. 堆排序链路已迁移完成
+   - 已支持 tree / array 双视图
+   - 已支持 edge / divider / labels overlays
+   - 已贯通最大堆 / 最小堆模式到 timeline builder
+   - 已按设计区分交换过渡：
+     - heap 父子交换使用 `linear`
+     - heap 根末交换使用 `arc`
+
+8. 通用 Canvas 渲染能力已补齐
+   - 已支持 bar / heap node / ghost 的统一帧绘制
+   - 已支持 `label / badge / guide / divider / edge` overlays 绘制
+
+### 9.2 当前与原设计相比的收敛说明
+
+1. `useTimelinePlayer.ts` 已独立拆出
+   - 设计中标注“可选”，当前实现选择拆出，符合职责划分方向。
+
+2. merge / bucket / heap 的专有 renderer 目前是薄适配层
+   - 主要专有逻辑已下沉到 timeline builder 与通用 canvas renderer。
+   - 这与设计目标一致：renderer 不再持有动画推进与状态真相。
+
+3. 本次仍未实现回退、倒放、seek、时间轴调试器
+   - 与本设计“本次明确不做”保持一致。
 - 前提是严格守住类型分层、布局统一和 renderer 去状态化这三条边界

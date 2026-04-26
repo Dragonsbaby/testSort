@@ -9,34 +9,43 @@ const props = defineProps<{ speed: number }>();
 const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
 
-/** 堆模式：最大堆（升序）或最小堆（降序） */
 const heapMode = ref<"max" | "min">("max");
 
 const {
-  array, steps, currentStep, comparisons, swaps,
-  highlightedIndices, currentStepInfo,
-  isPlaying, play, pause, step, stepBack, reset,
-  statusText, statusClass,
+  array,
+  steps,
+  currentStep,
+  comparisons,
+  swaps,
+  currentStepInfo,
+  isPlaying,
+  play,
+  pause,
+  step: stepOnce,
+  reset,
+  rebuild,
+  statusText,
+  statusClass,
 } = useSortAnimation({
   sortFn: (arr) => heapSort(arr, heapMode.value),
   speed: toRef(props, "speed"),
   canvasRef,
   originalArray: toRef(store, "originalArray"),
+  algorithm: "heap",
+  heapMode,
 });
 
-// 切换模式时重新生成步骤（sortFn 闭包读取最新 heapMode.value）
 watch(heapMode, () => {
   if (isPlaying.value) pause();
-  reset(true);
+  rebuild();
 });
 
-defineExpose({ reset, step });
+defineExpose({ reset, step: stepOnce });
 </script>
 
 <template>
   <div class="algorithm-view">
     <div class="stats-bar">
-      <!-- 左侧：控制按钮 + 统计 -->
       <div class="stats-left">
         <div class="ctrl-group">
           <button class="ctrl-btn" :class="{ active: isPlaying }" @click="isPlaying ? pause() : play()">
@@ -49,14 +58,7 @@ defineExpose({ reset, step });
             </svg>
           </button>
 
-          <button class="ctrl-btn" @click="stepBack()" :disabled="isPlaying || currentStep <= 0">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="19,4 9,12 19,20"/>
-              <rect x="5" y="4" width="3" height="16"/>
-            </svg>
-          </button>
-
-          <button class="ctrl-btn" @click="step()" :disabled="isPlaying">
+          <button class="ctrl-btn" @click="stepOnce()" :disabled="isPlaying || currentStep >= steps.length">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5,4 15,12 5,20"/>
               <rect x="16" y="4" width="3" height="16"/>
@@ -94,7 +96,6 @@ defineExpose({ reset, step });
         </div>
       </div>
 
-      <!-- 右侧：堆模式切换 + 当前操作 -->
       <div class="stats-right">
         <div class="heap-mode-wrap">
           <span class="stat-label">堆模式</span>
@@ -121,13 +122,10 @@ defineExpose({ reset, step });
       </div>
     </div>
 
-    <!-- Canvas -->
     <SortBarCanvasHeap
       ref="canvasRef"
       :array="array"
-      :highlighted-indices="highlightedIndices"
       :animation-speed="speed"
-      :is-min-heap="heapMode === 'min'"
     />
   </div>
 </template>

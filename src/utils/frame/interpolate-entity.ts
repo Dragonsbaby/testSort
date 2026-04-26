@@ -1,5 +1,5 @@
 import type { RenderableEntity, Transition } from "@/types/timeline";
-import { getArcPoint, lerp } from "./path-utils";
+import { getArcPoint, getFadeOpacity, getPathPoint, lerp } from "./path-utils";
 import { interpolateStyle } from "./style-utils";
 
 function interpolateEntity(from: RenderableEntity, to: RenderableEntity, transition: Transition, progress: number): RenderableEntity {
@@ -8,10 +8,23 @@ function interpolateEntity(from: RenderableEntity, to: RenderableEntity, transit
   let x = lerp(from.x, to.x, progress);
   let y = lerp(from.y, to.y, progress);
 
-  if (transition.type === "arc" && movedByTransition) {
-    const point = getArcPoint({ x: from.x, y: from.y }, { x: to.x, y: to.y }, progress, 50);
-    x = point.x;
-    y = point.y;
+  if (movedByTransition) {
+    if (transition.type === "arc") {
+      const point = getArcPoint({ x: from.x, y: from.y }, { x: to.x, y: to.y }, progress, 50);
+      x = point.x;
+      y = point.y;
+    }
+
+    if (transition.type === "path") {
+      const point = getPathPoint(
+        { x: from.x, y: from.y },
+        { x: to.x, y: to.y },
+        progress,
+        transition.pathParams,
+      );
+      x = point.x;
+      y = point.y;
+    }
   }
 
   return {
@@ -20,7 +33,9 @@ function interpolateEntity(from: RenderableEntity, to: RenderableEntity, transit
     y,
     width: lerp(from.width, to.width, progress),
     height: lerp(from.height, to.height, progress),
-    opacity: lerp(from.opacity, to.opacity, progress),
+    opacity: transition.visibilityTransition || transition.type === "fade"
+      ? getFadeOpacity(from.opacity, to.opacity, progress)
+      : lerp(from.opacity, to.opacity, progress),
     style: transition.styleTransition ? interpolateStyle(from.style, to.style, progress) : to.style,
   };
 }
