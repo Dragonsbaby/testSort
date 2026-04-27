@@ -11,8 +11,13 @@ import {
   ShellSort,
 } from "@/components/algorithms";
 
+interface SortAlgorithmExposed {
+  reset(): void;
+  step(): void;
+}
+
 const store = useSortStore();
-const algorithmRef = ref<InstanceType<typeof MergeSort> | null>(null);
+const algorithmRef = ref<SortAlgorithmExposed | null>(null);
 
 const componentMap = {
   bubble: BubbleSort,

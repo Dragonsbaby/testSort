@@ -90,12 +90,16 @@ export function useSortAnimation(params: {
   const player = useTimelinePlayer(() => timelineSteps.value);
 
   function syncStats(index: number) {
-    comparisons.value = timelineSteps.value
-      .slice(0, index)
-      .reduce((sum, step) => sum + step.statsDelta.comparisons, 0);
-    swaps.value = timelineSteps.value
-      .slice(0, index)
-      .reduce((sum, step) => sum + step.statsDelta.swaps, 0);
+    let nextComparisons = 0;
+    let nextSwaps = 0;
+
+    timelineSteps.value.slice(0, index).forEach((step) => {
+      nextComparisons += step.statsDelta.comparisons;
+      nextSwaps += step.statsDelta.swaps;
+    });
+
+    comparisons.value = nextComparisons;
+    swaps.value = nextSwaps;
   }
 
   function syncArray(index: number) {
@@ -120,10 +124,6 @@ export function useSortAnimation(params: {
   function step() {
     if (player.currentStepIndex.value >= timelineSteps.value.length) return;
     player.stepForward();
-    syncStats(player.currentStepIndex.value);
-    syncArray(player.currentStepIndex.value);
-    const frame = player.currentFrame.value;
-    if (frame) canvasRef.value?.renderFrame(frame);
   }
 
   function reset() {

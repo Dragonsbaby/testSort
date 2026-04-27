@@ -39,7 +39,7 @@ export function useTimelinePlayer(steps: () => TimelineStep[]) {
   }
 
   function play() {
-    if (!currentTimelineStep.value) return;
+    if (!currentTimelineStep.value || isPlaying.value || rafId !== null) return;
     isPlaying.value = true;
     stepStartedAt = performance.now() - currentTimelineStep.value.duration * progress.value;
 
