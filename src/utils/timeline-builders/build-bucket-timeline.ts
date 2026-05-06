@@ -353,19 +353,23 @@ export function buildBucketTimeline(params: {
       : semantic.type === "bucket-gather"
         ? [`ghost-gather-${index}`]
         : undefined;
+    const swapDuration = stepDuration * 3;
+    const isSwap = semantic.type === "bucket-swap";
 
     return {
       id: `bucket-${index + 1}`,
       kind: semantic.type,
       description: semantic.description,
-      duration: stepDuration,
+      duration: isSwap ? swapDuration : stepDuration,
       from,
       to,
       transition: {
-        type: semantic.type === "bucket-scatter" || semantic.type === "bucket-gather" ? "path" : "instant",
-        duration: stepDuration,
-        easing: "easeInOutCubic",
-        movingEntityIds,
+        type: semantic.type === "bucket-scatter" || semantic.type === "bucket-gather" || isSwap ? "arc" : "instant",
+        duration: isSwap ? swapDuration : stepDuration,
+        easing: semantic.type === "bucket-scatter" || semantic.type === "bucket-gather" || isSwap ? "easeInOutCubic" : "linear",
+        movingEntityIds: isSwap
+          ? semantic.indices.map((item) => `bucket-${semantic.bucketIndex}-${item}`)
+          : movingEntityIds,
         pathParams: { mode: semantic.type === "bucket-gather" ? "vertical-first" : "horizontal-first", curveHeight: 40 },
         styleTransition: true,
       },

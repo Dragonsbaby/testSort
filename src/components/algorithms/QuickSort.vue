@@ -8,11 +8,13 @@ import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimati
 const props = defineProps<{ speed: number }>();
 const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
+const canvasWidthRef = ref(760);
 
 const { array, steps, currentStep, comparisons, swaps, currentStepInfo, isPlaying, play, pause, step, reset, statusText, statusClass } = useSortAnimation({
   sortFn: quickSort,
   speed: toRef(props, "speed"),
   canvasRef,
+  canvasWidth: canvasWidthRef,
   originalArray: toRef(store, "originalArray"),
   algorithm: "quick",
 });
@@ -84,7 +86,7 @@ defineExpose({ reset, step });
     </div>
 
     <!-- Canvas -->
-    <SortBarCanvas ref="canvasRef" :array="array" :animation-speed="speed" />
+    <SortBarCanvas ref="canvasRef" :array="array" :animation-speed="speed" @canvas-ready="canvasWidthRef = $event" />
   </div>
 </template>
 

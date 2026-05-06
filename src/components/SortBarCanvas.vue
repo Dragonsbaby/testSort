@@ -7,8 +7,11 @@ import type { FrameState } from "@/types/timeline";
 const props = defineProps<{ array: ArrayElement[]; animationSpeed: number }>();
 void props;
 
+const emit = defineEmits<{ (e: "canvas-ready", width: number): void }>();
+
 const containerRef = ref<HTMLDivElement | null>(null);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
+const canvasWidth = ref(760);
 
 const { initialize, resize, renderFrame, startRenderLoop, stopRenderLoop } = useCanvasRenderer(canvasRef);
 
@@ -18,13 +21,17 @@ onMounted(() => {
   if (!containerRef.value) return;
 
   const rect = containerRef.value.getBoundingClientRect();
-  initialize(rect.width - 40, Math.max(300, rect.height - 40));
+  canvasWidth.value = rect.width - 40;
+  emit("canvas-ready", canvasWidth.value);
+  initialize(canvasWidth.value, Math.max(300, rect.height - 40));
   startRenderLoop();
 
   resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       const { width, height } = entry.contentRect;
-      resize(width - 40, Math.max(300, height - 40));
+      canvasWidth.value = width - 40;
+      emit("canvas-ready", canvasWidth.value);
+      resize(canvasWidth.value, Math.max(300, height - 40));
     }
   });
   resizeObserver.observe(containerRef.value);
@@ -39,7 +46,7 @@ function exposedRenderFrame(frame: FrameState) {
   renderFrame(frame);
 }
 
-defineExpose({ renderFrame: exposedRenderFrame });
+defineExpose({ renderFrame: exposedRenderFrame, canvasWidth });
 </script>
 
 <template>

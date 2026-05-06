@@ -26,11 +26,14 @@ export function useSortAnimation(params: {
   sortFn: SortFn;
   speed: ToRef<number>;
   canvasRef: Ref<ISortCanvas | null>;
+  canvasWidth?: ToRef<number>;
   originalArray: ToRef<ArrayElement[]>;
   algorithm: SortAnimationAlgorithm;
   heapMode?: ToRef<"max" | "min">;
 }) {
-  const { sortFn, speed, canvasRef, originalArray, algorithm, heapMode } = params;
+  const { sortFn, speed, canvasRef, canvasWidth, originalArray, algorithm, heapMode } = params;
+
+  const currentCanvasWidth = computed(() => canvasWidth?.value ?? 760);
 
   const semanticSteps = ref<SemanticStep[]>([]);
   const timelineSteps = ref<TimelineStep[]>([]);
@@ -50,7 +53,7 @@ export function useSortAnimation(params: {
           steps: semanticSteps.value,
           originalValues: values,
           displayIndexes,
-          width: 760,
+          width: currentCanvasWidth.value,
           height: 420,
           stepDuration: speed.value,
         })
@@ -59,7 +62,7 @@ export function useSortAnimation(params: {
             steps: semanticSteps.value,
             originalValues: values,
             displayIndexes,
-            width: 760,
+            width: currentCanvasWidth.value,
             height: 460,
             stepDuration: speed.value,
           })
@@ -68,7 +71,7 @@ export function useSortAnimation(params: {
               steps: semanticSteps.value,
               originalValues: values,
               displayIndexes,
-              width: 760,
+              width: currentCanvasWidth.value,
               height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88,
               stepDuration: speed.value,
               isMinHeap: heapMode?.value === "min",
@@ -78,7 +81,7 @@ export function useSortAnimation(params: {
               steps: semanticSteps.value,
               originalValues: values,
               displayIndexes,
-              width: 760,
+              width: currentCanvasWidth.value,
               height: 320,
               stepDuration: speed.value,
             });
@@ -139,6 +142,11 @@ export function useSortAnimation(params: {
 
   watch(
     () => speed.value,
+    () => rebuild(),
+  );
+
+  watch(
+    () => currentCanvasWidth.value,
     () => rebuild(),
   );
 

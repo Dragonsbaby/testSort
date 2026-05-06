@@ -16,6 +16,10 @@ export function useTimelinePlayer(steps: () => TimelineStep[]) {
     return interpolateFrame(step, progress.value);
   });
 
+  function getStepDuration(): number {
+    return currentTimelineStep.value?.duration ?? 100;
+  }
+
   function stopLoop() {
     if (rafId !== null) cancelAnimationFrame(rafId);
     rafId = null;
@@ -33,13 +37,26 @@ export function useTimelinePlayer(steps: () => TimelineStep[]) {
 
   function stepForward() {
     if (isPlaying.value || !currentTimelineStep.value) return;
-    play();
+    const step = currentTimelineStep.value;
+    const stepStarted = performance.now();
+    const duration = getStepDuration();
+    const tick = (ts: number) => {
+      const elapsed = ts - stepStarted;
+      progress.value = Math.min(1, elapsed / Math.max(duration, 1));
+      if (progress.value >= 1) {
+        currentStepIndex.value += 1;
+        progress.value = 0;
+        return;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
   }
 
   function play() {
     if (!currentTimelineStep.value || isPlaying.value || rafId !== null) return;
     isPlaying.value = true;
-    stepStartedAt = performance.now() - currentTimelineStep.value.duration * progress.value;
+    stepStartedAt = performance.now() - getStepDuration() * progress.value;
 
     const tick = (ts: number) => {
       const step = currentTimelineStep.value;
@@ -49,7 +66,7 @@ export function useTimelinePlayer(steps: () => TimelineStep[]) {
       }
 
       const elapsed = ts - stepStartedAt;
-      progress.value = Math.min(1, elapsed / Math.max(step.duration, 1));
+      progress.value = Math.min(1, elapsed / Math.max(getStepDuration(), 1));
 
       if (progress.value >= 1) {
         currentStepIndex.value += 1;

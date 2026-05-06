@@ -8,6 +8,7 @@ import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimati
 const props = defineProps<{ speed: number }>();
 const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
+const canvasWidthRef = ref(760);
 
 const {
   array, steps, currentStep, comparisons, swaps,
@@ -17,6 +18,7 @@ const {
   sortFn: bucketSort,
   speed: toRef(props, "speed"),
   canvasRef,
+  canvasWidth: canvasWidthRef,
   originalArray: toRef(store, "originalArray"),
   algorithm: "bucket",
 });
@@ -89,6 +91,7 @@ defineExpose({ reset, step: stepOnce });
       ref="canvasRef"
       :array="array"
       :animation-speed="speed"
+      @canvas-ready="canvasWidthRef = $event"
     />
   </div>
 </template>

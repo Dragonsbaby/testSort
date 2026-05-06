@@ -25,7 +25,11 @@ export function buildBasicLayout({ width, height, count }: BasicLayoutInput): Ba
   if (count <= 0) return [];
 
   const barWidth = Math.max(MIN_BAR_WIDTH, Math.min(MAX_BAR_WIDTH, (width - GAP) / count - GAP));
-  const totalWidth = count * barWidth + (count - 1) * GAP;
+  const totalBarWidth = count * barWidth;
+  const dynamicGap = count > 1
+    ? Math.max(2, Math.min(GAP, (width - totalBarWidth) / (count - 1)))
+    : 0;
+  const totalWidth = totalBarWidth + (count - 1) * dynamicGap;
   const startX = Math.max(0, (width - totalWidth) / 2);
   const labelSafeBaseY = height - BOTTOM_PADDING - BASIC_LAYOUT_LABEL_OFFSET;
   const baseY = Math.min(Math.round(height * BASELINE_RATIO), labelSafeBaseY);
@@ -33,7 +37,7 @@ export function buildBasicLayout({ width, height, count }: BasicLayoutInput): Ba
 
   return Array.from({ length: count }, (_, index) => ({
     index,
-    x: Math.round(startX + index * (barWidth + GAP)),
+    x: Math.round(startX + index * (barWidth + dynamicGap)),
     y: Math.round(baseY),
     width: Math.round(barWidth),
     maxHeight: Math.round(maxHeight),

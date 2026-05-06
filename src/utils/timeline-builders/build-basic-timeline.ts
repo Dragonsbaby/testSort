@@ -148,16 +148,18 @@ export function buildBasicTimeline(params: {
 
     currentFrame = structuredClone(to) as FrameState;
 
+    const swapDuration = stepDuration * 3;
+
     return {
       id: `basic-${algorithm}-${index + 1}`,
       kind: semantic.type,
       description: semantic.description,
-      duration: stepDuration,
+      duration: semantic.type === "swap" ? swapDuration : stepDuration,
       from,
       to,
       transition: {
         type: semantic.type === "swap" ? "arc" : "instant",
-        duration: stepDuration,
+        duration: semantic.type === "swap" ? swapDuration : stepDuration,
         easing: semantic.type === "swap" ? "easeOutCubic" : "linear",
         movingEntityIds: semantic.type === "swap" ? semantic.indices.map((item) => `main-${item}`) : undefined,
         styleTransition: true,

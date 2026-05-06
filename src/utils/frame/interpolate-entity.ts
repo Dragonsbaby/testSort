@@ -10,7 +10,8 @@ function interpolateEntity(from: RenderableEntity, to: RenderableEntity, transit
 
   if (movedByTransition) {
     if (transition.type === "arc") {
-      const point = getArcPoint({ x: from.x, y: from.y }, { x: to.x, y: to.y }, progress, 50);
+      const arcHeight = Math.max(80, (from.height + to.height) / 2 * 1.8);
+      const point = getArcPoint({ x: from.x, y: from.y }, { x: to.x, y: to.y }, progress, arcHeight);
       x = point.x;
       y = point.y;
     }

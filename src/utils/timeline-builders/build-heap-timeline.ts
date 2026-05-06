@@ -207,17 +207,18 @@ export function buildHeapTimeline(params: {
       ? semantic.indices.flatMap((item) => [`tree-${item}`, `array-${item}`])
       : undefined;
     const isRootExtractSwap = semantic.type === "swap" && semantic.indices.includes(0) && Math.abs(semantic.indices[0] - semantic.indices[1]) > 1;
+    const swapDuration = stepDuration * 3;
 
     return {
       id: `heap-${index + 1}`,
       kind: semantic.type,
       description: semantic.description,
-      duration: stepDuration,
+      duration: semantic.type === "swap" ? swapDuration : stepDuration,
       from,
       to,
       transition: {
         type: semantic.type === "swap" ? (isRootExtractSwap ? "arc" : "linear") : "instant",
-        duration: stepDuration,
+        duration: semantic.type === "swap" ? swapDuration : stepDuration,
         easing: semantic.type === "swap" ? "easeOutCubic" : "linear",
         movingEntityIds,
         styleTransition: true,
