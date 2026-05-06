@@ -1,8 +1,6 @@
 import type { FrameState, RenderableEntity, SemanticStep, TimelineStep } from "@/types/timeline";
-import { buildBasicLayout } from "@/utils/layout/basic-layout";
-import { getStyleFromStateTags } from "@/utils/frame/style-utils";
-
-const BASE_STYLE = { fill: "#4a9eff", glow: 0 };
+import { BASIC_LAYOUT_LABEL_OFFSET, buildBasicLayout } from "@/utils/layout/basic-layout";
+import { BAR_BASE_STYLE, getStyleFromStateTags } from "@/utils/frame/style-utils";
 
 type BasicAlgorithm = "bubble" | "insertion" | "quick" | "shell";
 
@@ -17,11 +15,12 @@ function createBasicFrame(
   stateTagsByIndex: Map<number, RenderableEntity["stateTags"]>,
 ): FrameState {
   const slots = buildBasicLayout({ width, height, count: values.length });
+  const baseY = slots[0]?.y ?? height;
   const maxValue = Math.max(...values, 1);
 
   const entities: RenderableEntity[] = values.map((value, index) => {
     const stateTags = stateTagsByIndex.get(index) ?? [];
-    const style = getStyleFromStateTags(stateTags, BASE_STYLE);
+    const style = getStyleFromStateTags(stateTags, BAR_BASE_STYLE);
 
     return {
       id: `main-${index}`,
@@ -47,7 +46,18 @@ function createBasicFrame(
     phase: "paused",
     description,
     entities,
-    regions: [{ id: "main", kind: "main", x: 0, y: 0, width, height }],
+    regions: [{
+      id: "main",
+      kind: "main",
+      x: 0,
+      y: 0,
+      width,
+      height,
+      meta: {
+        baseY,
+        labelOffset: BASIC_LAYOUT_LABEL_OFFSET,
+      },
+    }],
     overlays: [],
   };
 }
@@ -101,9 +111,10 @@ export function buildBasicTimeline(params: {
   height: number;
   stepDuration: number;
 }): TimelineStep[] {
-  const { algorithm, steps, originalValues, displayIndexes, width, height, stepDuration } = params;
+  const { algorithm, steps, originalValues, width, height, stepDuration } = params;
 
   let values = [...originalValues];
+  let displayIndexes = [...params.displayIndexes];
   let sortedIndices = new Set<number>();
   let currentFrame = createBasicFrame(algorithm, values, displayIndexes, width, height, 0, "初始状态", new Map());
 
@@ -112,7 +123,15 @@ export function buildBasicTimeline(params: {
     const { nextSorted, stateTagsByIndex } = buildStateTags(semantic, sortedIndices);
     sortedIndices = nextSorted;
 
-    if (semantic.type === "swap" || semantic.type === "set" || semantic.type === "merge") {
+    if (semantic.type === "swap") {
+      displayIndexes = semantic.indices.reduce((nextDisplayIndexes, index, currentIndex, indices) => {
+        const pairIndex = indices[currentIndex === 0 ? 1 : 0];
+        nextDisplayIndexes[index] = displayIndexes[pairIndex];
+        return nextDisplayIndexes;
+      }, [...displayIndexes]);
+    }
+
+    if (semantic.type === "swap" || semantic.type === "set" || semantic.type === "merge" || semantic.type === "sorted") {
       values = applyArraySnapshot(values, semantic);
     }
 

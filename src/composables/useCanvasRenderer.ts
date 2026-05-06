@@ -1,8 +1,59 @@
 import { ref, type Ref } from "vue";
 import type { FrameState, RenderableEntity, RenderableOverlay } from "@/types/timeline";
 
+const BACKGROUND_COLOR = "#080d18";
+const GRID_COLOR = "rgba(79, 195, 247, 0.055)";
+const BASELINE_COLOR = "rgba(78, 205, 196, 0.45)";
+const VALUE_LABEL_COLOR = "#ffd43b";
+const INDEX_LABEL_COLOR = "#20e25a";
+const BAR_HIGHLIGHT_COLOR = "rgba(203, 243, 255, 0.82)";
+
 function isHeapNode(entity: RenderableEntity) {
   return entity.kind === "heap-tree-node" || entity.kind === "heap-array-node";
+}
+
+function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+
+  ctx.beginPath();
+  ctx.moveTo(x + safeRadius, y);
+  ctx.lineTo(x + width - safeRadius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+  ctx.lineTo(x + width, y + height - safeRadius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+  ctx.lineTo(x + safeRadius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+  ctx.lineTo(x, y + safeRadius);
+  ctx.quadraticCurveTo(x, y, x + safeRadius, y);
+  ctx.closePath();
+}
+
+function hexToRgb(color: string) {
+  const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(color);
+  if (!match) return null;
+
+  return {
+    r: Number.parseInt(match[1], 16),
+    g: Number.parseInt(match[2], 16),
+    b: Number.parseInt(match[3], 16),
+  };
+}
+
+function rgbaFromHex(color: string, alpha: number) {
+  const rgb = hexToRgb(color);
+  return rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})` : color;
+}
+
+function createBarGradient(ctx: CanvasRenderingContext2D, entity: RenderableEntity, top: number, height: number) {
+  const gradient = ctx.createLinearGradient(0, top, 0, top + height);
+  const fill = entity.style.fill;
+
+  gradient.addColorStop(0, BAR_HIGHLIGHT_COLOR);
+  gradient.addColorStop(0.18, rgbaFromHex(fill, 0.95));
+  gradient.addColorStop(0.72, rgbaFromHex(fill, 0.72));
+  gradient.addColorStop(1, rgbaFromHex(fill, 0.46));
+
+  return gradient;
 }
 
 export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
@@ -49,16 +100,29 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
 
     if (overlay.points?.length) {
       ctx.strokeStyle = overlay.style.stroke ?? overlay.style.fill;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = overlay.kind === "guide" ? 2 : 1.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowColor = overlay.style.stroke ?? overlay.style.fill;
+      ctx.shadowBlur = overlay.kind === "guide" ? 8 : 3;
 
       if (overlay.style.dashed) {
-        ctx.setLineDash([6, 6]);
+        ctx.setLineDash([7, 7]);
       }
 
       ctx.beginPath();
       ctx.moveTo(overlay.points[0].x, overlay.points[0].y);
-      for (let index = 1; index < overlay.points.length; index += 1) {
-        ctx.lineTo(overlay.points[index].x, overlay.points[index].y);
+      if (overlay.points.length === 3) {
+        ctx.quadraticCurveTo(
+          overlay.points[1].x,
+          overlay.points[1].y,
+          overlay.points[2].x,
+          overlay.points[2].y,
+        );
+      } else {
+        for (let index = 1; index < overlay.points.length; index += 1) {
+          ctx.lineTo(overlay.points[index].x, overlay.points[index].y);
+        }
       }
       ctx.stroke();
     }
@@ -71,18 +135,20 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         const paddingX = 8;
-        const paddingY = 4;
+        const boxHeight = 18;
         const textWidth = ctx.measureText(overlay.text).width;
         const boxWidth = textWidth + paddingX * 2;
-        const boxHeight = 18;
         const left = anchor.x - boxWidth / 2;
         const top = anchor.y - boxHeight / 2;
+        const radius = 7;
 
+        roundedRectPath(ctx, left, top, boxWidth, boxHeight, radius);
         ctx.fillStyle = overlay.style.fill;
-        ctx.fillRect(left, top, boxWidth, boxHeight);
+        ctx.fill();
         if (overlay.style.stroke) {
           ctx.strokeStyle = overlay.style.stroke;
-          ctx.strokeRect(left, top, boxWidth, boxHeight);
+          ctx.lineWidth = 1;
+          ctx.stroke();
         }
 
         ctx.fillStyle = overlay.style.text ?? "#eaf2ff";
@@ -101,7 +167,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.restore();
   }
 
-  function drawBarEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity) {
+  function drawBarEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity, frame: FrameState) {
     const x = Math.round(entity.x);
     const y = Math.round(entity.y);
     const width = Math.round(entity.width);
@@ -110,33 +176,46 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
 
     if (width <= 0 || height <= 0) return;
 
+    const radius = Math.max(4, Math.min(10, Math.floor(width / 3)));
+
     ctx.save();
     ctx.globalAlpha = entity.style.alpha ?? entity.opacity;
-    ctx.fillStyle = entity.style.fill;
 
     if (entity.style.glow) {
       ctx.shadowColor = entity.style.fill;
-      ctx.shadowBlur = 16 * entity.style.glow;
+      ctx.shadowBlur = 18 * entity.style.glow;
     }
 
-    ctx.fillRect(x, top, width, height);
+    roundedRectPath(ctx, x, top, width, height, radius);
+    ctx.fillStyle = createBarGradient(ctx, entity, top, height);
+    ctx.fill();
 
+    ctx.shadowBlur = 0;
     if (entity.style.stroke) {
       ctx.strokeStyle = entity.style.stroke;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(x, top, width, height);
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
     }
+
+    ctx.strokeStyle = BAR_HIGHLIGHT_COLOR;
+    ctx.lineWidth = Math.max(1, Math.min(2, width / 12));
+    ctx.beginPath();
+    ctx.moveTo(x + radius, top + 4);
+    ctx.lineTo(x + width - radius, top + 4);
+    ctx.stroke();
 
     ctx.restore();
 
-    ctx.font = `600 ${Math.min(10, Math.max(width - 2, 8))}px "JetBrains Mono", monospace`;
+    ctx.font = `700 ${Math.min(12, Math.max(width - 2, 9))}px "JetBrains Mono", monospace`;
     ctx.textAlign = "center";
-    ctx.fillStyle = entity.style.text ?? "#f7cb07";
-    ctx.fillText(String(entity.value), x + width / 2, Math.max(12, top - 8));
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = entity.style.text ?? VALUE_LABEL_COLOR;
+    ctx.fillText(String(entity.value), x + width / 2, Math.max(14, top - 8));
 
     ctx.font = `bold ${Math.min(12, Math.max(width - 2, 8))}px "JetBrains Mono", monospace`;
-    ctx.fillStyle = "#20e25a";
-    ctx.fillText(String(entity.displayIndex), x + width / 2, y + 16);
+    ctx.fillStyle = INDEX_LABEL_COLOR;
+    const labelOffset = getFrameNumberMeta(frame, "labelOffset") ?? 17;
+    ctx.fillText(String(entity.displayIndex), x + width / 2, y + labelOffset);
   }
 
   function drawHeapEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity) {
@@ -177,43 +256,64 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     }
   }
 
-  function drawEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity) {
+  function drawEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity, frame: FrameState) {
     if (isHeapNode(entity)) {
       drawHeapEntity(ctx, entity);
       return;
     }
 
-    drawBarEntity(ctx, entity);
+    drawBarEntity(ctx, entity, frame);
   }
 
-  function drawBackground(ctx: CanvasRenderingContext2D) {
+  function getMainRegion(frame: FrameState) {
+    return frame.regions.find((region) => region.kind === "main");
+  }
+
+  function getFrameNumberMeta(frame: FrameState, key: string) {
+    const value = getMainRegion(frame)?.meta?.[key];
+    return typeof value === "number" ? value : null;
+  }
+
+  function getFrameContentOffsetX(frame: FrameState) {
+    const frameWidth = getMainRegion(frame)?.width ?? containerWidth;
+    return Math.max(0, Math.round((containerWidth - frameWidth) / 2));
+  }
+
+  function drawBackground(ctx: CanvasRenderingContext2D, frame: FrameState) {
     ctx.clearRect(0, 0, containerWidth, containerHeight);
-    ctx.fillStyle = "#0f1219";
+    ctx.fillStyle = BACKGROUND_COLOR;
     ctx.fillRect(0, 0, containerWidth, containerHeight);
 
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+    ctx.strokeStyle = GRID_COLOR;
     ctx.lineWidth = 1;
 
     const gridSize = 40;
-    for (let x = 0; x < containerWidth; x += gridSize) {
+    for (let x = 0; x <= containerWidth; x += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, containerHeight);
+      ctx.moveTo(x + 0.5, 0);
+      ctx.lineTo(x + 0.5, containerHeight);
       ctx.stroke();
     }
 
-    for (let y = 0; y < containerHeight; y += gridSize) {
+    for (let y = 0; y <= containerHeight; y += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(containerWidth, y);
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(containerWidth, y + 0.5);
       ctx.stroke();
     }
 
-    ctx.strokeStyle = "rgba(78, 205, 196, 0.15)";
+    ctx.strokeStyle = BASELINE_COLOR;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = BASELINE_COLOR;
+    ctx.shadowBlur = 8;
+    const baseY = getFrameNumberMeta(frame, "baseY") ?? containerHeight - 21.5;
+    const baselineY = Math.round(baseY) + 0.5;
+
     ctx.beginPath();
-    ctx.moveTo(0, containerHeight - 20);
-    ctx.lineTo(containerWidth, containerHeight - 20);
+    ctx.moveTo(0, baselineY);
+    ctx.lineTo(containerWidth, baselineY);
     ctx.stroke();
+    ctx.shadowBlur = 0;
   }
 
   function draw() {
@@ -224,14 +324,24 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    drawBackground(ctx);
+    drawBackground(ctx, frame);
 
-    frame.overlays.forEach((overlay) => drawOverlay(ctx, overlay));
+    const xOffset = getFrameContentOffsetX(frame);
 
+    frame.overlays.forEach((overlay) => {
+      ctx.save();
+      ctx.translate(xOffset, 0);
+      drawOverlay(ctx, overlay);
+      ctx.restore();
+    });
+
+    ctx.save();
+    ctx.translate(xOffset, 0);
     frame.entities
       .slice()
       .sort((a, b) => a.zIndex - b.zIndex)
-      .forEach((entity) => drawEntity(ctx, entity));
+      .forEach((entity) => drawEntity(ctx, entity, frame));
+    ctx.restore();
 
     animationFrameId = requestAnimationFrame(draw);
   }

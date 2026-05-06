@@ -25,8 +25,8 @@ export function bubbleSort(arr: number[]): SemanticStep[] {
       steps.push(createStep("compare", [j, j + 1], `比较 arr[${j}]=${array[j]} 和 arr[${j + 1}]=${array[j + 1]}`));
 
       if (array[j] > array[j + 1]) {
-        steps.push(createStep("swap", [j, j + 1], `交换 arr[${j}] 和 arr[${j + 1}]`, [...array]));
         [array[j], array[j + 1]] = [array[j + 1], array[j]];
+        steps.push(createStep("swap", [j, j + 1], `交换 arr[${j}] 和 arr[${j + 1}]`, [...array]));
       }
     }
     steps.push(createStep("sorted", [n - i - 1], `arr[${n - i - 1}]=${array[n - i - 1]} 已排序`, [...array]));
@@ -51,9 +51,9 @@ export function insertionSort(arr: number[]): SemanticStep[] {
 
     while (j >= 0 && array[j] > key) {
       steps.push(createStep("compare", [j, j + 1], `比较 arr[${j}]=${array[j]} 和 key=${key}`, [...array]));
-      // 用真正的 swap 模拟 key 与左元素交换（实现右移效果）
-      steps.push(createStep("swap", [j, j + 1], `交换 arr[${j}]=${array[j]} 和 arr[${j + 1}]=${key}`, [...array]));
       [array[j], array[j + 1]] = [array[j + 1], array[j]];
+      // 用真正的 swap 模拟 key 与左元素交换（实现右移效果）
+      steps.push(createStep("swap", [j, j + 1], `交换 arr[${j}]=${array[j]} 和 arr[${j + 1}]=${array[j + 1]}`, [...array]));
       j--;
     }
     steps.push(createStep("sorted", [0, i], `0-${i} 范围已排序`, [...array]));
@@ -177,15 +177,15 @@ export function quickSort(arr: number[]): SemanticStep[] {
       if (array[j] < pivot) {
         i++;
         if (i !== j) {
-          steps.push(createStep("swap", [i, j], `交换 arr[${i}]=${array[i]} 和 arr[${j}]=${array[j]}`, [...array]));
           [array[i], array[j]] = [array[j], array[i]];
+          steps.push(createStep("swap", [i, j], `交换 arr[${i}]=${array[i]} 和 arr[${j}]=${array[j]}`, [...array]));
         }
       }
     }
 
     if (i + 1 !== high) {
-      steps.push(createStep("swap", [i + 1, high], `将基准放到正确位置 arr[${i + 1}]=${array[i + 1]}`, [...array]));
       [array[i + 1], array[high]] = [array[high], array[i + 1]];
+      steps.push(createStep("swap", [i + 1, high], `将基准放到正确位置 arr[${i + 1}]=${array[i + 1]}`, [...array]));
     }
 
     steps.push(createStep("sorted", [i + 1], `arr[${i + 1}]=${array[i + 1]} 已在正确位置`, [...array]));
@@ -227,9 +227,8 @@ export function shellSort(arr: number[]): SemanticStep[] {
       while (j >= gap) {
         steps.push(createStep("compare", [j - gap, j], `比较间隔 ${gap} 内的元素 [${j - gap}]=${a[j - gap]} 和 [${j}]=${a[j]}`, undefined, gap, group));
         if (a[j - gap] > a[j]) {
-          steps.push(createStep("swap", [j - gap, j], `交换 arr[${j - gap}]=${a[j - gap]} 和 arr[${j}]=${a[j]}`, [...a], gap, group));
-
           [a[j - gap], a[j]] = [a[j], a[j - gap]];
+          steps.push(createStep("swap", [j - gap, j], `交换 arr[${j - gap}]=${a[j - gap]} 和 arr[${j}]=${a[j]}`, [...a], gap, group));
           j -= gap;
         } else {
           break;
@@ -346,8 +345,8 @@ export function heapSort(arr: number[], mode: "max" | "min" = "max"): SemanticSt
 
       if (target === root) break;
 
-      steps.push(createStep("swap", [root, target], `交换 [${root}]=${a[root]} 和 [${target}]=${a[target]}`, [...a], undefined, heapRange));
       [a[root], a[target]] = [a[target], a[root]];
+      steps.push(createStep("swap", [root, target], `交换 [${root}]=${a[root]} 和 [${target}]=${a[target]}`, [...a], undefined, heapRange));
       root = target;
     }
   }
@@ -359,8 +358,8 @@ export function heapSort(arr: number[], mode: "max" | "min" = "max"): SemanticSt
 
   // 阶段二：逐个将堆顶提取到末尾
   for (let end = n - 1; end > 0; end--) {
-    steps.push(createStep("swap", [0, end], `提取堆顶 [0]=${a[0]} → 末尾 [${end}]`, [...a]));
     [a[0], a[end]] = [a[end], a[0]];
+    steps.push(createStep("swap", [0, end], `提取堆顶 [0]=${a[0]} → 末尾 [${end}]`, [...a]));
     steps.push(createStep("sorted", [end], `[${end}]=${a[end]} 已就位`, [...a]));
     if (end > 1) siftDown(0, end - 1);
   }

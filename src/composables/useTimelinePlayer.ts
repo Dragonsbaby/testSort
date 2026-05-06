@@ -32,10 +32,8 @@ export function useTimelinePlayer(steps: () => TimelineStep[]) {
   }
 
   function stepForward() {
-    pause();
-    const nextIndex = Math.min(currentStepIndex.value + 1, steps().length);
-    currentStepIndex.value = nextIndex;
-    progress.value = 0;
+    if (isPlaying.value || !currentTimelineStep.value) return;
+    play();
   }
 
   function play() {

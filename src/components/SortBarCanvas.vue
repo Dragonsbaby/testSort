@@ -60,14 +60,14 @@ defineExpose({ renderFrame: exposedRenderFrame });
   justify-content: center;
   min-height: 280px;
   position: relative;
-  padding: 20px 20px 0 20px;
+  padding: 16px 22px;
 }
 
 .corner {
   position: absolute;
-  width: 24px;
-  height: 24px;
-  border-color: rgba(74, 158, 255, 0.8);
+  width: 28px;
+  height: 28px;
+  border-color: rgba(74, 158, 255, 0.9);
   border-style: solid;
   border-width: 0;
   z-index: 2;

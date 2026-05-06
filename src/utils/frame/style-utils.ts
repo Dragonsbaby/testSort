@@ -1,12 +1,19 @@
 import type { RenderStyle, StateTag } from "@/types/timeline";
 
+export const BAR_BASE_STYLE: RenderStyle = {
+  fill: "#4a9eff",
+  stroke: "rgba(126, 214, 255, 0.52)",
+  text: "#ffd43b",
+  glow: 0,
+};
+
 const TAG_STYLE_MAP: Record<StateTag, RenderStyle> = {
-  comparing: { fill: "#ffcc00", glow: 0.6 },
-  swapping: { fill: "#ff6b6b", glow: 0.6 },
-  sorted: { fill: "#67c23a", glow: 0.3 },
-  pivot: { fill: "#9b59b6", glow: 0.8 },
-  pending: { fill: "#9575cd", glow: 0.25 },
-  latest: { fill: "#4ecdc4", glow: 0.45 },
+  comparing: { fill: "#ffcc00", stroke: "rgba(255, 230, 102, 0.9)", glow: 0.72 },
+  swapping: { fill: "#ff5c5c", stroke: "rgba(255, 132, 132, 0.95)", glow: 0.82 },
+  sorted: { fill: "#33d17a", stroke: "rgba(103, 226, 151, 0.86)", glow: 0.42 },
+  pivot: { fill: "#b979ff", stroke: "rgba(210, 164, 255, 0.8)", glow: 0.58 },
+  pending: { fill: "#5e7ce2", stroke: "rgba(122, 154, 255, 0.52)", glow: 0.22 },
+  latest: { fill: "#4ecdc4", stroke: "rgba(124, 241, 232, 0.78)", glow: 0.48 },
 };
 
 export function getStyleFromStateTags(stateTags: StateTag[], fallback: RenderStyle): RenderStyle {
