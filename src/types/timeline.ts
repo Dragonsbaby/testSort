@@ -81,10 +81,14 @@ export interface RenderableRegion {
 
 export interface RenderableOverlay {
   id: string;
-  kind: "edge" | "guide" | "label" | "badge" | "divider";
+  kind: "edge" | "guide" | "label" | "badge" | "divider" | "region-panel";
   points?: Array<{ x: number; y: number }>;
   text?: string;
   style: RenderStyle;
+  /** 用于 region-panel：圆角矩形尺寸 */
+  rect?: { x: number; y: number; width: number; height: number; radius: number };
+  /** 用于 region-panel：活跃桶顶部高亮条颜色 */
+  accentBar?: string;
 }
 
 export interface FrameState {
@@ -106,6 +110,8 @@ export interface Transition {
   pathParams?: Record<string, number | string>;
   styleTransition?: boolean;
   visibilityTransition?: boolean;
+  /** 需要交叉插值的 entity id 对，每对 [idA, idB] 表示 A 从 B 的起始位置飞向 A 的目标位置，B 同理 */
+  swapEntityIdPairs?: [string, string][];
 }
 
 export interface TimelineStep {

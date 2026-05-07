@@ -158,11 +158,14 @@ export function buildBasicTimeline(params: {
       from,
       to,
       transition: {
-        type: semantic.type === "swap" ? "arc" : "instant",
+        type: semantic.type === "swap" ? "linear" : "instant",
         duration: semantic.type === "swap" ? swapDuration : stepDuration,
-        easing: semantic.type === "swap" ? "easeOutCubic" : "linear",
+        easing: semantic.type === "swap" ? "easeInOutCubic" : "linear",
         movingEntityIds: semantic.type === "swap" ? semantic.indices.map((item) => `main-${item}`) : undefined,
-        styleTransition: true,
+        swapEntityIdPairs: semantic.type === "swap" && semantic.indices.length === 2
+          ? [[`main-${semantic.indices[0]}`, `main-${semantic.indices[1]}`]]
+          : undefined,
+        styleTransition: semantic.type !== "swap",
       },
       statsDelta: {
         comparisons: semantic.type === "compare" ? 1 : 0,

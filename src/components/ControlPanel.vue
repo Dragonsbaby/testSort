@@ -8,7 +8,7 @@ const store = useSortStore();
 
 const algorithms = Object.entries(algorithmInfo).map(([value, info]) => ({
   value: value as SortAlgorithm,
-  label: info.name.replace('排序', ''),
+  label: (value === 'bucket' || value === 'heap') ? info.name : info.name.replace('排序', ''),
 }));
 
 const sliderValue = ref(store.animationSpeed);

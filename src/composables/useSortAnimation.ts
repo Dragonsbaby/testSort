@@ -27,13 +27,15 @@ export function useSortAnimation(params: {
   speed: ToRef<number>;
   canvasRef: Ref<ISortCanvas | null>;
   canvasWidth?: ToRef<number>;
+  canvasHeight?: ToRef<number>;
   originalArray: ToRef<ArrayElement[]>;
   algorithm: SortAnimationAlgorithm;
   heapMode?: ToRef<"max" | "min">;
 }) {
-  const { sortFn, speed, canvasRef, canvasWidth, originalArray, algorithm, heapMode } = params;
+  const { sortFn, speed, canvasRef, canvasWidth, canvasHeight, originalArray, algorithm, heapMode } = params;
 
   const currentCanvasWidth = computed(() => canvasWidth?.value ?? 760);
+  const currentCanvasHeight = computed(() => canvasHeight?.value ?? 460);
 
   const semanticSteps = ref<SemanticStep[]>([]);
   const timelineSteps = ref<TimelineStep[]>([]);
@@ -63,7 +65,7 @@ export function useSortAnimation(params: {
             originalValues: values,
             displayIndexes,
             width: currentCanvasWidth.value,
-            height: 460,
+            height: currentCanvasHeight.value,
             stepDuration: speed.value,
           })
         : algorithm === "heap"
@@ -147,6 +149,11 @@ export function useSortAnimation(params: {
 
   watch(
     () => currentCanvasWidth.value,
+    () => rebuild(),
+  );
+
+  watch(
+    () => currentCanvasHeight.value,
     () => rebuild(),
   );
 

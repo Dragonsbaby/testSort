@@ -18,8 +18,8 @@ const GAP = 12;
 const MIN_BAR_WIDTH = 6;
 const MAX_BAR_WIDTH = 46;
 const TOP_PADDING = 48;
-const BOTTOM_PADDING = 28;
-const BASELINE_RATIO = 0.76;
+// 水平线到底部的空间 = labelOffset(17) + 字体高度(12) + 少量边距(4)
+const BOTTOM_PADDING = 33;
 
 export function buildBasicLayout({ width, height, count }: BasicLayoutInput): BasicBarSlot[] {
   if (count <= 0) return [];
@@ -31,8 +31,8 @@ export function buildBasicLayout({ width, height, count }: BasicLayoutInput): Ba
     : 0;
   const totalWidth = totalBarWidth + (count - 1) * dynamicGap;
   const startX = Math.max(0, (width - totalWidth) / 2);
-  const labelSafeBaseY = height - BOTTOM_PADDING - BASIC_LAYOUT_LABEL_OFFSET;
-  const baseY = Math.min(Math.round(height * BASELINE_RATIO), labelSafeBaseY);
+  // baseY = 水平线位置，底部仅留序号标签空间
+  const baseY = height - BOTTOM_PADDING - BASIC_LAYOUT_LABEL_OFFSET;
   const maxHeight = Math.max(0, baseY - TOP_PADDING);
 
   return Array.from({ length: count }, (_, index) => ({

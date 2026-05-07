@@ -10,7 +10,7 @@ const props = defineProps<{
 }>();
 void props;
 
-const emit = defineEmits<{ (e: "canvas-ready", width: number): void }>();
+const emit = defineEmits<{ (e: "canvas-ready", payload: { width: number; height: number }): void }>();
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -22,14 +22,17 @@ let resizeObserver: ResizeObserver | null = null;
 onMounted(() => {
   if (containerRef.value) {
     const rect = containerRef.value.getBoundingClientRect();
-    emit("canvas-ready", rect.width - 40);
-    initialize(rect.width - 40, Math.max(420, rect.height - 40));
+    // 容器 min-height: 560px，减去上下 padding 40px，故 Canvas 最小高度为 520
+    const actualHeight = Math.max(520, rect.height - 40);
+    emit("canvas-ready", { width: rect.width - 40, height: actualHeight });
+    initialize(rect.width - 40, actualHeight);
     startRenderLoop();
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        emit("canvas-ready", width - 40);
-        resize(width - 40, Math.max(420, height - 40));
+        const h = Math.max(520, height - 40);
+        emit("canvas-ready", { width: width - 40, height: h });
+        resize(width - 40, h);
       }
     });
     resizeObserver.observe(containerRef.value);
@@ -64,9 +67,10 @@ defineExpose({ renderFrame: exposedRenderFrame });
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 420px;
+  min-height: 560px;
   position: relative;
   padding: 20px 20px 0 20px;
+  box-shadow: inset 0 0 60px rgba(78, 205, 196, 0.04);
 }
 
 /* Corner brackets */
@@ -74,7 +78,7 @@ defineExpose({ renderFrame: exposedRenderFrame });
   position: absolute;
   width: 24px;
   height: 24px;
-  border-color: rgba(74, 158, 255, 0.8);
+  border-color: rgba(78, 205, 196, 0.7);
   border-style: solid;
   border-width: 0;
   z-index: 2;

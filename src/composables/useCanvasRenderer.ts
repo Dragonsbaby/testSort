@@ -94,7 +94,51 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     currentFrame.value = frame;
   }
 
+  /** 绘制桶格子的圆角矩形背景面板（region-panel 类型专用） */
+  function drawRegionPanel(ctx: CanvasRenderingContext2D, overlay: RenderableOverlay) {
+    if (!overlay.rect) return;
+    const { x, y, width, height, radius } = overlay.rect;
+
+    ctx.save();
+    ctx.globalAlpha = overlay.style.alpha ?? 1;
+
+    // 半透明背景填充
+    roundedRectPath(ctx, x, y, width, height, radius);
+    ctx.fillStyle = overlay.style.fill;
+    ctx.fill();
+
+    // 彩色边框 + 外发光
+    const borderColor = overlay.style.stroke ?? overlay.style.fill;
+    ctx.shadowColor = borderColor;
+    ctx.shadowBlur = 18 * (overlay.style.glow ?? 0.3);
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = overlay.accentBar ? 1.8 : 1.2;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // 活跃桶：顶部内侧绘制 2.5px 发光高亮条
+    if (overlay.accentBar) {
+      const barH = 2.5;
+      const innerR = Math.min(radius, barH);
+      ctx.save();
+      ctx.shadowColor = overlay.accentBar;
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = overlay.accentBar;
+      roundedRectPath(ctx, x + 1, y + 1, width - 2, barH, innerR);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
   function drawOverlay(ctx: CanvasRenderingContext2D, overlay: RenderableOverlay) {
+    // region-panel 由三阶段绘制流程单独处理，此处跳过
+    if (overlay.kind === "region-panel") {
+      drawRegionPanel(ctx, overlay);
+      return;
+    }
+
     ctx.save();
     ctx.globalAlpha = overlay.style.alpha ?? 1;
 
@@ -131,16 +175,17 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
       const anchor = overlay.points[0];
 
       if (overlay.kind === "badge") {
-        ctx.font = 'bold 10px "JetBrains Mono", monospace';
+        // 徽章字号加大至 13px
+        ctx.font = 'bold 13px "JetBrains Mono", monospace';
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        const paddingX = 8;
-        const boxHeight = 18;
+        const paddingX = 9;
+        const boxHeight = 20;
         const textWidth = ctx.measureText(overlay.text).width;
         const boxWidth = textWidth + paddingX * 2;
         const left = anchor.x - boxWidth / 2;
         const top = anchor.y - boxHeight / 2;
-        const radius = 7;
+        const radius = 8;
 
         roundedRectPath(ctx, left, top, boxWidth, boxHeight, radius);
         ctx.fillStyle = overlay.style.fill;
@@ -154,9 +199,13 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
         ctx.fillStyle = overlay.style.text ?? "#eaf2ff";
         ctx.fillText(overlay.text, anchor.x, anchor.y + 0.5);
       } else {
-        ctx.font = overlay.kind === "label"
-          ? '600 11px "JetBrains Mono", monospace'
-          : '10px "JetBrains Mono", monospace';
+        // 桶标题 13px bold，其余 label 11px
+        const isBucketTitle = overlay.id.startsWith("bucket-title-");
+        ctx.font = isBucketTitle
+          ? '700 13px "JetBrains Mono", monospace'
+          : overlay.kind === "label"
+            ? '600 11px "JetBrains Mono", monospace'
+            : '10px "JetBrains Mono", monospace';
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = overlay.style.text ?? overlay.style.fill;
@@ -328,13 +377,18 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
 
     const xOffset = getFrameContentOffsetX(frame);
 
-    frame.overlays.forEach((overlay) => {
-      ctx.save();
-      ctx.translate(xOffset, 0);
-      drawOverlay(ctx, overlay);
-      ctx.restore();
-    });
+    // 三阶段绘制：
+    // 阶段一：region-panel（桶背景底层）
+    frame.overlays
+      .filter((overlay) => overlay.kind === "region-panel")
+      .forEach((overlay) => {
+        ctx.save();
+        ctx.translate(xOffset, 0);
+        drawOverlay(ctx, overlay);
+        ctx.restore();
+      });
 
+    // 阶段二：entity（数据柱子中层）
     ctx.save();
     ctx.translate(xOffset, 0);
     frame.entities
@@ -342,6 +396,16 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
       .sort((a, b) => a.zIndex - b.zIndex)
       .forEach((entity) => drawEntity(ctx, entity, frame));
     ctx.restore();
+
+    // 阶段三：其余 overlay（label/badge/guide/divider 前景）
+    frame.overlays
+      .filter((overlay) => overlay.kind !== "region-panel")
+      .forEach((overlay) => {
+        ctx.save();
+        ctx.translate(xOffset, 0);
+        drawOverlay(ctx, overlay);
+        ctx.restore();
+      });
 
     animationFrameId = requestAnimationFrame(draw);
   }

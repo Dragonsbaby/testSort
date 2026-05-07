@@ -15,12 +15,19 @@ export interface BucketLayout {
   bucketRegions: BucketRegion[];
 }
 
+/** 桶内顶部留白（标题 + 值域标签区域） */
+export const BUCKET_INNER_PADDING_TOP = 40;
+/** 桶内底部留白（index 标签区域） */
+export const BUCKET_INNER_PADDING_BOT = 24;
+/** 桶内左右 padding */
+export const BUCKET_INNER_PADDING_X = 8;
+
 export function buildBucketLayout(width: number, height: number, count: number): BucketLayout {
   const bucketCount = calcBucketCount(count);
-  const mainHeight = Math.round(height * 0.33);
-  const separatorHeight = Math.round(height * 0.09);
+  const mainHeight = Math.round(height * 0.42);
+  const separatorHeight = Math.round(height * 0.07);
   const top = mainHeight + separatorHeight;
-  const gap = 14;
+  const gap = 10;
   const bucketWidth = Math.floor((width - gap * (bucketCount + 1)) / bucketCount);
 
   return {

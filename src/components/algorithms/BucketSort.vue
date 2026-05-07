@@ -9,6 +9,7 @@ const props = defineProps<{ speed: number }>();
 const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
 const canvasWidthRef = ref(760);
+const canvasHeightRef = ref(520);
 
 const {
   array, steps, currentStep, comparisons, swaps,
@@ -19,6 +20,7 @@ const {
   speed: toRef(props, "speed"),
   canvasRef,
   canvasWidth: canvasWidthRef,
+  canvasHeight: canvasHeightRef,
   originalArray: toRef(store, "originalArray"),
   algorithm: "bucket",
 });
@@ -91,7 +93,7 @@ defineExpose({ reset, step: stepOnce });
       ref="canvasRef"
       :array="array"
       :animation-speed="speed"
-      @canvas-ready="canvasWidthRef = $event"
+      @canvas-ready="canvasWidthRef = $event.width; canvasHeightRef = $event.height"
     />
   </div>
 </template>
