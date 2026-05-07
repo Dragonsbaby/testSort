@@ -28,45 +28,19 @@ function interpolateEntity(from: RenderableEntity, to: RenderableEntity, transit
     }
   }
 
-  // swap 平移时保持柱子的原始高度（来自 from），不做高度渐变，避免视觉上"变高变矮"
-  const isSwapMove = transition.swapEntityIdPairs?.some(([a, b]) => a === from.id || b === from.id) ?? false;
-
   return {
     ...to,
     x,
     y,
     width: lerp(from.width, to.width, progress),
-    height: isSwapMove ? from.height : lerp(from.height, to.height, progress),
+    height: lerp(from.height, to.height, progress),
+    value: to.value,
+    displayIndex: to.displayIndex,
     opacity: transition.visibilityTransition || transition.type === "fade"
       ? getFadeOpacity(from.opacity, to.opacity, progress)
       : lerp(from.opacity, to.opacity, progress),
     style: transition.styleTransition ? interpolateStyle(from.style, to.style, progress) : to.style,
   };
-}
-
-/**
- * 根据 swapEntityIdPairs 构建"交叉起点"映射表：
- * 对于 swap 中的每一对 [idA, idB]，idA 的插值起点替换为 idB 的 from 坐标，反之亦然，
- * 这样两个 entity 才会真正地从对方位置飞向自己的目标位置。
- */
-function buildSwapFromOverrides(
-  fromEntities: RenderableEntity[],
-  swapPairs: [string, string][],
-): Map<string, Pick<RenderableEntity, "x" | "y">> {
-  const fromMap = new Map(fromEntities.map((e) => [e.id, e]));
-  const overrides = new Map<string, Pick<RenderableEntity, "x" | "y">>();
-
-  for (const [idA, idB] of swapPairs) {
-    const fromA = fromMap.get(idA);
-    const fromB = fromMap.get(idB);
-    if (fromA && fromB) {
-      // A 从 B 的旧位置出发，B 从 A 的旧位置出发
-      overrides.set(idA, { x: fromB.x, y: fromB.y });
-      overrides.set(idB, { x: fromA.x, y: fromA.y });
-    }
-  }
-
-  return overrides;
 }
 
 export function interpolateEntities(
@@ -77,23 +51,12 @@ export function interpolateEntities(
 ): RenderableEntity[] {
   const fromMap = new Map(fromEntities.map((entity) => [entity.id, entity]));
 
-  // 构建 swap 交叉起点覆盖表
-  const swapFromOverrides = transition.swapEntityIdPairs?.length
-    ? buildSwapFromOverrides(fromEntities, transition.swapEntityIdPairs)
-    : null;
-
   return toEntities.map((toEntity) => {
     const fromEntity = fromMap.get(toEntity.id);
     if (!fromEntity || transition.type === "instant") {
       return { ...toEntity };
     }
 
-    // 如果该 entity 需要交叉起点，将其 from 的 x/y 替换为对方的旧坐标
-    const override = swapFromOverrides?.get(toEntity.id);
-    const effectiveFrom = override
-      ? { ...fromEntity, x: override.x, y: override.y }
-      : fromEntity;
-
-    return interpolateEntity(effectiveFrom, toEntity, transition, progress);
+    return interpolateEntity(fromEntity, toEntity, transition, progress);
   });
 }

@@ -23,7 +23,7 @@ function createBasicFrame(
     const style = getStyleFromStateTags(stateTags, BAR_BASE_STYLE);
 
     return {
-      id: `main-${index}`,
+      id: `main-${displayIndexes[index]}`,
       sourceId: `value-${displayIndexes[index]}`,
       kind: "main-bar",
       value,
@@ -161,10 +161,8 @@ export function buildBasicTimeline(params: {
         type: semantic.type === "swap" ? "linear" : "instant",
         duration: semantic.type === "swap" ? swapDuration : stepDuration,
         easing: semantic.type === "swap" ? "easeInOutCubic" : "linear",
-        movingEntityIds: semantic.type === "swap" ? semantic.indices.map((item) => `main-${item}`) : undefined,
-        swapEntityIdPairs: semantic.type === "swap" && semantic.indices.length === 2
-          ? [[`main-${semantic.indices[0]}`, `main-${semantic.indices[1]}`]]
-          : undefined,
+        movingEntityIds: undefined,
+        swapEntityIdPairs: undefined,
         styleTransition: semantic.type !== "swap",
       },
       statsDelta: {
