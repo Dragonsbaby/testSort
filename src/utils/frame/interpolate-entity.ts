@@ -51,12 +51,34 @@ export function interpolateEntities(
 ): RenderableEntity[] {
   const fromMap = new Map(fromEntities.map((entity) => [entity.id, entity]));
 
+  // 构建 swap pair 的「起点覆盖」映射：
+  // 对于 pair [idA, idB]，A 应从 B 的目标 x 出发飞向 A 的目标 x，反之亦然
+  const swapFromXOverride = new Map<string, number>();
+  if (transition.swapEntityIdPairs) {
+    for (const [idA, idB] of transition.swapEntityIdPairs) {
+      const toA = toEntities.find((e) => e.id === idA);
+      const toB = toEntities.find((e) => e.id === idB);
+      if (toA && toB) {
+        // A 的 from.x 覆盖为 B 的目标 x（让 A 从 B 的位置出发）
+        swapFromXOverride.set(idA, toB.x);
+        // B 的 from.x 覆盖为 A 的目标 x（让 B 从 A 的位置出发）
+        swapFromXOverride.set(idB, toA.x);
+      }
+    }
+  }
+
   return toEntities.map((toEntity) => {
     const fromEntity = fromMap.get(toEntity.id);
     if (!fromEntity || transition.type === "instant") {
       return { ...toEntity };
     }
 
-    return interpolateEntity(fromEntity, toEntity, transition, progress);
+    // 如果是 swap pair 成员，覆盖 from.x 为对方的目标 x
+    const overrideX = swapFromXOverride.get(toEntity.id);
+    const effectiveFrom = overrideX !== undefined
+      ? { ...fromEntity, x: overrideX }
+      : fromEntity;
+
+    return interpolateEntity(effectiveFrom, toEntity, transition, progress);
   });
 }

@@ -253,8 +253,6 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.lineTo(x + width - radius, top + 4);
     ctx.stroke();
 
-    ctx.restore();
-
     ctx.font = `700 ${Math.min(12, Math.max(width - 2, 9))}px "JetBrains Mono", monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
@@ -265,6 +263,8 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.fillStyle = INDEX_LABEL_COLOR;
     const labelOffset = getFrameNumberMeta(frame, "labelOffset") ?? 17;
     ctx.fillText(String(entity.displayIndex), x + width / 2, y + labelOffset);
+
+    ctx.restore();
   }
 
   function drawHeapEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity) {

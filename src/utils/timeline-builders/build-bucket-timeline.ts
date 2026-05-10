@@ -4,7 +4,6 @@ import { getStyleFromStateTags } from "@/utils/frame/style-utils";
 import { getBucketTheme } from "@/utils/frame/bucket-palette";
 
 const MAIN_BASE_STYLE = { fill: "#4a9eff", glow: 0 };
-const GHOST_BASE_STYLE = { fill: "rgba(78, 205, 196, 0.25)", stroke: "rgba(78, 205, 196, 0.55)", text: "#9ff3ea", dashed: true, alpha: 0.8 };
 
 type FrameRole = "from" | "to" | "static";
 
@@ -81,12 +80,6 @@ function buildBucketRegions(width: number, height: number, bucketCount: number):
   ];
 }
 
-function getBucketRangeLabel(bucketIndex: number, bucketCount: number) {
-  const start = Math.round((bucketIndex / bucketCount) * 100);
-  const end = Math.round(((bucketIndex + 1) / bucketCount) * 100);
-  return `${start}%–${end}%`;
-}
-
 function buildBucketOverlays(
   layout: ReturnType<typeof buildBucketLayout>,
   width: number,
@@ -104,16 +97,7 @@ function buildBucketOverlays(
     style: { fill: "#74b6ff", text: "#74b6ff", alpha: 0.95 },
   });
 
-  // 分隔带居中文字
-  overlays.push({
-    id: "bucket-separator-label",
-    kind: "label",
-    points: [{ x: width / 2, y: layout.mainHeight + Math.round(layout.separatorHeight / 2) }],
-    text: "▼  分  桶  区",
-    style: { fill: "rgba(78, 205, 196, 0.7)", text: "rgba(78, 205, 196, 0.7)", alpha: 0.9 },
-  });
-
-  // 每个桶的 region-panel + 标题 + 值域 + 计数徽章
+  // 每个桶的 region-panel + 标题 + 计数徽章
   for (const region of layout.bucketRegions) {
     const { bucketIndex } = region;
     const theme = getBucketTheme(bucketIndex);
@@ -144,17 +128,8 @@ function buildBucketOverlays(
       id: `bucket-title-${bucketIndex}`,
       kind: "label",
       points: [{ x: region.x + region.width / 2, y: region.y + 14 }],
-      text: `Bucket ${bucketIndex}`,
+      text: `Bucket ${bucketIndex + 1}`,
       style: { fill: theme.border, text: theme.border, alpha: 0.95 },
-    });
-
-    // 值域范围标签（y+28，颜色柔和）
-    overlays.push({
-      id: `bucket-range-${bucketIndex}`,
-      kind: "guide",
-      points: [{ x: region.x + region.width / 2, y: region.y + 28 }],
-      text: getBucketRangeLabel(bucketIndex, layout.bucketCount),
-      style: { fill: "rgba(186, 242, 255, 0.75)", text: "rgba(186, 242, 255, 0.75)", alpha: 0.8 },
     });
 
     // 计数徽章（纯数字，尺寸加大）
@@ -167,17 +142,6 @@ function buildBucketOverlays(
       style: { fill: theme.badgeBg, stroke: `${theme.border}AA`, text: theme.badgeText, alpha: 0.95 },
     });
   }
-
-  // 虚线分隔线
-  overlays.push({
-    id: "bucket-divider",
-    kind: "divider",
-    points: [
-      { x: 18, y: layout.mainHeight + Math.round(layout.separatorHeight / 2) },
-      { x: width - 18, y: layout.mainHeight + Math.round(layout.separatorHeight / 2) },
-    ],
-    style: { fill: "rgba(78, 205, 196, 0.2)", stroke: "rgba(78, 205, 196, 0.2)", dashed: true },
-  });
 
   return overlays;
 }
@@ -195,7 +159,9 @@ function createBucketFrame(params: {
   semantic?: SemanticStep;
   frameRole?: FrameRole;
   activeBucketIndex?: number;
-  bucketFinalMaxMap?: Map<number, number>;
+  globalMaxValue: number;
+  ghostStepIndex?: number;
+  scatteredIndices?: Set<number>;
 }): FrameState {
   const {
     mainValues,
@@ -210,17 +176,20 @@ function createBucketFrame(params: {
     semantic,
     frameRole = "static",
     activeBucketIndex,
-    bucketFinalMaxMap,
+    globalMaxValue,
+    ghostStepIndex,
+    scatteredIndices,
   } = params;
   const layout = buildBucketLayout(width, height, mainValues.length);
   const maxValue = Math.max(...mainValues, 1);
-  const mainBarWidth = Math.min(40, Math.max(10, Math.floor((width - 80) / Math.max(mainValues.length, 1)) - 4));
+  const mainBarWidth = Math.min(32, Math.max(10, Math.floor((width - 80) / Math.max(mainValues.length, 1)) - 4));
   const mainGap = 4;
   const mainTotalWidth = mainValues.length * mainBarWidth + Math.max(mainValues.length - 1, 0) * mainGap;
   const mainStartX = Math.max(20, Math.round((width - mainTotalWidth) / 2));
 
   const mainEntities: RenderableEntity[] = mainValues.map((value, index) => {
     const stateTags = mainStateTags.get(index) ?? [];
+    const isScattered = scatteredIndices?.has(index);
     return {
       id: `main-${index}`,
       sourceId: `value-${displayIndexes[index]}`,
@@ -229,9 +198,9 @@ function createBucketFrame(params: {
       displayIndex: displayIndexes[index],
       x: mainStartX + index * (mainBarWidth + mainGap),
       y: layout.mainHeight - 22,
-      width: mainBarWidth,
+      width: isScattered ? 0 : mainBarWidth,
       height: Math.max(6, Math.round((value / maxValue) * (layout.mainHeight - 52))),
-      opacity: 1,
+      opacity: isScattered ? 0 : 1,
       zIndex: 1,
       style: getStyleFromStateTags(stateTags, MAIN_BASE_STYLE),
       stateTags,
@@ -245,16 +214,19 @@ function createBucketFrame(params: {
     // 桶内可用高度（扣除顶部标签区和底部 index 标签）
     const innerHeight = region.height - BUCKET_INNER_PADDING_TOP - BUCKET_INNER_PADDING_BOT;
     const innerWidth = Math.max(region.width - BUCKET_INNER_PADDING_X * 2, 20);
-    const barGap = bucket.length > 1 ? Math.max(2, Math.min(6, Math.floor((innerWidth - bucket.length * 10) / (bucket.length - 1 || 1)))) : 0;
-    const barWidth = bucket.length > 0
-      ? Math.max(6, Math.min(20, Math.floor((innerWidth - barGap * Math.max(bucket.length - 1, 0)) / bucket.length)))
-      : 12;
+    const barGap = 4;
+    let barWidth = Math.round(mainBarWidth * 0.9);
+    // 如果桶内元素过多导致溢出，按比例缩小
+    const totalNeeded = bucket.length * barWidth + Math.max(bucket.length - 1, 0) * barGap;
+    if (totalNeeded > innerWidth && bucket.length > 0) {
+      barWidth = Math.max(6, Math.floor((innerWidth - Math.max(bucket.length - 1, 0) * barGap) / bucket.length));
+    }
 
     // 桶内柱子底部基准 Y（从桶底部向上留出 BUCKET_INNER_PADDING_BOT）
     const barBaseY = region.y + region.height - BUCKET_INNER_PADDING_BOT;
 
-    // 用该桶历史最终最大值归一化，保证高度稳定不随帧跳变；无预计算值时回退到全局 maxValue
-    const bucketMax = bucketFinalMaxMap?.get(bucketIndex) ?? maxValue;
+    // 用全局最大值归一化，所有桶共享同一基准，高度稳定
+    const bucketMax = globalMaxValue;
 
     // 水平越界上限，防止柱子画出桶右边界；至少保留第一根柱子的起始位置
     const xMax = Math.max(
@@ -266,6 +238,12 @@ function createBucketFrame(params: {
 
     return bucket.map((value, position) => {
       const stateTags = bucketStateTags.get(`${bucketIndex}-${position}`) ?? [];
+      // to 帧 scatter 落点的 bar 保持隐藏，由 ghost 负责视觉，ghost 消失后下一步 from 帧才显示
+      const isGhostTarget =
+        frameRole === "to" &&
+        semantic?.type === "bucket-scatter" &&
+        bucketIndex === semantic.bucketIndex &&
+        position === semantic.bucketPos;
       return {
         id: `bucket-${bucketIndex}-${position}`,
         sourceId: `bucket-${bucketIndex}-${value}-${position}`,
@@ -278,7 +256,7 @@ function createBucketFrame(params: {
         width: barWidth,
         // 高度基于桶的历史最终最大值缩放，动画过程中高度稳定；上限钳制防止 bucketMax 偏低时溢出桶顶
         height: Math.min(innerHeight, Math.max(6, Math.round((value / bucketMax) * innerHeight))),
-        opacity: 1,
+        opacity: isGhostTarget ? 0 : 1,
         zIndex: 2,
         style: getStyleFromStateTags(stateTags, bucketBaseStyle),
         stateTags,
@@ -293,43 +271,72 @@ function createBucketFrame(params: {
     const bucketIndex = semantic.bucketIndex;
     const bucketPos = semantic.bucketPos;
     const source = typeof sourceIndex === "number" ? mainEntities[sourceIndex] : null;
-    const target = typeof bucketIndex === "number" && typeof bucketPos === "number"
-      ? bucketEntities.find((entity) => entity.id === `bucket-${bucketIndex}-${bucketPos}`)
-      : null;
 
-    if (source && target) {
-      ghostEntities.push({
-        ...(frameRole === "from" ? source : target),
-        id: `ghost-scatter-${stepIndex}`,
-        sourceId: source.sourceId,
-        kind: "ghost-bar",
-        opacity: frameRole === "from" ? 0.95 : 0.35,
-        zIndex: 3,
-        style: GHOST_BASE_STYLE,
-        stateTags: [],
-      });
+    // 直接从 layout 计算终点坐标（不依赖 bucketEntities，避免 from/to 帧桶数据不同步的问题）
+    const targetBucketIndex = typeof bucketIndex === "number" ? bucketIndex : null;
+    const targetRegion = targetBucketIndex !== null ? layout.bucketRegions[targetBucketIndex] : null;
+    if (source && targetRegion && targetBucketIndex !== null && typeof bucketPos === "number") {
+      const tBarGap = 4;
+      const tBarWidth = Math.round(mainBarWidth * 0.9);
+      const tBarBaseY = targetRegion.y + targetRegion.height - BUCKET_INNER_PADDING_BOT;
+      const tBarHeight = Math.min(
+        targetRegion.height - BUCKET_INNER_PADDING_TOP - BUCKET_INNER_PADDING_BOT,
+        Math.max(6, Math.round((source.value / globalMaxValue) * (layout.mainHeight - 52))),
+      );
+      const xMax = Math.max(targetRegion.x + BUCKET_INNER_PADDING_X, targetRegion.x + targetRegion.width - BUCKET_INNER_PADDING_X - tBarWidth);
+      const tBarX = Math.min(targetRegion.x + BUCKET_INNER_PADDING_X + (bucketPos as number) * (tBarWidth + tBarGap), xMax);
+      const bucketBaseStyle = getBucketBarStyle(targetBucketIndex);
+
+      const ghostId = `ghost-scatter-${ghostStepIndex ?? stepIndex}`;
+      // from 帧：ghost 在主数组位置，宽度与源柱子一致（完全覆盖源位置）
+      // to 帧：ghost 到达桶内目标位置，宽度为桶内宽度
+      ghostEntities.push(
+        frameRole === "from"
+          ? { ...source, id: ghostId, sourceId: source.sourceId, kind: "main-bar", width: source.width, height: tBarHeight, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] }
+          : { ...source, id: ghostId, sourceId: source.sourceId, kind: "main-bar", x: tBarX, y: tBarBaseY, width: tBarWidth, height: tBarHeight, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] },
+      );
+
+      // source bar 立即隐藏（ghost 接替飞行）
+      if (frameRole === "from" || frameRole === "to") {
+        const idx = mainEntities.findIndex((e) => e.id === `main-${sourceIndex}`);
+        if (idx !== -1) mainEntities[idx] = { ...mainEntities[idx], opacity: 0 };
+      }
     }
   }
 
   if (semantic?.type === "bucket-gather") {
     const [destIndex] = semantic.indices;
     const bucketIndex = semantic.bucketIndex;
-    const source = typeof bucketIndex === "number"
-      ? bucketEntities.find((entity) => entity.id === `bucket-${bucketIndex}-0`)
-      : null;
     const target = typeof destIndex === "number" ? mainEntities[destIndex] : null;
 
-    if (source && target) {
-      ghostEntities.push({
-        ...(frameRole === "from" ? source : target),
-        id: `ghost-gather-${stepIndex}`,
-        sourceId: source.sourceId,
-        kind: "ghost-bar",
-        opacity: frameRole === "from" ? 0.95 : 0.35,
-        zIndex: 3,
-        style: GHOST_BASE_STYLE,
-        stateTags: [],
-      });
+    // 直接从 layout 计算起点坐标（from 帧桶内还有元素，to 帧已经 slice 掉了，不依赖 bucketEntities 查找）
+    const sourceRegion = typeof bucketIndex === "number" ? layout.bucketRegions[bucketIndex] : null;
+    if (target && sourceRegion && typeof bucketIndex === "number") {
+      const fromFrameBucketLen = buckets[bucketIndex]?.length ?? 0;
+      if (fromFrameBucketLen > 0) {
+        const sourceValue = buckets[bucketIndex][0];
+        const sBarWidth = Math.round(mainBarWidth * 0.9);
+        const sBarBaseY = sourceRegion.y + sourceRegion.height - BUCKET_INNER_PADDING_BOT;
+        const sBarHeight = Math.min(
+          sourceRegion.height - BUCKET_INNER_PADDING_TOP - BUCKET_INNER_PADDING_BOT,
+          Math.max(6, Math.round((sourceValue / globalMaxValue) * (layout.mainHeight - 52))),
+        );
+        const sBarX = sourceRegion.x + BUCKET_INNER_PADDING_X;
+        const bucketBaseStyle = getBucketBarStyle(bucketIndex);
+
+        const ghostId = `ghost-gather-${ghostStepIndex ?? stepIndex}`;
+        ghostEntities.push(
+          frameRole === "from"
+            ? { id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", value: sourceValue, displayIndex: 1, x: sBarX, y: sBarBaseY, width: sBarWidth, height: sBarHeight, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] }
+            : { ...target, id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", width: target.width, opacity: 0, zIndex: 3, style: bucketBaseStyle, stateTags: [] },
+        );
+
+        // 桶内 position-0 bar 在 from 帧立刻隐藏
+        if (frameRole === "from") {
+          const idx = bucketEntities.findIndex((e) => e.id === `bucket-${bucketIndex}-0`);
+          if (idx !== -1) bucketEntities[idx] = { ...bucketEntities[idx], opacity: 0 };
+        }
+      }
     }
   }
 
@@ -355,22 +362,11 @@ export function buildBucketTimeline(params: {
 }): TimelineStep[] {
   const { steps, originalValues, displayIndexes, width, height, stepDuration } = params;
 
-  // 预计算每个桶在整个排序过程中会接收到的最大值
-  // 用于 createBucketFrame 中桶内高度归一化，避免当前帧动态最大值导致柱高跳变
-  const bucketFinalMaxMap = new Map<number, number>();
-  for (const step of steps) {
-    if (step.type === "bucket-scatter" && typeof step.bucketIndex === "number") {
-      const sourceIndex = step.indices[0];
-      if (typeof sourceIndex === "number") {
-        const val = originalValues[sourceIndex];
-        const prev = bucketFinalMaxMap.get(step.bucketIndex) ?? 0;
-        if (val > prev) bucketFinalMaxMap.set(step.bucketIndex, val);
-      }
-    }
-  }
+  const globalMaxValue = Math.max(...originalValues, 1);
 
   let mainValues = [...originalValues];
   let buckets: number[][] = Array.from({ length: Math.max(steps.reduce((max, step) => Math.max(max, step.bucketIndex ?? -1), -1) + 1, 3) }, () => []);
+  const scatteredIndices = new Set<number>();
 
   return steps.map((semantic, index) => {
     const { mainStateTags, bucketStateTags } = buildBucketTags(semantic);
@@ -381,6 +377,15 @@ export function buildBucketTimeline(params: {
        semantic.type === "bucket-compare" || semantic.type === "bucket-swap")
         ? semantic.bucketIndex
         : undefined;
+
+    // scatter 步骤：在创建 from 帧之前就把 sourceIndex 加入 scatteredIndices，
+    // 让源元素在 from 帧就隐藏，实现"元素立即消失，ghost 接替飞行"的效果
+    if (semantic.type === "bucket-scatter") {
+      const sourceIndex = semantic.indices[0];
+      if (typeof sourceIndex === "number") {
+        scatteredIndices.add(sourceIndex);
+      }
+    }
 
     const from = createBucketFrame({
       mainValues,
@@ -395,7 +400,9 @@ export function buildBucketTimeline(params: {
       semantic,
       frameRole: "from",
       activeBucketIndex,
-      bucketFinalMaxMap,
+      globalMaxValue,
+      ghostStepIndex: index,
+      scatteredIndices,
     });
 
     if (semantic.type === "bucket-scatter") {
@@ -419,8 +426,10 @@ export function buildBucketTimeline(params: {
 
     if (semantic.type === "bucket-gather" && semantic.arraySnapshot) {
       const bucketIndex = semantic.bucketIndex ?? 0;
+      const destIndex = semantic.indices[0];
       mainValues = [...semantic.arraySnapshot];
       buckets = buckets.map((bucket, index2) => (index2 === bucketIndex ? bucket.slice(1) : [...bucket]));
+      if (typeof destIndex === "number") scatteredIndices.delete(destIndex);
     }
 
     if (semantic.type === "sorted" && semantic.arraySnapshot) {
@@ -440,7 +449,9 @@ export function buildBucketTimeline(params: {
       semantic,
       frameRole: "to",
       activeBucketIndex,
-      bucketFinalMaxMap,
+      globalMaxValue,
+      ghostStepIndex: index,
+      scatteredIndices,
     });
 
     const movingEntityIds = semantic.type === "bucket-scatter"
@@ -449,7 +460,9 @@ export function buildBucketTimeline(params: {
         ? [`ghost-gather-${index}`]
         : undefined;
     const swapDuration = stepDuration * 3;
+    const flyDuration = stepDuration * 2;
     const isSwap = semantic.type === "bucket-swap";
+    const isFly = semantic.type === "bucket-scatter" || semantic.type === "bucket-gather";
 
     // swap 时构建 swapEntityIdPairs，实现 A↔B 交叉起点平移；bucketIndex 需确认为 number 防止生成无效 ID
     const swapEntityIdPairs: [string, string][] | undefined =
@@ -464,17 +477,16 @@ export function buildBucketTimeline(params: {
       id: `bucket-${index + 1}`,
       kind: semantic.type,
       description: semantic.description,
-      duration: isSwap ? swapDuration : stepDuration,
+      duration: isFly ? flyDuration : isSwap ? swapDuration : stepDuration,
       from,
       to,
       transition: {
-        // swap 改用 linear 平移（不再是 arc 弧跳）；scatter/gather 保留 arc 路径动画
-        type: semantic.type === "bucket-scatter" || semantic.type === "bucket-gather" ? "arc" : isSwap ? "linear" : "instant",
-        duration: isSwap ? swapDuration : stepDuration,
-        easing: semantic.type === "bucket-scatter" || semantic.type === "bucket-gather" || isSwap ? "easeInOutCubic" : "linear",
+        type: isFly ? "arc" : isSwap ? "linear" : "instant",
+        duration: isFly ? flyDuration : isSwap ? swapDuration : stepDuration,
+        easing: isFly || isSwap ? "easeInOutCubic" : "linear",
         // swap 不使用 movingEntityIds（linear 模式通过 swapEntityIdPairs 驱动交叉起点）
         movingEntityIds: isSwap ? undefined : movingEntityIds,
-        pathParams: { mode: semantic.type === "bucket-gather" ? "vertical-first" : "horizontal-first", curveHeight: 40 },
+        pathParams: { mode: semantic.type === "bucket-gather" ? "vertical-first" : "horizontal-first", curveHeight: 70 },
         // swap 动画过程中保持样式插值，使颜色高亮在飞行期间持续可见
         styleTransition: true,
         // swap 的交叉起点对，触发 interpolate-entity.ts 中的平移对穿逻辑
