@@ -50,6 +50,7 @@ export function interpolateEntities(
   progress: number,
 ): RenderableEntity[] {
   const fromMap = new Map(fromEntities.map((entity) => [entity.id, entity]));
+  const toMap = new Map(toEntities.map((entity) => [entity.id, entity]));
 
   // 构建 swap pair 的「起点覆盖」映射：
   // 对于 pair [idA, idB]，A 应从 B 的目标 x 出发飞向 A 的目标 x，反之亦然
@@ -67,9 +68,19 @@ export function interpolateEntities(
     }
   }
 
-  return toEntities.map((toEntity) => {
+  const result = toEntities.map((toEntity) => {
     const fromEntity = fromMap.get(toEntity.id);
     if (!fromEntity || transition.type === "instant") {
+      // merge-set 场景：buffer-bar 首次出现时做 fade-in（从透明渐入）
+      if (
+        !fromEntity
+        && transition.type !== "instant"
+        && transition.movingEntityIds
+        && toEntity.kind === "buffer-bar"
+      ) {
+        const fakeFrom: RenderableEntity = { ...toEntity, opacity: 0 };
+        return interpolateEntity(fakeFrom, toEntity, transition, progress);
+      }
       return { ...toEntity };
     }
 
@@ -81,4 +92,31 @@ export function interpolateEntities(
 
     return interpolateEntity(effectiveFrom, toEntity, transition, progress);
   });
+
+  // 处理「from 存在但 to 中消失」的 moving entity（如 merge-back 的 buffer bar 飞回后消失）
+  // 这些元素需要从 from 位置插值飞向 to 帧中对应 main bar 的位置，动画结束时淡出
+  if (transition.movingEntityIds && transition.type !== "instant") {
+    for (const movingId of transition.movingEntityIds) {
+      if (toMap.has(movingId)) continue; // to 中存在则已被上方处理
+      const fromEntity = fromMap.get(movingId);
+      if (!fromEntity) continue;
+
+      // buffer-N 飞向 main-N 的目标位置
+      const mainId = movingId.replace(/^buffer-/, "main-");
+      const targetEntity = toMap.get(mainId);
+      if (!targetEntity) continue;
+
+      // 用目标 main bar 的位置作为终点，动画结束时 opacity 归零（淡出消失）
+      const fakeTarget: RenderableEntity = {
+        ...fromEntity,
+        x: targetEntity.x,
+        y: targetEntity.y,
+        opacity: 0,
+      };
+
+      result.push(interpolateEntity(fromEntity, fakeTarget, transition, progress));
+    }
+  }
+
+  return result;
 }

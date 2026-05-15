@@ -10,7 +10,7 @@ const props = defineProps<{
 }>();
 void props;
 
-const emit = defineEmits<{ (e: "canvas-ready", width: number): void }>();
+const emit = defineEmits<{ (e: "canvas-ready", size: { width: number; height: number }): void }>();
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -22,14 +22,18 @@ let resizeObserver: ResizeObserver | null = null;
 onMounted(() => {
   if (containerRef.value) {
     const rect = containerRef.value.getBoundingClientRect();
-    emit("canvas-ready", rect.width - 40);
-    initialize(rect.width - 40, Math.max(400, rect.height - 40));
+    const initW = rect.width - 40;
+    const initH = Math.max(400, rect.height - 40);
+    emit("canvas-ready", { width: initW, height: initH });
+    initialize(initW, initH);
     startRenderLoop();
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        emit("canvas-ready", width - 40);
-        resize(width - 40, Math.max(400, height - 40));
+        const w = width - 40;
+        const h = Math.max(400, height - 40);
+        emit("canvas-ready", { width: w, height: h });
+        resize(w, h);
       }
     });
     resizeObserver.observe(containerRef.value);

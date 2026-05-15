@@ -9,12 +9,14 @@ const props = defineProps<{ speed: number }>();
 const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
 const canvasWidthRef = ref(760);
+const canvasHeightRef = ref(460);
 
 const { array, steps, currentStep, comparisons, swaps, currentStepInfo, isPlaying, play, pause, step, reset, statusText, statusClass } = useSortAnimation({
   sortFn: mergeSort,
   speed: toRef(props, "speed"),
   canvasRef,
   canvasWidth: canvasWidthRef,
+  canvasHeight: canvasHeightRef,
   originalArray: toRef(store, "originalArray"),
   algorithm: "merge",
 });
@@ -86,7 +88,7 @@ defineExpose({ reset, step });
     </div>
 
     <!-- Canvas（双排：上排主数组 + 下排辅助区） -->
-    <SortBarCanvasMerge ref="canvasRef" :array="array" :animation-speed="speed" @canvas-ready="canvasWidthRef = $event" />
+    <SortBarCanvasMerge ref="canvasRef" :array="array" :animation-speed="speed" @canvas-ready="canvasWidthRef = $event.width; canvasHeightRef = $event.height" />
   </div>
 </template>
 

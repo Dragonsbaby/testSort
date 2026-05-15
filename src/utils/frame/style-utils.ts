@@ -33,6 +33,8 @@ export function interpolateStyle(from: RenderStyle, to: RenderStyle, progress: n
     text: progress < 0.5 ? from.text : to.text,
     glow: (from.glow ?? 0) + ((to.glow ?? 0) - (from.glow ?? 0)) * progress,
     dashed: progress < 0.5 ? from.dashed : to.dashed,
-    alpha: (from.alpha ?? 1) + ((to.alpha ?? 1) - (from.alpha ?? 1)) * progress,
+    alpha: (from.alpha !== undefined || to.alpha !== undefined)
+      ? (from.alpha ?? 1) + ((to.alpha ?? 1) - (from.alpha ?? 1)) * progress
+      : undefined,
   };
 }

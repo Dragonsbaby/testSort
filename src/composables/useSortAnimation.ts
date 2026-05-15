@@ -56,7 +56,7 @@ export function useSortAnimation(params: {
           originalValues: values,
           displayIndexes,
           width: currentCanvasWidth.value,
-          height: 420,
+          height: currentCanvasHeight.value,
           stepDuration: speed.value,
         })
       : algorithm === "bucket"
