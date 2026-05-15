@@ -57,10 +57,10 @@ export function useSortAnimation(params: {
   }
 
   function buildTimelineForAlgorithm(values: number[], displayIndexes: number[]): TimelineStep[] {
-    if (algorithm === "merge") return buildMergeTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value, stepDuration: speed.value });
-    if (algorithm === "bucket") return buildBucketTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value, stepDuration: speed.value });
-    if (algorithm === "heap") return buildHeapTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88, stepDuration: speed.value, isMinHeap: heapMode?.value === "min" });
-    return buildBasicTimeline({ algorithm: algorithm as BasicAlgorithm, steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 320, stepDuration: speed.value });
+    if (algorithm === "merge") return buildMergeTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value });
+    if (algorithm === "bucket") return buildBucketTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value });
+    if (algorithm === "heap") return buildHeapTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88, isMinHeap: heapMode?.value === "min" });
+    return buildBasicTimeline({ algorithm: algorithm as BasicAlgorithm, steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 320 });
   }
 
   function buildInitial() {
@@ -95,7 +95,7 @@ export function useSortAnimation(params: {
     debounceTimer = setTimeout(buildTimeline, 100);
   }
 
-  const player = useTimelinePlayer(() => timelineSteps.value);
+  const player = useTimelinePlayer(() => timelineSteps.value, speed);
 
   function syncStats(index: number) {
     let nextComparisons = 0;
@@ -147,11 +147,6 @@ export function useSortAnimation(params: {
   });
 
   watch(originalArray, rebuild, { immediate: true });
-
-  watch(
-    () => speed.value,
-    () => rebuild(),
-  );
 
   watch(
     () => currentCanvasWidth.value,

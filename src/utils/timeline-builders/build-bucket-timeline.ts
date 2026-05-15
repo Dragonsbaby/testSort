@@ -381,9 +381,8 @@ export function buildBucketTimeline(params: {
   displayIndexes: number[];
   width: number;
   height: number;
-  stepDuration: number;
 }): TimelineStep[] {
-  const { steps, originalValues, displayIndexes, width, height, stepDuration } = params;
+  const { steps, originalValues, displayIndexes, width, height } = params;
 
   const globalMaxValue = Math.max(...originalValues, 1);
 
@@ -482,8 +481,8 @@ export function buildBucketTimeline(params: {
       : semantic.type === "bucket-gather"
         ? [`ghost-gather-${index}`]
         : undefined;
-    const swapDuration = stepDuration * 3;
-    const flyDuration = stepDuration * 2;
+    const swapDuration = 3;
+    const flyDuration = 2;
     const isSwap = semantic.type === "bucket-swap";
     const isFly = semantic.type === "bucket-scatter" || semantic.type === "bucket-gather";
 
@@ -500,12 +499,12 @@ export function buildBucketTimeline(params: {
       id: `bucket-${index + 1}`,
       kind: semantic.type,
       description: semantic.description,
-      duration: isFly ? flyDuration : isSwap ? swapDuration : stepDuration,
+      duration: isFly ? flyDuration : isSwap ? swapDuration : 1,
       from,
       to,
       transition: {
         type: isFly ? "arc" : isSwap ? "linear" : "instant",
-        duration: isFly ? flyDuration : isSwap ? swapDuration : stepDuration,
+        duration: isFly ? flyDuration : isSwap ? swapDuration : 1,
         easing: isFly || isSwap ? "easeInOutCubic" : "linear",
         // swap 不使用 movingEntityIds（linear 模式通过 swapEntityIdPairs 驱动交叉起点）
         movingEntityIds: isSwap ? undefined : movingEntityIds,

@@ -1,8 +1,8 @@
-import { computed, ref } from "vue";
+import { computed, ref, type Ref } from "vue";
 import type { FrameState, TimelineStep } from "@/types/timeline";
 import { interpolateFrame } from "@/utils/frame/interpolate-frame";
 
-export function useTimelinePlayer(steps: () => TimelineStep[]) {
+export function useTimelinePlayer(steps: () => TimelineStep[], speed: Ref<number>) {
   const currentStepIndex = ref(0);
   const progress = ref(0);
   const isPlaying = ref(false);
@@ -17,7 +17,8 @@ export function useTimelinePlayer(steps: () => TimelineStep[]) {
   });
 
   function getStepDuration(): number {
-    return currentTimelineStep.value?.duration ?? 100;
+    const multiplier = currentTimelineStep.value?.duration ?? 1;
+    return multiplier * speed.value;
   }
 
   function stopLoop() {

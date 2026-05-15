@@ -119,9 +119,8 @@ export function buildBasicTimeline(params: {
   displayIndexes: number[];
   width: number;
   height: number;
-  stepDuration: number;
 }): TimelineStep[] {
-  const { algorithm, steps, originalValues, width, height, stepDuration } = params;
+  const { algorithm, steps, originalValues, width, height } = params;
 
   let values = [...originalValues];
   let displayIndexes = [...params.displayIndexes];
@@ -158,18 +157,18 @@ export function buildBasicTimeline(params: {
 
     currentFrame = structuredClone(to) as FrameState;
 
-    const swapDuration = stepDuration * 3;
+    const swapDuration = 3;
 
     return {
       id: `basic-${algorithm}-${index + 1}`,
       kind: semantic.type,
       description: semantic.description,
-      duration: semantic.type === "swap" ? swapDuration : stepDuration,
+      duration: semantic.type === "swap" ? swapDuration : 1,
       from,
       to,
       transition: {
         type: semantic.type === "swap" ? "linear" : "instant",
-        duration: semantic.type === "swap" ? swapDuration : stepDuration,
+        duration: semantic.type === "swap" ? swapDuration : 1,
         easing: semantic.type === "swap" ? "easeInOutCubic" : "linear",
         movingEntityIds: undefined,
         swapEntityIdPairs: undefined,

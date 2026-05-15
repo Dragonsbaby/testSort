@@ -321,9 +321,8 @@ export function buildMergeTimeline(params: {
   displayIndexes: number[];
   width: number;
   height: number;
-  stepDuration: number;
 }): TimelineStep[] {
-  const { steps, originalValues, displayIndexes, width, height, stepDuration } = params;
+  const { steps, originalValues, displayIndexes, width, height } = params;
 
   let values = [...originalValues];
   let mainDisplayIndexes = [...displayIndexes];
@@ -468,17 +467,17 @@ export function buildMergeTimeline(params: {
         ? semantic.indices.filter((i) => typeof i === "number").map((i) => `ghost-back-${index}-${i}`)
         : undefined;
 
-    const flyDuration = stepDuration * 3;
+    const flyDuration = 3;
     return {
       id: `merge-${index + 1}`,
       kind: semantic.type,
       description: semantic.description,
-      duration: isAnimated ? flyDuration : stepDuration,
+      duration: isAnimated ? flyDuration : 1,
       from,
       to,
       transition: {
         type: isAnimated ? "linear" : "instant",
-        duration: isAnimated ? flyDuration : stepDuration,
+        duration: isAnimated ? flyDuration : 1,
         easing: "easeInOutCubic",
         movingEntityIds,
         styleTransition: true,
