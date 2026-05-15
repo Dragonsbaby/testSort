@@ -10,7 +10,7 @@ const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
 const canvasWidthRef = ref(760);
 
-const { array, steps, currentStep, comparisons, swaps, currentStepInfo, isPlaying, play, pause, step, reset, statusText, statusClass } = useSortAnimation({
+const { array, steps, currentStep, comparisons, swaps, currentStepInfo, isPlaying, isReady, play, pause, step, reset, statusText, statusClass } = useSortAnimation({
   sortFn: quickSort,
   speed: toRef(props, "speed"),
   canvasRef,
@@ -29,7 +29,7 @@ defineExpose({ reset, step });
       <!-- Left: Control buttons + stats (compact) -->
       <div class="stats-left">
         <div class="ctrl-group">
-          <button class="ctrl-btn" :class="{ active: isPlaying }" @click="isPlaying ? pause() : play()">
+          <button class="ctrl-btn" :class="{ active: isPlaying }" :disabled="!isReady" @click="isPlaying ? pause() : play()">
             <svg v-if="!isPlaying" class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5,3 19,12 5,21"/>
             </svg>
@@ -39,7 +39,7 @@ defineExpose({ reset, step });
             </svg>
           </button>
 
-          <button class="ctrl-btn" @click="step()" :disabled="isPlaying || currentStep >= steps.length">
+          <button class="ctrl-btn" @click="step()" :disabled="!isReady || isPlaying || currentStep >= steps.length">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5,4 15,12 5,20"/>
               <rect x="16" y="4" width="3" height="16"/>

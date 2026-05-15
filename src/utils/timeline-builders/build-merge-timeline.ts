@@ -294,6 +294,27 @@ function createMergeFrame(params: {
   };
 }
 
+export function buildMergeInitialFrame(params: {
+  originalValues: number[];
+  displayIndexes: number[];
+  width: number;
+  height: number;
+}): FrameState {
+  return createMergeFrame({
+    values: params.originalValues,
+    displayIndexes: params.displayIndexes,
+    bufferValues: new Array(params.originalValues.length).fill(null) as Array<{ value: number; displayIndex: number } | null>,
+    width: params.width,
+    height: params.height,
+    stepIndex: 0,
+    description: "初始状态",
+    mainStateTags: new Map(),
+    bufferStateTags: new Map(),
+    hiddenMainIndices: new Set(),
+    hiddenBufferIndices: new Set(),
+  });
+}
+
 export function buildMergeTimeline(params: {
   steps: SemanticStep[];
   originalValues: number[];

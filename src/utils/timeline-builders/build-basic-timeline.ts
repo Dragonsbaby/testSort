@@ -102,6 +102,16 @@ function applyArraySnapshot(values: number[], semantic: SemanticStep) {
   return [...semantic.arraySnapshot];
 }
 
+export function buildBasicInitialFrame(params: {
+  algorithm: BasicAlgorithm;
+  originalValues: number[];
+  displayIndexes: number[];
+  width: number;
+  height: number;
+}): FrameState {
+  return createBasicFrame(params.algorithm, params.originalValues, params.displayIndexes, params.width, params.height, 0, "初始状态", new Map());
+}
+
 export function buildBasicTimeline(params: {
   algorithm: BasicAlgorithm;
   steps: SemanticStep[];

@@ -2,6 +2,7 @@ import type { FrameState, RenderableEntity, RenderableOverlay, RenderableRegion,
 import { buildBucketLayout, BUCKET_INNER_PADDING_TOP, BUCKET_INNER_PADDING_BOT, BUCKET_INNER_PADDING_X } from "@/utils/layout/bucket-layout";
 import { getStyleFromStateTags } from "@/utils/frame/style-utils";
 import { getBucketTheme } from "@/utils/frame/bucket-palette";
+import { calcBucketCount } from "@/types/sorting";
 
 const MAIN_BASE_STYLE = { fill: "#4a9eff", glow: 0 };
 
@@ -350,6 +351,28 @@ function createBucketFrame(params: {
     regions: buildBucketRegions(width, height, layout.bucketCount),
     overlays: buildBucketOverlays(layout, width, buckets, activeBucketIndex),
   };
+}
+
+export function buildBucketInitialFrame(params: {
+  originalValues: number[];
+  displayIndexes: number[];
+  width: number;
+  height: number;
+}): FrameState {
+  const bucketCount = calcBucketCount(params.originalValues.length);
+  return createBucketFrame({
+    mainValues: params.originalValues,
+    buckets: Array.from({ length: bucketCount }, () => []),
+    displayIndexes: params.displayIndexes,
+    width: params.width,
+    height: params.height,
+    stepIndex: 0,
+    description: "初始状态",
+    mainStateTags: new Map(),
+    bucketStateTags: new Map(),
+    globalMaxValue: Math.max(...params.originalValues, 1),
+    scatteredIndices: new Set(),
+  });
 }
 
 export function buildBucketTimeline(params: {

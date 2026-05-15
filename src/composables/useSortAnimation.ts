@@ -1,10 +1,10 @@
-import { computed, ref, watch, type Ref, type ToRef } from "vue";
+import { computed, onUnmounted, ref, watch, type Ref, type ToRef } from "vue";
 import type { SemanticStep, TimelineStep, FrameState } from "@/types/timeline";
 import type { ArrayElement } from "@/stores/sortStore";
-import { buildBasicTimeline } from "@/utils/timeline-builders/build-basic-timeline";
-import { buildMergeTimeline } from "@/utils/timeline-builders/build-merge-timeline";
-import { buildBucketTimeline } from "@/utils/timeline-builders/build-bucket-timeline";
-import { buildHeapTimeline } from "@/utils/timeline-builders/build-heap-timeline";
+import { buildBasicTimeline, buildBasicInitialFrame } from "@/utils/timeline-builders/build-basic-timeline";
+import { buildMergeTimeline, buildMergeInitialFrame } from "@/utils/timeline-builders/build-merge-timeline";
+import { buildBucketTimeline, buildBucketInitialFrame } from "@/utils/timeline-builders/build-bucket-timeline";
+import { buildHeapTimeline, buildHeapInitialFrame } from "@/utils/timeline-builders/build-heap-timeline";
 import { useTimelinePlayer } from "@/composables/useTimelinePlayer";
 
 export interface ISortCanvas {
@@ -42,54 +42,57 @@ export function useSortAnimation(params: {
   const array = ref<ArrayElement[]>([]);
   const comparisons = ref(0);
   const swaps = ref(0);
+  const isReady = ref(false);
+  const initialFrame = ref<FrameState | null>(null);
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function rebuild() {
+  function buildInitialFrameForAlgorithm(values: number[], displayIndexes: number[]): FrameState {
+    if (algorithm === "merge")
+      return buildMergeInitialFrame({ originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value });
+    if (algorithm === "bucket")
+      return buildBucketInitialFrame({ originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value });
+    if (algorithm === "heap")
+      return buildHeapInitialFrame({ originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88, isMinHeap: heapMode?.value === "min" });
+    return buildBasicInitialFrame({ algorithm: algorithm as BasicAlgorithm, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 320 });
+  }
+
+  function buildTimelineForAlgorithm(values: number[], displayIndexes: number[]): TimelineStep[] {
+    if (algorithm === "merge") return buildMergeTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value, stepDuration: speed.value });
+    if (algorithm === "bucket") return buildBucketTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value, stepDuration: speed.value });
+    if (algorithm === "heap") return buildHeapTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88, stepDuration: speed.value, isMinHeap: heapMode?.value === "min" });
+    return buildBasicTimeline({ algorithm: algorithm as BasicAlgorithm, steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 320, stepDuration: speed.value });
+  }
+
+  function buildInitial() {
     const current = originalArray.value;
     const values = current.map((item) => item.value);
     const displayIndexes = current.map((item) => item.displayIndex);
-
     array.value = [...current];
-    semanticSteps.value = sortFn(values);
-    timelineSteps.value = algorithm === "merge"
-      ? buildMergeTimeline({
-          steps: semanticSteps.value,
-          originalValues: values,
-          displayIndexes,
-          width: currentCanvasWidth.value,
-          height: currentCanvasHeight.value,
-          stepDuration: speed.value,
-        })
-      : algorithm === "bucket"
-        ? buildBucketTimeline({
-            steps: semanticSteps.value,
-            originalValues: values,
-            displayIndexes,
-            width: currentCanvasWidth.value,
-            height: currentCanvasHeight.value,
-            stepDuration: speed.value,
-          })
-        : algorithm === "heap"
-          ? buildHeapTimeline({
-              steps: semanticSteps.value,
-              originalValues: values,
-              displayIndexes,
-              width: currentCanvasWidth.value,
-              height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88,
-              stepDuration: speed.value,
-              isMinHeap: heapMode?.value === "min",
-            })
-          : buildBasicTimeline({
-              algorithm,
-              steps: semanticSteps.value,
-              originalValues: values,
-              displayIndexes,
-              width: currentCanvasWidth.value,
-              height: 320,
-              stepDuration: speed.value,
-            });
+    semanticSteps.value = [];
+    timelineSteps.value = [];
     comparisons.value = 0;
     swaps.value = 0;
+    isReady.value = false;
+    const frame = buildInitialFrameForAlgorithm(values, displayIndexes);
+    initialFrame.value = frame;
+    canvasRef.value?.renderFrame(frame);
+  }
+
+  function buildTimeline() {
+    const current = originalArray.value;
+    const values = current.map((item) => item.value);
+    const displayIndexes = current.map((item) => item.displayIndex);
+    semanticSteps.value = sortFn(values);
+    timelineSteps.value = buildTimelineForAlgorithm(values, displayIndexes);
+    isReady.value = true;
     player.reset();
+    if (initialFrame.value) canvasRef.value?.renderFrame(initialFrame.value);
+  }
+
+  function rebuild() {
+    buildInitial();
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(buildTimeline, 100);
   }
 
   const player = useTimelinePlayer(() => timelineSteps.value);
@@ -136,9 +139,12 @@ export function useSortAnimation(params: {
     comparisons.value = 0;
     swaps.value = 0;
     array.value = [...originalArray.value];
-    const firstFrame = timelineSteps.value[0]?.from;
-    if (firstFrame) canvasRef.value?.renderFrame(firstFrame);
+    if (initialFrame.value) canvasRef.value?.renderFrame(initialFrame.value);
   }
+
+  onUnmounted(() => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+  });
 
   watch(originalArray, rebuild, { immediate: true });
 
@@ -181,18 +187,21 @@ export function useSortAnimation(params: {
     swaps,
     currentStepInfo: computed(() => semanticSteps.value[player.currentStepIndex.value - 1] ?? null),
     isPlaying: player.isPlaying,
+    isReady,
     play: player.play,
     pause: player.pause,
     step,
     reset,
     rebuild,
     statusText: computed(() => {
+      if (!isReady.value) return "计算中";
       if (player.isPlaying.value) return "播放中";
       if (player.currentStepIndex.value >= timelineSteps.value.length) return "已完成";
       if (player.currentStepIndex.value === 0) return "就绪";
       return "已暂停";
     }),
     statusClass: computed(() => {
+      if (!isReady.value) return "loading";
       if (player.isPlaying.value) return "playing";
       if (player.currentStepIndex.value >= timelineSteps.value.length) return "done";
       if (player.currentStepIndex.value === 0) return "ready";

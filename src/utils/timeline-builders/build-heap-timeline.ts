@@ -153,6 +153,25 @@ function createHeapFrame(params: {
   };
 }
 
+export function buildHeapInitialFrame(params: {
+  originalValues: number[];
+  displayIndexes: number[];
+  width: number;
+  height: number;
+  isMinHeap: boolean;
+}): FrameState {
+  return createHeapFrame({
+    values: params.originalValues,
+    displayIndexes: params.displayIndexes,
+    width: params.width,
+    height: params.height,
+    stepIndex: 0,
+    description: "初始状态",
+    stateTagsByIndex: new Map(),
+    isMinHeap: params.isMinHeap,
+  });
+}
+
 export function buildHeapTimeline(params: {
   steps: SemanticStep[];
   originalValues: number[];
