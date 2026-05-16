@@ -47,6 +47,7 @@ export function useTimelinePlayer(steps: () => TimelineStep[], speed: Ref<number
       if (progress.value >= 1) {
         currentStepIndex.value += 1;
         progress.value = 0;
+        rafId = null;
         return;
       }
       rafId = requestAnimationFrame(tick);

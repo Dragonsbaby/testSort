@@ -446,21 +446,6 @@ export function buildMergeTimeline(params: {
     // to 帧 buffer 目标柱子在 createMergeFrame 内部已处理（opacity=0，ghost 覆盖）
     // 下一步 from 帧需要显示真实 buffer 柱子，所以这里不加入 hiddenBufferIndices
 
-    if (semantic.type === "merge-set" || semantic.type === "merge-back") {
-      const sourceIdx = semantic.indices[0];
-      const fromMain = from.entities.find((e) => e.id === `main-${sourceIdx}`);
-      const toMain = to.entities.find((e) => e.id === `main-${sourceIdx}`);
-      const fromGhost = from.entities.find((e) => e.id.startsWith("ghost-"));
-      const toGhost = to.entities.find((e) => e.id.startsWith("ghost-"));
-      console.log(`[${semantic.type}] step=${index} sourceIdx=${sourceIdx}`, {
-        fromMainOpacity: fromMain?.opacity,
-        toMainOpacity: toMain?.opacity,
-        fromGhost: fromGhost ? { id: fromGhost.id, x: fromGhost.x, y: fromGhost.y, opacity: fromGhost.opacity } : null,
-        toGhost: toGhost ? { id: toGhost.id, x: toGhost.x, y: toGhost.y, opacity: toGhost.opacity } : null,
-        movingEntityIds: semantic.type === "merge-set" ? [`ghost-set-${index}`] : semantic.indices.filter((i) => typeof i === "number").map((i) => `ghost-back-${index}-${i}`),
-      });
-    }
-
     const movingEntityIds = semantic.type === "merge-set"
       ? [`ghost-set-${index}`]
       : semantic.type === "merge-back"

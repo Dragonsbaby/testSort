@@ -14,7 +14,7 @@ const algorithms = Object.entries(algorithmInfo).map(([value, info]) => ({
 const sliderValue = ref(store.animationSpeed);
 
 watch(sliderValue, val => {
-  store.setSpeed(val);
+  store.setSpeed(Number(val));
 });
 
 function handleAlgorithmChange(val: SortAlgorithm) {
