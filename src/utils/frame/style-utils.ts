@@ -12,7 +12,7 @@ const TAG_STYLE_MAP: Record<StateTag, RenderStyle> = {
   swapping: { fill: "#ff5c5c", stroke: "rgba(255, 132, 132, 0.95)", glow: 0.82 },
   sorted: { fill: "#33d17a", stroke: "rgba(103, 226, 151, 0.86)", glow: 0.42 },
   pivot: { fill: "#b979ff", stroke: "rgba(210, 164, 255, 0.8)", glow: 0.58 },
-  pending: { fill: "#5e7ce2", stroke: "rgba(122, 154, 255, 0.52)", glow: 0.22 },
+  pending: { fill: "#00c8d4", stroke: "rgba(160, 190, 255, 0.78)", glow: 0.48 },
   latest: { fill: "#4ecdc4", stroke: "rgba(124, 241, 232, 0.78)", glow: 0.48 },
 };
 
