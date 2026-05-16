@@ -327,7 +327,7 @@ export function heapSort(arr: number[], mode: "max" | "min" = "max"): SemanticSt
   // sift-down：将 root 节点向下调整到 [root, end] 范围内满足堆性质
   function siftDown(root: number, end: number) {
     const heapRange = Array.from({ length: end + 1 }, (_, k) => k);
-    steps.push(createStep("pivot", [root], `sift-down 根节点 [${root}]=${a[root]}`, undefined, undefined, heapRange));
+    steps.push(createStep("latest", [root], `sift-down 根节点 [${root}]=${a[root]}`, undefined, undefined, heapRange));
 
     while (true) {
       let target = root;
@@ -358,9 +358,12 @@ export function heapSort(arr: number[], mode: "max" | "min" = "max"): SemanticSt
 
   // 阶段二：逐个将堆顶提取到末尾
   for (let end = n - 1; end > 0; end--) {
+    const previewRange = Array.from({ length: end + 1 }, (_, k) => k);
+    steps.push(createStep("compare", [0, end], `提取堆顶 [0]=${a[0]} 准备与末尾 [${end}]=${a[end]} 交换`, undefined, undefined, previewRange));
     [a[0], a[end]] = [a[end], a[0]];
-    steps.push(createStep("swap", [0, end], `提取堆顶 [0]=${a[0]} → 末尾 [${end}]`, [...a]));
-    steps.push(createStep("sorted", [end], `[${end}]=${a[end]} 已就位`, [...a]));
+    const heapRange = Array.from({ length: end }, (_, k) => k);
+    steps.push(createStep("swap", [0, end], `提取堆顶 [0]=${a[0]} → 末尾 [${end}]`, [...a], undefined, heapRange));
+    steps.push(createStep("sorted", [end], `[${end}]=${a[end]} 已就位`, [...a], undefined, heapRange));
     if (end > 1) siftDown(0, end - 1);
   }
   steps.push(createStep("sorted", [0], `[0]=${a[0]} 已就位，排序完成`, [...a]));

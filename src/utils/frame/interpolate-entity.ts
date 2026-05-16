@@ -3,7 +3,9 @@ import { getArcPoint, getFadeOpacity, getPathPoint, lerp } from "./path-utils";
 import { interpolateStyle } from "./style-utils";
 
 function interpolateEntity(from: RenderableEntity, to: RenderableEntity, transition: Transition, progress: number): RenderableEntity {
-  const movedByTransition = transition.movingEntityIds?.includes(from.id) ?? false;
+  const movedByTransition = transition.movingEntityIds?.includes(from.id)
+    || transition.swapEntityIdPairs?.some(([a, b]) => a === from.id || b === from.id)
+    || false;
 
   let x = lerp(from.x, to.x, progress);
   let y = lerp(from.y, to.y, progress);

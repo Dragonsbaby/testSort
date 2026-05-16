@@ -13,7 +13,7 @@ export const useSortStore = defineStore("sort", () => {
   const originalArray = ref<ArrayElement[]>([]);
   const animationSpeed = ref(200);
   const arraySize = ref(10);
-  const algorithm = ref<SortAlgorithm>("merge");
+  const algorithm = ref<SortAlgorithm>("heap");
 
   function generateArray(size: number) {
     // 生成 1-size 不重复的数并乱序

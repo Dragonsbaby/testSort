@@ -297,10 +297,10 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.fillStyle = entity.style.text ?? "#c0d8f8";
     ctx.fillText(String(entity.value), entity.x, entity.y + 0.5);
 
-    if (entity.kind === "heap-array-node") {
+    if (entity.kind === "heap-array-node" || entity.kind === "heap-tree-node") {
       ctx.font = '8px "JetBrains Mono", monospace';
       ctx.textBaseline = "top";
-      ctx.fillStyle = "#445";
+      ctx.fillStyle = "rgba(160, 185, 220, 0.65)";
       ctx.fillText(String(entity.displayIndex), entity.x, entity.y + radius + 4);
     }
   }

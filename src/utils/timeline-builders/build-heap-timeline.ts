@@ -37,6 +37,10 @@ function createStateTags(semantic: SemanticStep, previousSorted: Set<number>) {
     semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["pivot"]));
   }
 
+  if (semantic.type === "latest") {
+    semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["latest"]));
+  }
+
   return { nextSorted, stateTagsByIndex };
 }
 
@@ -219,26 +223,46 @@ export function buildHeapTimeline(params: {
       isMinHeap,
     });
 
+    if (semantic.type === "compare" && semantic.indices.length === 2) {
+      const [a, b] = semantic.indices;
+      const isParentChild = b === 2 * a + 1 || b === 2 * a + 2 || a === 2 * b + 1 || a === 2 * b + 2;
+      if (!isParentChild) {
+        const posA = buildHeapNodePosition(a, values.length, width, height);
+        const posB = buildHeapNodePosition(b, values.length, width, height);
+        to.overlays.push({
+          id: `compare-edge-${index}`,
+          kind: "guide",
+          points: [posA, posB],
+          style: { fill: "#ffd43b", stroke: "#ffd43b", dashed: true, alpha: 0.85, glow: 0.4 },
+        });
+      }
+    }
+
     currentFrame = structuredClone(to) as FrameState;
 
-    const movingEntityIds = semantic.type === "swap"
-      ? semantic.indices.flatMap((item) => [`tree-${item}`, `array-${item}`])
-      : undefined;
     const isRootExtractSwap = semantic.type === "swap" && semantic.indices.includes(0) && Math.abs(semantic.indices[0] - semantic.indices[1]) > 1;
     const swapDuration = 3;
+    const compareDuration = 2;
+
+    const swapEntityIdPairs: [string, string][] | undefined = semantic.type === "swap"
+      ? [
+          [`tree-${semantic.indices[0]}`, `tree-${semantic.indices[1]}`],
+          [`array-${semantic.indices[0]}`, `array-${semantic.indices[1]}`],
+        ]
+      : undefined;
 
     return {
       id: `heap-${index + 1}`,
       kind: semantic.type,
       description: semantic.description,
-      duration: semantic.type === "swap" ? swapDuration : 1,
+      duration: semantic.type === "swap" ? swapDuration : semantic.type === "compare" ? compareDuration : 1,
       from,
       to,
       transition: {
         type: semantic.type === "swap" ? (isRootExtractSwap ? "arc" : "linear") : "instant",
-        duration: semantic.type === "swap" ? swapDuration : 1,
+        duration: semantic.type === "swap" ? swapDuration : semantic.type === "compare" ? compareDuration : 1,
         easing: semantic.type === "swap" ? "easeOutCubic" : "linear",
-        movingEntityIds,
+        swapEntityIdPairs,
         styleTransition: true,
       },
       statsDelta: {

@@ -12,7 +12,8 @@ export type SemanticStepType =
   | "bucket-scatter"
   | "bucket-compare"
   | "bucket-swap"
-  | "bucket-gather";
+  | "bucket-gather"
+  | "latest";
 
 export interface SemanticStep {
   type: SemanticStepType;

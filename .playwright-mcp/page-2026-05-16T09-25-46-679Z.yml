@@ -1,0 +1,57 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - combobox [ref=e7] [cursor=pointer]:
+        - option "冒泡"
+        - option "插入"
+        - option "归并"
+        - option "快速"
+        - option "希尔"
+        - option "桶排序"
+        - option "堆排序" [selected]
+      - generic [ref=e9]:
+        - generic [ref=e10]: O(n log n)
+        - generic [ref=e11]: 利用二叉堆结构，建堆后逐次将堆顶与末尾交换并缩小堆范围，支持最大堆（升序）和最小堆（降序）。
+      - generic [ref=e14]:
+        - slider [ref=e15]: "12"
+        - generic [ref=e16]: "12"
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - slider [ref=e20]: "350"
+          - generic [ref=e21]: 350ms
+        - generic [ref=e22]:
+          - generic [ref=e23]: 快
+          - generic [ref=e24]: 中
+          - generic [ref=e25]: 慢
+      - button "新数组" [active] [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - text: 新数组
+  - main [ref=e32]:
+    - generic [ref=e35]:
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - button [ref=e38] [cursor=pointer]:
+            - img [ref=e94]
+          - button [disabled] [ref=e41]:
+            - img [ref=e42]
+          - button [ref=e45] [cursor=pointer]:
+            - img [ref=e46]
+        - generic [ref=e50]:
+          - generic [ref=e51]: 比较
+          - generic [ref=e52]: "64"
+        - generic [ref=e54]:
+          - generic [ref=e55]: 交换
+          - generic [ref=e56]: "36"
+        - generic [ref=e58]:
+          - generic [ref=e59]: 步骤
+          - generic [ref=e60]: 128/128
+        - generic [ref=e64]: 已完成
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - generic [ref=e67]: 堆模式
+          - generic [ref=e68]:
+            - button "最大堆" [ref=e69] [cursor=pointer]
+            - button "最小堆" [ref=e70] [cursor=pointer]
+        - generic [ref=e91]:
+          - generic [ref=e92]: 当前操作
+          - generic [ref=e93]: "[0]=1 已就位，排序完成"
