@@ -114,7 +114,9 @@ describe('bubbleSort', () => {
       steps.forEach(step => {
         expect(step.description).toBeTruthy();
         expect(step.description.length).toBeGreaterThan(0);
-        expect(step.description).toContain('arr[');
+        // 验证使用标准位置描述而不是变量名泄露
+        expect(step.description).toMatch(/位置 \d+/);
+        expect(step.description).not.toContain(/arr\[/);
       });
     });
   });
@@ -146,14 +148,29 @@ describe('bubbleSort', () => {
         [3, 1, 4, 1, 5, 9, 2, 6]
       ];
 
-      testCases.forEach(input => {
+      testCases.forEach((input, index) => {
         const steps = bubbleSort([...input]);
         const validation = validateSortingSteps(input, steps);
 
-        expect(validation.valid).toBe(true);
         if (!validation.valid) {
+          console.error(`测试用例 ${index + 1}: 输入 [${input.join(', ')}]`);
           console.error(`冒泡排序验证失败: ${validation.error}`);
+          console.error(`生成的步骤数: ${steps.length}`);
+
+          // 打印前3个步骤的详细信息
+          console.error('前3个步骤:');
+          for (let i = 0; i < Math.min(3, steps.length); i++) {
+            const step = steps[i];
+            console.error(`  步骤${i}: type=${step.type}, indices=[${step.indices.join(',')}]`);
+            if (step.arraySnapshot) {
+              console.error(`    快照: [${step.arraySnapshot.join(', ')}]`);
+            } else {
+              console.error(`    快照: 无`);
+            }
+          }
         }
+
+        expect(validation.valid).toBe(true);
       });
     });
   });

@@ -15,6 +15,32 @@ export type SemanticStepType =
   | "bucket-gather"
   | "latest";
 
+/** 步骤上下文信息：提供算法阶段和进度信息 */
+export interface StepContext {
+  /** 算法阶段：如"分区阶段"、"合并阶段"、"建堆阶段" */
+  phase: string;
+  /** 递归深度（快速排序、归并排序） */
+  depth?: number;
+  /** 当前迭代次数 */
+  iteration?: number;
+  /** 整体进度百分比 */
+  progress?: number;
+  /** 学习提示：解释为什么这样做 */
+  hint?: string;
+  /** 用于进度条标记 */
+  importance?: 'low' | 'medium' | 'high';
+  /** 桶排序专用：当前桶索引 */
+  bucketIndex?: number;
+  /** 桶排序专用：桶的值域范围 */
+  valueRange?: string;
+  /** 桶排序专用：桶信息 */
+  bucketInfo?: string;
+  /** 堆排序专用：当前堆范围 */
+  heapRange?: number;
+  /** 希尔排序专用：当前间隔值 */
+  gap?: number;
+}
+
 export interface SemanticStep {
   type: SemanticStepType;
   indices: number[];
@@ -25,6 +51,14 @@ export interface SemanticStep {
   tempSnapshot?: (number | null)[];
   bucketIndex?: number;
   bucketPos?: number;
+
+  // === 三层描述系统 ===
+  /** 简洁层：一句话说明操作 */
+  brief?: string;
+  /** 详细层：操作原因和预期结果 */
+  detail?: string;
+  /** 上下文：算法阶段和进度信息 */
+  context?: StepContext;
 }
 
 export type FramePhase = "idle" | "playing" | "paused" | "completed";

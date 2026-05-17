@@ -69,11 +69,30 @@ export function validateSortingSteps(
 
     // 如果步骤有快照，验证快照一致性
     if (step.arraySnapshot) {
-      if (!arraysEqual(step.arraySnapshot, currentArray)) {
-        return {
-          valid: false,
-          error: `步骤 ${i}: 数组快照与当前状态不匹配`
-        };
+      // 对于swap操作，快照应该是交换后的状态
+      // 我们需要验证从当前状态到快照状态的变化是否与操作一致
+      if (step.type === 'swap') {
+        // 创建交换后的预期状态
+        const expectedArray = [...currentArray];
+        const [idx1, idx2] = step.indices;
+        // 执行交换
+        [expectedArray[idx1], expectedArray[idx2]] = [expectedArray[idx2], expectedArray[idx1]];
+
+        // 验证快照是否与预期状态一致
+        if (!arraysEqual(step.arraySnapshot, expectedArray)) {
+          return {
+            valid: false,
+            error: `步骤 ${i}: Swap操作后的快照与预期状态不匹配`
+          };
+        }
+      } else {
+        // 对于其他操作，快照应该与当前状态一致
+        if (!arraysEqual(step.arraySnapshot, currentArray)) {
+          return {
+            valid: false,
+            error: `步骤 ${i}: 数组快照与当前状态不匹配`
+          };
+        }
       }
       // 更新当前数组状态（对于swap等操作）
       currentArray = [...step.arraySnapshot];
