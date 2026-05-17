@@ -1,13 +1,12 @@
 import type { SortAlgorithm } from '@/types/sorting';
-import type { EnhancedDescription, StepContext } from '@/types/timeline';
+import type { EnhancedDescription } from '@/types/enhanced-step';
+import type { StepContext } from '@/types/timeline';
 import {
-  POSITION_TERMS,
   REGION_TERMS,
   OPERATION_TERMS,
   PHASE_TERMS,
   normalizePosition,
-  normalizeCompare,
-  normalizeSwap
+  normalizeCompare
 } from './terminology-standards';
 
 /**
@@ -219,9 +218,10 @@ export class StepDescriptionGenerator {
    * @param end 堆范围结束位置
    */
   generateSiftDown(root: number, end: number): EnhancedDescription {
+    const heapRange = root === 0 ? `[0, ${end}]` : `[${root}, ${end}]`;
     return {
       brief: `向下调整${REGION_TERMS.heap.heapTop}（${normalizePosition(root)}）`,
-      detail: `将${normalizePosition(root)}向下移动到合适位置，维护${REGION_TERMS.heap.heap}性质（父节点≥子节点）`,
+      detail: `将${normalizePosition(root)}向下移动到合适位置，维护${REGION_TERMS.heap.heap}性质（父节点≥子节点），当前堆范围：${heapRange}`,
       context: {
         phase: PHASE_TERMS.heapSort.buildHeap,
         hint: "向下调整（sift-down）是堆排序的核心操作，确保堆顶元素是最大/最小值",

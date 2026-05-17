@@ -83,7 +83,7 @@ function buildBucketRegions(width: number, height: number, bucketCount: number):
 
 function buildBucketOverlays(
   layout: ReturnType<typeof buildBucketLayout>,
-  width: number,
+  _width: number, // 预留参数，用于未来布局计算
   buckets: number[][],
   activeBucketIndex?: number,
 ): RenderableOverlay[] {

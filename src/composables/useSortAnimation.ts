@@ -97,18 +97,31 @@ export function useSortAnimation(params: {
   }
 
   const player = useTimelinePlayer(() => timelineSteps.value, speed);
+  const lastSyncedIndex = ref(0);
 
   function syncStats(index: number) {
-    let nextComparisons = 0;
-    let nextSwaps = 0;
+    const delta = index - lastSyncedIndex.value;
+    if (delta === 0) return;
 
-    timelineSteps.value.slice(0, index).forEach((step) => {
-      nextComparisons += step.statsDelta.comparisons;
-      nextSwaps += step.statsDelta.swaps;
-    });
+    if (delta > 0) {
+      for (let i = lastSyncedIndex.value; i < index; i++) {
+        const step = timelineSteps.value[i];
+        if (step) {
+          comparisons.value += step.statsDelta.comparisons;
+          swaps.value += step.statsDelta.swaps;
+        }
+      }
+    } else {
+      for (let i = lastSyncedIndex.value - 1; i >= index; i--) {
+        const step = timelineSteps.value[i];
+        if (step) {
+          comparisons.value -= step.statsDelta.comparisons;
+          swaps.value -= step.statsDelta.swaps;
+        }
+      }
+    }
 
-    comparisons.value = nextComparisons;
-    swaps.value = nextSwaps;
+    lastSyncedIndex.value = index;
   }
 
   function syncArray(index: number) {
@@ -135,11 +148,20 @@ export function useSortAnimation(params: {
     player.stepForward();
   }
 
+  function stepBack() {
+    player.stepBack();
+  }
+
+  function seek(targetStep: number, targetProgress: number = 0) {
+    player.seek(targetStep, targetProgress);
+  }
+
   function reset() {
     player.reset();
     comparisons.value = 0;
     swaps.value = 0;
     array.value = [...originalArray.value];
+    lastSyncedIndex.value = 0;
     if (initialFrame.value) canvasRef.value?.renderFrame(initialFrame.value);
   }
 
@@ -179,6 +201,8 @@ export function useSortAnimation(params: {
     array,
     steps: semanticSteps,
     currentStep: computed(() => player.currentStepIndex.value),
+    currentProgress: player.progress,
+    totalSteps: computed(() => timelineSteps.value.length),
     comparisons,
     swaps,
     currentStepInfo: computed(() => semanticSteps.value[player.currentStepIndex.value - 1] ?? null),
@@ -187,8 +211,29 @@ export function useSortAnimation(params: {
     play: player.play,
     pause: player.pause,
     step,
+    stepBack,
+    seek,
     reset,
     rebuild,
+    canStepForward: player.canStepForward,
+    canStepBack: player.canStepBack,
+    isAtStart: player.isAtStart,
+    isAtEnd: player.isAtEnd,
+    progressPct: computed(() => timelineSteps.value.length
+      ? ((player.currentStepIndex.value + player.progress.value) / timelineSteps.value.length) * 100
+      : 0),
+    phase: computed(() => (semanticSteps.value[player.currentStepIndex.value - 1])?.context?.phase ?? ''),
+    desc: computed(() => {
+      const s = semanticSteps.value[player.currentStepIndex.value - 1];
+      return s?.brief ?? s?.description ?? '';
+    }),
+    handleSeek(e: MouseEvent) {
+      const el = e.currentTarget as HTMLElement;
+      const rect = el.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(1, clickX / rect.width));
+      player.seek(Math.floor(pct * timelineSteps.value.length), 0);
+    },
     statusText: computed(() => {
       if (!isReady.value) return "计算中";
       if (player.isPlaying.value) return "播放中";

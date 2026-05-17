@@ -1,7 +1,7 @@
 import type { SemanticStep } from "@/types/timeline";
 import { calcBucketCount } from "@/types/sorting";
 import { createDescriptionGenerator } from "./stepDescriptionGenerator";
-import { normalizePosition, REGION_TERMS, PHASE_TERMS, OPERATION_TERMS } from "./terminology-standards";
+import { normalizePosition, REGION_TERMS } from "./terminology-standards";
 
 function createStep(
   type: SemanticStep["type"],

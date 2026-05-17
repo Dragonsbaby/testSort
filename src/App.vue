@@ -13,17 +13,13 @@ onMounted(() => {
 
 <template>
   <div class="app">
-    <!-- Background grid pattern -->
     <div class="bg-grid"></div>
-
     <header class="header">
       <ControlPanel />
     </header>
-
     <main class="main">
       <SortVisualizer />
     </main>
-
   </div>
 </template>
 

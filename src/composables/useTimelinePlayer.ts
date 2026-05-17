@@ -38,7 +38,6 @@ export function useTimelinePlayer(steps: () => TimelineStep[], speed: Ref<number
 
   function stepForward() {
     if (isPlaying.value || !currentTimelineStep.value) return;
-    const step = currentTimelineStep.value;
     const stepStarted = performance.now();
     const duration = getStepDuration();
     const tick = (ts: number) => {
@@ -94,6 +93,40 @@ export function useTimelinePlayer(steps: () => TimelineStep[], speed: Ref<number
     progress.value = 0;
   }
 
+  function stepBack() {
+    if (isPlaying.value || currentStepIndex.value === 0) return;
+
+    if (progress.value > 0) {
+      progress.value = 0;
+    } else {
+      currentStepIndex.value -= 1;
+      progress.value = 1;
+    }
+  }
+
+  function seek(targetStep: number, targetProgress: number = 0) {
+    const maxStep = steps().length - 1;
+    if (maxStep < 0) return;
+
+    const safeStep = Math.max(0, Math.min(targetStep, maxStep));
+    const safeProgress = Math.max(0, Math.min(targetProgress, 1));
+
+    const wasPlaying = isPlaying.value;
+    pause();
+
+    currentStepIndex.value = safeStep;
+    progress.value = safeProgress;
+
+    if (wasPlaying && safeStep < maxStep) {
+      play();
+    }
+  }
+
+  const canStepForward = computed(() => !isPlaying.value && currentStepIndex.value < steps().length - 1);
+  const canStepBack = computed(() => !isPlaying.value && (currentStepIndex.value > 0 || progress.value > 0));
+  const isAtStart = computed(() => currentStepIndex.value === 0 && progress.value === 0);
+  const isAtEnd = computed(() => currentStepIndex.value >= steps().length - 1 && progress.value >= 1);
+
   return {
     currentStepIndex,
     progress,
@@ -105,5 +138,11 @@ export function useTimelinePlayer(steps: () => TimelineStep[], speed: Ref<number
     reset,
     renderCurrentStep,
     stepForward,
+    stepBack,
+    seek,
+    canStepForward,
+    canStepBack,
+    isAtStart,
+    isAtEnd,
   };
 }
