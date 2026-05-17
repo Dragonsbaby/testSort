@@ -8,12 +8,13 @@ export const BAR_BASE_STYLE: RenderStyle = {
 };
 
 const TAG_STYLE_MAP: Record<StateTag, RenderStyle> = {
-  comparing: { fill: "#ffcc00", stroke: "rgba(255, 230, 102, 0.9)", glow: 0.72 },
-  swapping: { fill: "#ff5c5c", stroke: "rgba(255, 132, 132, 0.95)", glow: 0.82 },
-  sorted: { fill: "#33d17a", stroke: "rgba(103, 226, 151, 0.86)", glow: 0.42 },
-  pivot: { fill: "#b979ff", stroke: "rgba(210, 164, 255, 0.8)", glow: 0.58 },
-  pending: { fill: "#00c8d4", stroke: "rgba(160, 190, 255, 0.78)", glow: 0.48 },
-  latest: { fill: "#4ecdc4", stroke: "rgba(124, 241, 232, 0.78)", glow: 0.48 },
+  comparing: { fill: "#ffcc00", stroke: "rgba(255, 230, 102, 0.9)", text: "#ffd43b", glow: 0.72 },
+  swapping: { fill: "#ff5c5c", stroke: "rgba(255, 132, 132, 0.95)", text: "#ffd43b", glow: 0.82 },
+  sorted: { fill: "#33d17a", stroke: "rgba(103, 226, 151, 0.86)", text: "#ffd43b", glow: 0.42 },
+  pivot: { fill: "#b979ff", stroke: "rgba(210, 164, 255, 0.8)", text: "#ffd43b", glow: 0.58 },
+  pending: { fill: "#00c8d4", stroke: "rgba(160, 190, 255, 0.78)", text: "#ffd43b", glow: 0.48 },
+  "heap-pending": { fill: "#2e5490", stroke: "rgba(90, 140, 210, 0.7)", text: "#b8d0f0", glow: 0.15 },
+  latest: { fill: "#4ecdc4", stroke: "rgba(124, 241, 232, 0.78)", text: "#ffd43b", glow: 0.48 },
 };
 
 export function getStyleFromStateTags(stateTags: StateTag[], fallback: RenderStyle): RenderStyle {

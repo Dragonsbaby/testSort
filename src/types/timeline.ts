@@ -43,6 +43,7 @@ export type StateTag =
   | "sorted"
   | "pivot"
   | "pending"
+  | "heap-pending"
   | "latest";
 
 export interface RenderStyle {

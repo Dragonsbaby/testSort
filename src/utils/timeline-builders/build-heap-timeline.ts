@@ -1,9 +1,14 @@
 import type { FrameState, RenderableEntity, RenderableOverlay, StateTag, SemanticStep, TimelineStep } from "@/types/timeline";
-import { buildHeapNodePosition } from "@/utils/layout/heap-layout";
+import { buildHeapNodePosition, getArrayAreaHeight } from "@/utils/layout/heap-layout";
 import { getStyleFromStateTags } from "@/utils/frame/style-utils";
 
-const TREE_BASE_STYLE = { fill: "#4a9eff", stroke: "#4a80d0", text: "#c0d8f8", glow: 0.15 };
-const ARRAY_BASE_STYLE = { fill: "#1e50a8", stroke: "#4a80d0", text: "#c0d8f8", glow: 0.1 };
+const TREE_BASE_STYLE = { fill: "#1a3a5c", stroke: "#254e7a", text: "#f0ead8", glow: 0.04 };
+const ARRAY_BASE_STYLE = { fill: "#112240", stroke: "#1a3356", text: "#f0ead8", glow: 0.02 };
+
+function getHeapStyle(stateTags: StateTag[], fallback: typeof TREE_BASE_STYLE) {
+  const style = getStyleFromStateTags(stateTags, fallback);
+  return style.glow ? { ...style, glow: style.glow * 0.45 } : style;
+}
 
 function createStateTags(semantic: SemanticStep, previousSorted: Set<number>) {
   const nextSorted = new Set(previousSorted);
@@ -20,7 +25,7 @@ function createStateTags(semantic: SemanticStep, previousSorted: Set<number>) {
   if (semantic.groupIndices?.length) {
     semantic.groupIndices.forEach((index) => {
       if (!stateTagsByIndex.has(index)) {
-        stateTagsByIndex.set(index, ["pending"]);
+        stateTagsByIndex.set(index, ["heap-pending"]);
       }
     });
   }
@@ -45,6 +50,8 @@ function createStateTags(semantic: SemanticStep, previousSorted: Set<number>) {
 }
 
 function createHeapOverlays(count: number, width: number, height: number, isMinHeap: boolean): RenderableOverlay[] {
+  const arrayAreaHeight = getArrayAreaHeight(count);
+  const dividerY = height - arrayAreaHeight + 10;
   return [
     {
       id: "heap-tree-label",
@@ -56,7 +63,7 @@ function createHeapOverlays(count: number, width: number, height: number, isMinH
     {
       id: "heap-array-label",
       kind: "label",
-      points: [{ x: 58, y: height - 64 }],
+      points: [{ x: 58, y: dividerY + 14 }],
       text: "数组映射区",
       style: { fill: "#74b6ff", text: "#74b6ff", alpha: 0.9 },
     },
@@ -75,8 +82,8 @@ function createHeapOverlays(count: number, width: number, height: number, isMinH
       id: "heap-divider",
       kind: "divider",
       points: [
-        { x: 20, y: height - 78 },
-        { x: width - 20, y: height - 78 },
+        { x: 20, y: dividerY },
+        { x: width - 20, y: dividerY },
       ],
       style: { fill: "rgba(74,158,255,0.15)", stroke: "rgba(74,158,255,0.15)", dashed: true },
     },
@@ -94,13 +101,20 @@ function createHeapFrame(params: {
   isMinHeap: boolean;
 }): FrameState {
   const { values, displayIndexes, width, height, stepIndex, description, stateTagsByIndex, isMinHeap } = params;
-  const maxValue = Math.max(...values, 1);
-  const arrayBottom = height - 26;
-  const arrayRadius = Math.max(10, Math.min(14, Math.floor((width - 80) / Math.max(values.length * 2, 2))));
-  const arrayGap = 6;
-  const totalWidth = values.length * (arrayRadius * 2) + Math.max(values.length - 1, 0) * arrayGap;
-  const startX = Math.max(40, Math.round((width - totalWidth) / 2));
-  const treeRadius = Math.max(12, Math.min(26, Math.round(Math.min((width - 80) / Math.max(Math.pow(2, Math.floor(Math.log2(Math.max(values.length, 1)))), 1) / 2 - 2, 110 / (Math.floor(Math.log2(Math.max(values.length, 1))) + 1)))));
+  const availableWidth = width - 80;
+  const n = Math.max(values.length, 1);
+  const arrayAreaHeight = getArrayAreaHeight(n);
+
+  // 单行自适应：slot 均分可用宽度，节点尺寸最小 3px
+  const slotWidth = Math.floor(availableWidth / n);
+  const arrayRadius = Math.min(14, Math.max(3, Math.floor(slotWidth * 0.8 / 2)));
+  const arrayGap = Math.max(1, slotWidth - arrayRadius * 2);
+  const rowWidth = n * (arrayRadius * 2) + Math.max(n - 1, 0) * arrayGap;
+  const row0StartX = Math.max(40, Math.round((width - rowWidth) / 2));
+  const row0Y = height - arrayAreaHeight + Math.floor(arrayAreaHeight / 2);
+  const maxDepth = Math.floor(Math.log2(Math.max(values.length, 1)));
+  const bottomLevelCount = Math.pow(2, maxDepth);
+  const treeRadius = Math.max(10, Math.min(14, Math.floor((width - 80) / bottomLevelCount / 2) - 1));
 
   const treeEntities: RenderableEntity[] = values.map((value, index) => {
     const stateTags = stateTagsByIndex.get(index) ?? [];
@@ -118,7 +132,7 @@ function createHeapFrame(params: {
       height: treeRadius * 2,
       opacity: 1,
       zIndex: 2,
-      style: getStyleFromStateTags(stateTags, TREE_BASE_STYLE),
+      style: getHeapStyle(stateTags, TREE_BASE_STYLE),
       stateTags,
     };
   });
@@ -131,13 +145,13 @@ function createHeapFrame(params: {
       kind: "heap-array-node",
       value,
       displayIndex: displayIndexes[index],
-      x: startX + index * (arrayRadius * 2 + arrayGap) + arrayRadius,
-      y: arrayBottom,
+      x: row0StartX + index * (arrayRadius * 2 + arrayGap) + arrayRadius,
+      y: row0Y,
       width: arrayRadius * 2,
       height: arrayRadius * 2,
       opacity: 1,
       zIndex: 3,
-      style: getStyleFromStateTags(stateTags, ARRAY_BASE_STYLE),
+      style: getHeapStyle(stateTags, ARRAY_BASE_STYLE),
       stateTags,
     };
   });
@@ -150,8 +164,8 @@ function createHeapFrame(params: {
     description,
     entities: [...treeEntities, ...arrayEntities],
     regions: [
-      { id: "heap-tree", kind: "heap-tree", x: 0, y: 0, width, height: height - 88 },
-      { id: "heap-array", kind: "heap-array", x: 0, y: height - 88, width, height: 88 },
+      { id: "heap-tree", kind: "heap-tree", x: 0, y: 0, width, height: height - arrayAreaHeight },
+      { id: "heap-array", kind: "heap-array", x: 0, y: height - arrayAreaHeight, width, height: arrayAreaHeight },
     ],
     overlays: createHeapOverlays(values.length, width, height, isMinHeap),
   };
@@ -200,7 +214,7 @@ export function buildHeapTimeline(params: {
   });
 
   return steps.map((semantic, index) => {
-    const from = structuredClone(currentFrame) as FrameState;
+    const from = currentFrame as FrameState;
     const { nextSorted, stateTagsByIndex } = createStateTags(semantic, sortedIndices);
     sortedIndices = nextSorted;
 

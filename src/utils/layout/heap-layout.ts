@@ -1,7 +1,12 @@
+// 数组区高度：始终单行
+export function getArrayAreaHeight(_count: number) {
+  return 56;
+}
+
 export function getHeapRequiredHeight(count: number) {
-  if (count <= 1) return 48 + 80 + 88;
+  if (count <= 1) return 48 + 64 + getArrayAreaHeight(count);
   const maxDepth = Math.floor(Math.log2(count));
-  return 48 + (maxDepth + 1) * 90 + 88;
+  return 48 + (maxDepth + 1) * 64 + getArrayAreaHeight(count);
 }
 
 export function buildHeapNodePosition(index: number, count: number, width: number, height: number) {

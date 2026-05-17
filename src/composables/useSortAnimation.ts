@@ -5,6 +5,7 @@ import { buildBasicTimeline, buildBasicInitialFrame } from "@/utils/timeline-bui
 import { buildMergeTimeline, buildMergeInitialFrame } from "@/utils/timeline-builders/build-merge-timeline";
 import { buildBucketTimeline, buildBucketInitialFrame } from "@/utils/timeline-builders/build-bucket-timeline";
 import { buildHeapTimeline, buildHeapInitialFrame } from "@/utils/timeline-builders/build-heap-timeline";
+import { getHeapRequiredHeight } from "@/utils/layout/heap-layout";
 import { useTimelinePlayer } from "@/composables/useTimelinePlayer";
 
 export interface ISortCanvas {
@@ -52,14 +53,14 @@ export function useSortAnimation(params: {
     if (algorithm === "bucket")
       return buildBucketInitialFrame({ originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value });
     if (algorithm === "heap")
-      return buildHeapInitialFrame({ originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88, isMinHeap: heapMode?.value === "min" });
+      return buildHeapInitialFrame({ originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: getHeapRequiredHeight(values.length), isMinHeap: heapMode?.value === "min" });
     return buildBasicInitialFrame({ algorithm: algorithm as BasicAlgorithm, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 320 });
   }
 
   function buildTimelineForAlgorithm(values: number[], displayIndexes: number[]): TimelineStep[] {
     if (algorithm === "merge") return buildMergeTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value });
     if (algorithm === "bucket") return buildBucketTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: currentCanvasHeight.value });
-    if (algorithm === "heap") return buildHeapTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 48 + Math.max(1, Math.floor(Math.log2(Math.max(values.length, 1))) + 1) * 90 + 88, isMinHeap: heapMode?.value === "min" });
+    if (algorithm === "heap") return buildHeapTimeline({ steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: getHeapRequiredHeight(values.length), isMinHeap: heapMode?.value === "min" });
     return buildBasicTimeline({ algorithm: algorithm as BasicAlgorithm, steps: semanticSteps.value, originalValues: values, displayIndexes, width: currentCanvasWidth.value, height: 320 });
   }
 

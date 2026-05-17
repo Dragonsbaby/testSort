@@ -268,7 +268,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
   }
 
   function drawHeapEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity) {
-    const radius = Math.max(6, Math.round(entity.width / 2));
+    const radius = Math.max(3, Math.round(entity.width / 2));
 
     ctx.save();
     ctx.globalAlpha = entity.style.alpha ?? entity.opacity;
@@ -291,17 +291,18 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
 
     ctx.restore();
 
-    ctx.font = `bold ${Math.min(13, Math.max(radius, 9))}px "JetBrains Mono", monospace`;
+    ctx.font = `bold ${Math.min(13, Math.max(radius * 1.2, 7))}px "JetBrains Mono", monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = entity.style.text ?? "#c0d8f8";
-    ctx.fillText(String(entity.value), entity.x, entity.y + 0.5);
-
-    if (entity.kind === "heap-array-node" || entity.kind === "heap-tree-node") {
-      ctx.font = '8px "JetBrains Mono", monospace';
-      ctx.textBaseline = "top";
-      ctx.fillStyle = "rgba(160, 185, 220, 0.65)";
-      ctx.fillText(String(entity.displayIndex), entity.x, entity.y + radius + 4);
+    ctx.fillStyle = entity.style.text ?? "#f0ead8";
+    if (radius >= 6) {
+      ctx.fillText(String(entity.value), entity.x, entity.y + 0.5);
+      if (entity.kind === "heap-array-node" || entity.kind === "heap-tree-node") {
+        ctx.font = '8px "JetBrains Mono", monospace';
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "rgba(160, 185, 220, 0.65)";
+        ctx.fillText(String(entity.displayIndex), entity.x, entity.y + radius + 4);
+      }
     }
   }
 
