@@ -68,6 +68,12 @@ defineExpose({ renderFrame: exposedRenderFrame, canvasWidth });
   min-height: 280px;
   position: relative;
   padding: 16px 22px;
+  z-index: 1;
+}
+
+.sort-canvas {
+  position: relative;
+  z-index: 1;
 }
 
 .corner {

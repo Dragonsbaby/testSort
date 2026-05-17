@@ -71,6 +71,12 @@ defineExpose({ renderFrame: exposedRenderFrame });
   position: relative;
   padding: 20px 20px 0 20px;
   box-shadow: inset 0 0 60px rgba(78, 205, 196, 0.04);
+  z-index: 1;
+}
+
+.sort-canvas {
+  position: relative;
+  z-index: 1;
 }
 
 /* Corner brackets */

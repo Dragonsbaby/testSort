@@ -71,6 +71,12 @@ defineExpose({ renderFrame: exposedRenderFrame });
   min-height: 360px;   /* 双排需要更多高度 */
   position: relative;
   padding: 20px 20px 0 20px;
+  z-index: 1;
+}
+
+.sort-canvas {
+  position: relative;
+  z-index: 1;
 }
 
 /* Corner brackets */

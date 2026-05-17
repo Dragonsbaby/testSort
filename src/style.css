@@ -21,9 +21,11 @@
 html,
 body {
   height: 100%;
-  background: #0f1219;
-  color: #e8eaed;
+  /* 使用主题系统的CSS变量，有fallback值 */
+  background: var(--color-background, #0f1219);
+  color: var(--color-text, #e8eaed);
   font-family: "JetBrains Mono", "Fira Code", monospace;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #app {

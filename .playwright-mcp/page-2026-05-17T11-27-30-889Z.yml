@@ -1,0 +1,99 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - heading "排序算法可视化" [level=1] [ref=e6]
+      - generic [ref=e7]:
+        - combobox [ref=e9] [cursor=pointer]:
+          - option "冒泡"
+          - option "插入"
+          - option "归并"
+          - option "快速"
+          - option "希尔"
+          - option "桶排序"
+          - option "堆排序" [selected]
+        - generic [ref=e11]:
+          - generic [ref=e12]: O(n log n)
+          - generic [ref=e13]: 利用二叉堆结构，建堆后逐次将堆顶与末尾交换并缩小堆范围，支持最大堆（升序）和最小堆（降序）。
+        - generic [ref=e16]:
+          - slider [ref=e17]: "10"
+          - generic [ref=e18]: "10"
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - slider [ref=e22]: "200"
+            - generic [ref=e23]: 200ms
+          - generic [ref=e24]:
+            - generic [ref=e25]: 快
+            - generic [ref=e26]: 中
+            - generic [ref=e27]: 慢
+        - button "新数组" [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+          - text: 新数组
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - button "🌞 明亮" [ref=e189] [cursor=pointer]:
+          - generic [ref=e37]: 🌞
+          - generic [ref=e38]: 明亮
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - heading "选择主题" [level=3] [ref=e81]
+            - button "关闭主题选择器" [ref=e82] [cursor=pointer]: ✕
+          - generic [ref=e83]:
+            - generic "专业的深色主题，适合长时间观看" [ref=e84] [cursor=pointer]:
+              - generic [ref=e93]:
+                - heading "深色经典" [level=4] [ref=e94]
+                - paragraph [ref=e95]: 专业的深色主题，适合长时间观看
+                - generic [ref=e96]:
+                  - generic [ref=e97]: 默认
+                  - generic [ref=e98]: 深色
+            - generic "清新的浅色主题，适合明亮环境" [ref=e99] [cursor=pointer]:
+              - generic [ref=e108]:
+                - heading "明亮清新" [level=4] [ref=e109]
+                - paragraph [ref=e110]: 清新的浅色主题，适合明亮环境
+                - generic [ref=e112]: 浅色
+              - img [ref=e191]
+            - generic "霓虹灯光效果，未来科技感" [ref=e113] [cursor=pointer]:
+              - generic [ref=e122]:
+                - heading "赛博朋克" [level=4] [ref=e123]
+                - paragraph [ref=e124]: 霓虹灯光效果，未来科技感
+                - generic [ref=e125]:
+                  - generic [ref=e126]: 深色
+                  - generic [ref=e127]: 特效
+            - generic "深蓝色调，宁静海底世界" [ref=e128] [cursor=pointer]:
+              - generic [ref=e137]:
+                - heading "深海探险" [level=4] [ref=e138]
+                - paragraph [ref=e139]: 深蓝色调，宁静海底世界
+                - generic [ref=e141]: 深色
+            - generic "温暖的橙红色调，浪漫黄昏" [ref=e142] [cursor=pointer]:
+              - generic [ref=e151]:
+                - heading "日落余晖" [level=4] [ref=e152]
+                - paragraph [ref=e153]: 温暖的橙红色调，浪漫黄昏
+                - generic [ref=e155]: 深色
+            - generic "绿色自然风格，清新护眼" [ref=e156] [cursor=pointer]:
+              - generic [ref=e165]:
+                - heading "森林秘境" [level=4] [ref=e166]
+                - paragraph [ref=e167]: 绿色自然风格，清新护眼
+                - generic [ref=e169]: 深色
+          - generic [ref=e170]:
+            - button "🌙 深色模式" [ref=e194] [cursor=pointer]
+            - button "🔄 重置" [ref=e172] [cursor=pointer]
+            - button "🎲 随机" [ref=e173] [cursor=pointer]
+      - button "⌨️ 快捷键" [ref=e40] [cursor=pointer]
+  - main [ref=e41]:
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - button "单步后退 ←" [disabled] [ref=e46]:
+          - img [ref=e47]
+        - button "播放/暂停 Space" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+        - button "单步前进 →" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+        - button "重置 Home" [ref=e57] [cursor=pointer]:
+          - img [ref=e58]
+        - button "当前：最大堆，点击切换为最小堆" [ref=e61] [cursor=pointer]:
+          - img [ref=e62]
+      - generic [ref=e67]: 0/97
+      - generic [ref=e70]: 就绪
+      - generic [ref=e71]:
+        - generic [ref=e72]: Space
+        - generic [ref=e73]: ← →
+        - generic [ref=e74]: Home

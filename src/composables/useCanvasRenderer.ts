@@ -1,6 +1,8 @@
-import { ref, type Ref } from "vue";
+import { ref, watch, type Ref } from "vue";
 import type { FrameState, RenderableEntity, RenderableOverlay } from "@/types/timeline";
+import { useTheme } from "@/composables/useTheme";
 
+// 硬编码颜色常量（向后兼容）
 const BACKGROUND_COLOR = "#080d18";
 const GRID_COLOR = "rgba(79, 195, 247, 0.055)";
 const BASELINE_COLOR = "rgba(78, 205, 196, 0.45)";
@@ -61,6 +63,23 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
   let animationFrameId: number | null = null;
   let containerWidth = 800;
   let containerHeight = 360;
+
+  // 获取主题实例（在setup上下文中）
+  let theme: ReturnType<typeof useTheme> | undefined;
+  try {
+    theme = useTheme();
+
+    // 监听主题变化，触发Canvas重新绘制
+    watch(() => theme!.currentThemeId.value, () => {
+      if (currentFrame.value) {
+        requestAnimationFrame(() => {
+          draw();
+        });
+      }
+    });
+  } catch (e) {
+    // 主题系统未初始化，保持为undefined
+  }
 
   function setCanvasDimensions(width: number, height: number) {
     containerWidth = Math.max(1, width);
@@ -331,13 +350,18 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
 
   function drawBackground(ctx: CanvasRenderingContext2D, frame: FrameState) {
     ctx.clearRect(0, 0, containerWidth, containerHeight);
-    ctx.fillStyle = BACKGROUND_COLOR;
+
+    // 使用主题背景色或回退到硬编码颜色
+    ctx.fillStyle = theme ? theme.getBackgroundColor() : BACKGROUND_COLOR;
     ctx.fillRect(0, 0, containerWidth, containerHeight);
 
-    ctx.strokeStyle = GRID_COLOR;
+    // 使用主题网格色或回退到硬编码颜色
+    ctx.strokeStyle = theme ? theme.getGridColor() : GRID_COLOR;
     ctx.lineWidth = 1;
 
-    const gridSize = 40;
+    // 使用主题网格间距或默认值
+    const gridSize = theme ? theme.themeEffects.value.gridSpacing : 40;
+
     for (let x = 0; x <= containerWidth; x += gridSize) {
       ctx.beginPath();
       ctx.moveTo(x + 0.5, 0);
@@ -352,10 +376,16 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
       ctx.stroke();
     }
 
-    ctx.strokeStyle = BASELINE_COLOR;
+    // 使用主题基线色或回退到硬编码颜色
+    const baselineColor = theme ? theme.getBaselineColor() : BASELINE_COLOR;
+    ctx.strokeStyle = baselineColor;
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = BASELINE_COLOR;
-    ctx.shadowBlur = 8;
+    ctx.shadowColor = baselineColor;
+
+    // 使用主题阴影设置或默认值
+    const shadowBlur = theme ? theme.themeEffects.value.shadowBlur : 8;
+    ctx.shadowBlur = shadowBlur;
+
     const baseY = getFrameNumberMeta(frame, "baseY") ?? containerHeight - 21.5;
     const baselineY = Math.round(baseY) + 0.5;
 

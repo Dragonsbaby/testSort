@@ -1,5 +1,10 @@
 import type { RenderStyle, StateTag } from "@/types/timeline";
+import type { Theme } from "@/types/theme";
 
+/**
+ * 获取基础样式（兼容旧代码）
+ * @deprecated 建议使用 getBaseStyleFromTheme
+ */
 export const BAR_BASE_STYLE: RenderStyle = {
   fill: "#4a9eff",
   stroke: "rgba(126, 214, 255, 0.52)",
@@ -7,6 +12,10 @@ export const BAR_BASE_STYLE: RenderStyle = {
   glow: 0,
 };
 
+/**
+ * 旧版样式映射（用于兼容）
+ * @deprecated 建议使用 getStyleFromStateTagsWithTheme
+ */
 const TAG_STYLE_MAP: Record<StateTag, RenderStyle> = {
   comparing: { fill: "#ffcc00", stroke: "rgba(255, 230, 102, 0.9)", text: "#ffd43b", glow: 0.72 },
   swapping: { fill: "#ff5c5c", stroke: "rgba(255, 132, 132, 0.95)", text: "#ffd43b", glow: 0.82 },
@@ -17,6 +26,22 @@ const TAG_STYLE_MAP: Record<StateTag, RenderStyle> = {
   latest: { fill: "#4ecdc4", stroke: "rgba(124, 241, 232, 0.78)", text: "#ffd43b", glow: 0.48 },
 };
 
+/**
+ * 从主题获取基础样式
+ */
+export function getBaseStyleFromTheme(theme: Theme): RenderStyle {
+  return {
+    fill: theme.colors.primary,
+    stroke: theme.colors.textSecondary,
+    text: theme.colors.text,
+    glow: 0,
+  };
+}
+
+/**
+ * 旧版函数（兼容性保持）
+ * @deprecated 建议使用 getStyleFromStateTagsWithTheme
+ */
 export function getStyleFromStateTags(stateTags: StateTag[], fallback: RenderStyle): RenderStyle {
   for (const tag of stateTags) {
     if (TAG_STYLE_MAP[tag]) {
@@ -25,6 +50,25 @@ export function getStyleFromStateTags(stateTags: StateTag[], fallback: RenderSty
   }
 
   return fallback;
+}
+
+/**
+ * 新版函数：从主题获取状态样式
+ */
+export function getStyleFromStateTagsWithTheme(
+  stateTags: StateTag[],
+  theme: Theme,
+  fallback?: RenderStyle
+): RenderStyle {
+  const baseStyle = fallback || getBaseStyleFromTheme(theme);
+
+  for (const tag of stateTags) {
+    if (theme.stateStyles[tag]) {
+      return { ...baseStyle, ...theme.stateStyles[tag] };
+    }
+  }
+
+  return baseStyle;
 }
 
 export function interpolateStyle(from: RenderStyle, to: RenderStyle, progress: number): RenderStyle {
