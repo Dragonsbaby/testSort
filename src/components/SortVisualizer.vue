@@ -10,6 +10,7 @@ import {
   QuickSort,
   ShellSort,
 } from "@/components/algorithms";
+import CompareView from "@/components/CompareView.vue";
 
 interface SortAlgorithmExposed {
   reset(): void;
@@ -33,6 +34,8 @@ const currentComponent = computed(
   () => componentMap[store.algorithm] ?? MergeSort,
 );
 
+const isCompareMode = computed(() => store.viewMode === 'compare');
+
 function reset() {
   algorithmRef.value?.reset();
 }
@@ -47,10 +50,12 @@ defineExpose({ reset, step });
 <template>
   <div class="visualizer" ref="containerRef">
     <component
+      v-if="!isCompareMode"
       :is="currentComponent"
       ref="algorithmRef"
       :speed="store.animationSpeed"
     />
+    <CompareView v-else />
   </div>
 </template>
 

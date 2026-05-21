@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { SortAlgorithm } from "@/types/sorting";
+import { getCompareMaxArraySize, COMPARE_ALGORITHMS } from "@/composables/useCompareUtils";
 
 /** 数组元素：包含数值和固定序号 */
 export interface ArrayElement {
@@ -8,12 +9,22 @@ export interface ArrayElement {
   displayIndex: number; // 1-based 固定序号，随元素移动
 }
 
+export type ViewMode = 'single' | 'compare';
+export type CompareLayout = 'horizontal' | 'vertical';
+
 export const useSortStore = defineStore("sort", () => {
   // 状态
   const originalArray = ref<ArrayElement[]>([]);
   const animationSpeed = ref(200);
   const arraySize = ref(10);
   const algorithm = ref<SortAlgorithm>("heap");
+  const viewMode = ref<ViewMode>('single');
+  const compareLayout = ref<CompareLayout>('horizontal');
+  const leftAlgorithm = ref<SortAlgorithm>('bubble');
+  const rightAlgorithm = ref<SortAlgorithm>('quick');
+  const savedAlgorithm = ref<SortAlgorithm | null>(null);
+  const savedArraySize = ref<number | null>(null);
+  const savedOriginalArray = ref<ArrayElement[] | null>(null);
 
   function generateArray(size: number) {
     // 生成 1-size 不重复的数并乱序
@@ -29,5 +40,44 @@ export const useSortStore = defineStore("sort", () => {
   function setSpeed(speed: number) { animationSpeed.value = speed; }
   function setAlgorithm(alg: SortAlgorithm) { algorithm.value = alg; }
 
-  return { originalArray, animationSpeed, arraySize, algorithm, generateArray, setSpeed, setAlgorithm };
+  function setViewMode(mode: ViewMode) { viewMode.value = mode; }
+  function setCompareLayout(layout: CompareLayout) { compareLayout.value = layout; }
+  function setLeftAlgorithm(alg: SortAlgorithm) { leftAlgorithm.value = alg; }
+  function setRightAlgorithm(alg: SortAlgorithm) { rightAlgorithm.value = alg; }
+
+  function enterCompareMode() {
+    savedAlgorithm.value = algorithm.value;
+    savedArraySize.value = arraySize.value;
+    savedOriginalArray.value = JSON.parse(JSON.stringify(originalArray.value));
+    leftAlgorithm.value = algorithm.value;
+    const idx = COMPARE_ALGORITHMS.indexOf(algorithm.value);
+    rightAlgorithm.value = COMPARE_ALGORITHMS[(idx + 1) % COMPARE_ALGORITHMS.length];
+    const maxSize = getCompareMaxArraySize(leftAlgorithm.value, rightAlgorithm.value);
+    if (arraySize.value > maxSize) {
+      arraySize.value = maxSize;
+      generateArray(maxSize);
+    }
+    viewMode.value = 'compare';
+  }
+
+  function exitCompareMode() {
+    viewMode.value = 'single';
+    if (savedAlgorithm.value !== null) {
+      algorithm.value = savedAlgorithm.value;
+      savedAlgorithm.value = null;
+    }
+    if (savedOriginalArray.value !== null) {
+      originalArray.value = savedOriginalArray.value;
+      arraySize.value = savedOriginalArray.value.length;
+      savedOriginalArray.value = null;
+    }
+    savedArraySize.value = null;
+  }
+
+  return { originalArray, animationSpeed, arraySize, algorithm, generateArray, setSpeed, setAlgorithm,
+    viewMode, compareLayout, leftAlgorithm, rightAlgorithm,
+    savedAlgorithm, savedArraySize,
+    setViewMode, setCompareLayout, setLeftAlgorithm, setRightAlgorithm,
+    enterCompareMode, exitCompareMode,
+  };
 });

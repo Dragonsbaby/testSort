@@ -73,6 +73,7 @@ export function useSortAnimation(params: {
     timelineSteps.value = [];
     comparisons.value = 0;
     swaps.value = 0;
+    lastSyncedIndex.value = 0;
     isReady.value = false;
     const frame = buildInitialFrameForAlgorithm(values, displayIndexes);
     initialFrame.value = frame;

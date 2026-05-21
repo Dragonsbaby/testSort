@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useSortStore } from '@/stores/sortStore';
 import type { SortAlgorithm } from '@/types/sorting';
 import { algorithmInfo } from '@/types/sorting';
+import { getCompareMaxArraySize } from '@/composables/useCompareUtils';
 
 const store = useSortStore();
 
@@ -29,28 +30,49 @@ function handleSizeChange(val: number) {
 function handleNewArray() {
   store.generateArray(store.arraySize);
 }
+
+const isCompareMode = computed(() => store.viewMode === 'compare');
+
+const compareMaxSize = computed(() =>
+  getCompareMaxArraySize(store.leftAlgorithm, store.rightAlgorithm)
+);
+
+function enterCompare() {
+  store.enterCompareMode();
+}
+
+function exitCompare() {
+  store.exitCompareMode();
+}
 </script>
 
 <template>
   <div class="control-panel">
-    <div class="panel-section algo-section">
+    <!-- 算法选择：对比模式下隐藏 -->
+    <div v-if="!isCompareMode" class="panel-section algo-section">
       <select :value="store.algorithm" @change="e => handleAlgorithmChange((e.target as HTMLSelectElement).value as SortAlgorithm)" class="algo-dropdown">
         <option v-for="alg in algorithms" :key="alg.value" :value="alg.value">{{ alg.label }}</option>
       </select>
     </div>
 
-    <div class="panel-section algo-info-section">
+    <!-- 算法信息：单算法模式显示 -->
+    <div v-if="!isCompareMode" class="panel-section algo-info-section">
       <div class="algo-info">
         <span class="algo-complexity">{{ algorithmInfo[store.algorithm].complexity }}</span>
         <span class="algo-desc">{{ algorithmInfo[store.algorithm].description }}</span>
       </div>
     </div>
 
+    <!-- 对比模式标签 -->
+    <div v-if="isCompareMode" class="panel-section compare-badge-section">
+      <span class="compare-badge">对比模式</span>
+    </div>
+
     <div class="panel-divider"></div>
 
     <div class="panel-section size-section">
       <div class="size-control">
-        <input type="range" :value="store.arraySize" @input="e => handleSizeChange(Number((e.target as HTMLInputElement).value))" min="10" max="100" step="1" class="size-slider" />
+        <input type="range" :value="store.arraySize" @input="e => handleSizeChange(Number((e.target as HTMLInputElement).value))" min="10" :max="isCompareMode ? compareMaxSize : 100" step="1" class="size-slider" />
         <span class="size-value">{{ store.arraySize }}</span>
       </div>
     </div>
@@ -78,6 +100,24 @@ function handleNewArray() {
           <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
         </svg>
         新数组
+      </button>
+    </div>
+
+    <div class="panel-divider"></div>
+
+    <div class="panel-section action-section">
+      <button v-if="!isCompareMode" class="action-btn compare-enter-btn" @click="enterCompare">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="18" rx="2" />
+          <rect x="14" y="3" width="7" height="18" rx="2" />
+        </svg>
+        对比模式
+      </button>
+      <button v-else class="action-btn compare-exit-btn" @click="exitCompare">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+        退出对比
       </button>
     </div>
   </div>
@@ -290,5 +330,40 @@ function handleNewArray() {
   .algo-info {
     align-items: flex-start;
   }
+}
+
+/* 对比模式 */
+.compare-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #4ecdc4;
+  padding: 4px 12px;
+  background: rgba(78, 205, 196, 0.1);
+  border: 1px solid rgba(78, 205, 196, 0.25);
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.compare-enter-btn {
+  color: #4ecdc4;
+  border-color: rgba(78, 205, 196, 0.3);
+  background: rgba(78, 205, 196, 0.08);
+}
+
+.compare-enter-btn:hover {
+  background: rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.5);
+  box-shadow: 0 0 16px rgba(78, 205, 196, 0.15);
+}
+
+.compare-exit-btn {
+  color: #ff8a8a;
+  border-color: rgba(255, 138, 138, 0.3);
+  background: rgba(255, 138, 138, 0.08);
+}
+
+.compare-exit-btn:hover {
+  background: rgba(255, 138, 138, 0.15);
+  border-color: rgba(255, 138, 138, 0.5);
 }
 </style>
