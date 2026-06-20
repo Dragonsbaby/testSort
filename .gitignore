@@ -26,3 +26,6 @@ dist-ssr
 *.sw?
 
 pnpm-lock.yaml
+
+# Playwright MCP 运行产物（截图/快照，工具自动生成）
+.playwright-mcp/
