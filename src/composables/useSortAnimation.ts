@@ -133,7 +133,7 @@ export function useSortAnimation(params: {
 
     const step = timelineSteps.value[index - 1];
     const snapshot = step?.to.entities
-      .filter((entity) => entity.kind === "main-bar" || entity.kind === "heap-array-node")
+      .filter((entity) => (entity.kind === "main-bar" || entity.kind === "heap-array-node") && entity.width > 0)
       .sort((left, right) => left.x - right.x || left.displayIndex - right.displayIndex);
 
     if (!snapshot?.length) return;
@@ -190,11 +190,21 @@ export function useSortAnimation(params: {
     { immediate: true },
   );
 
+  // 播放中 Canvas 已自绘，syncArray 每步重建会触发模板重渲染，故播放中跳过；
+  // 暂停 / seek / stepBack（非播放态）时同步，保证 array 与当前帧一致
   watch(
     () => player.currentStepIndex.value,
     (index) => {
       syncStats(index);
-      syncArray(index);
+      if (!player.isPlaying.value) syncArray(index);
+    },
+  );
+
+  // 播放 → 暂停 / 结束时补一次 syncArray，确保 array 反映最终停留帧
+  watch(
+    () => player.isPlaying.value,
+    (playing) => {
+      if (!playing) syncArray(player.currentStepIndex.value);
     },
   );
 

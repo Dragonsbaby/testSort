@@ -30,15 +30,23 @@ function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, wi
   ctx.closePath();
 }
 
-function hexToRgb(color: string) {
-  const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(color);
-  if (!match) return null;
+// hex 颜色 → rgb 解析缓存（颜色取值有限，命中率接近 100%；多实例共享无副作用）
+const rgbCache = new Map<string, { r: number; g: number; b: number } | null>();
 
-  return {
-    r: Number.parseInt(match[1], 16),
-    g: Number.parseInt(match[2], 16),
-    b: Number.parseInt(match[3], 16),
-  };
+function hexToRgb(color: string) {
+  const cached = rgbCache.get(color);
+  if (cached !== undefined) return cached;
+
+  const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(color);
+  const result = match
+    ? {
+        r: Number.parseInt(match[1], 16),
+        g: Number.parseInt(match[2], 16),
+        b: Number.parseInt(match[3], 16),
+      }
+    : null;
+  rgbCache.set(color, result);
+  return result;
 }
 
 function rgbaFromHex(color: string, alpha: number) {
@@ -61,24 +69,32 @@ function createBarGradient(ctx: CanvasRenderingContext2D, entity: RenderableEnti
 export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
   const currentFrame = ref<FrameState | null>(null);
   let animationFrameId: number | null = null;
+  let needsRedraw = false;
   let containerWidth = 800;
   let containerHeight = 360;
+  // entities 按 zIndex 排序结果缓存（同一帧复用，避免每帧重复 slice+sort）
+  let lastSortedFrame: FrameState | null = null;
+  let cachedSortedEntities: RenderableEntity[] = [];
+  // 静态背景（背景色 + grid）离屏缓存：仅在 resize / 主题变化时重建，绘制时 drawImage 一次
+  let bgCanvas: HTMLCanvasElement | null = null;
+  let bgCtx: CanvasRenderingContext2D | null = null;
 
-  // 获取主题实例（在setup上下文中）
-  let theme: ReturnType<typeof useTheme> | undefined;
+  // 获取主题实例（在 setup 上下文中；主题系统可能未初始化，回退硬编码颜色）
+  let theme: ReturnType<typeof useTheme> | null = null;
   try {
     theme = useTheme();
 
-    // 监听主题变化，触发Canvas重新绘制
+    // 监听主题变化：重建静态背景缓存（颜色/间距可能变）并触发重绘
     watch(() => theme!.currentThemeId.value, () => {
+      rebuildBackgroundCache();
       if (currentFrame.value) {
-        requestAnimationFrame(() => {
-          draw();
-        });
+        needsRedraw = true;
+        requestRender();
       }
     });
   } catch (e) {
-    // 主题系统未初始化，保持为undefined
+    console.warn("[useCanvasRenderer] 主题系统未初始化，回退硬编码颜色", e);
+    theme = null;
   }
 
   function setCanvasDimensions(width: number, height: number) {
@@ -99,6 +115,8 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     ctx.imageSmoothingEnabled = false;
+
+    rebuildBackgroundCache();
   }
 
   function initialize(width: number, height: number) {
@@ -107,10 +125,14 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
 
   function resize(width: number, height: number) {
     setCanvasDimensions(width, height);
+    needsRedraw = true;
+    requestRender();
   }
 
   function renderFrame(frame: FrameState) {
     currentFrame.value = frame;
+    needsRedraw = true;
+    requestRender();
   }
 
   /** 绘制桶格子的圆角矩形背景面板（region-panel 类型专用） */
@@ -348,35 +370,53 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     return Math.max(0, Math.round((containerWidth - frameWidth) / 2));
   }
 
-  function drawBackground(ctx: CanvasRenderingContext2D, frame: FrameState) {
-    ctx.clearRect(0, 0, containerWidth, containerHeight);
+  /** 绘制静态层（背景色 + grid）到指定 ctx；baseline 因 baseY 随帧变化，留给 drawBackground 动态绘制 */
+  function paintStaticBackground(targetCtx: CanvasRenderingContext2D) {
+    targetCtx.fillStyle = theme ? theme.getBackgroundColor() : BACKGROUND_COLOR;
+    targetCtx.fillRect(0, 0, containerWidth, containerHeight);
 
-    // 使用主题背景色或回退到硬编码颜色
-    ctx.fillStyle = theme ? theme.getBackgroundColor() : BACKGROUND_COLOR;
-    ctx.fillRect(0, 0, containerWidth, containerHeight);
-
-    // 使用主题网格色或回退到硬编码颜色
-    ctx.strokeStyle = theme ? theme.getGridColor() : GRID_COLOR;
-    ctx.lineWidth = 1;
-
-    // 使用主题网格间距或默认值
+    targetCtx.strokeStyle = theme ? theme.getGridColor() : GRID_COLOR;
+    targetCtx.lineWidth = 1;
     const gridSize = theme ? theme.themeEffects.value.gridSpacing : 40;
 
     for (let x = 0; x <= containerWidth; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x + 0.5, 0);
-      ctx.lineTo(x + 0.5, containerHeight);
-      ctx.stroke();
+      targetCtx.beginPath();
+      targetCtx.moveTo(x + 0.5, 0);
+      targetCtx.lineTo(x + 0.5, containerHeight);
+      targetCtx.stroke();
     }
-
     for (let y = 0; y <= containerHeight; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y + 0.5);
-      ctx.lineTo(containerWidth, y + 0.5);
-      ctx.stroke();
+      targetCtx.beginPath();
+      targetCtx.moveTo(0, y + 0.5);
+      targetCtx.lineTo(containerWidth, y + 0.5);
+      targetCtx.stroke();
+    }
+  }
+
+  /** 重建静态背景离屏缓存（resize / 主题变化时调用；与主 canvas 同 dpr 创建+缩放，drawImage 时 1:1 无缩放） */
+  function rebuildBackgroundCache() {
+    if (!bgCanvas) bgCanvas = document.createElement("canvas");
+    const dpr = window.devicePixelRatio || 1;
+    bgCanvas.width = Math.floor(containerWidth * dpr);
+    bgCanvas.height = Math.floor(containerHeight * dpr);
+    bgCtx = bgCanvas.getContext("2d");
+    if (!bgCtx) return;
+    bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+    bgCtx.scale(dpr, dpr);
+    paintStaticBackground(bgCtx);
+  }
+
+  function drawBackground(ctx: CanvasRenderingContext2D, frame: FrameState) {
+    ctx.clearRect(0, 0, containerWidth, containerHeight);
+
+    // 静态层（背景色 + grid）从离屏缓存 drawImage；缓存不可用时回退即时绘制
+    if (bgCtx && bgCanvas) {
+      ctx.drawImage(bgCanvas, 0, 0, containerWidth, containerHeight);
+    } else {
+      paintStaticBackground(ctx);
     }
 
-    // 使用主题基线色或回退到硬编码颜色
+    // baseline（动态：baseY 随帧变化，故不进缓存）
     const baselineColor = theme ? theme.getBaselineColor() : BASELINE_COLOR;
     ctx.strokeStyle = baselineColor;
     ctx.lineWidth = 1.5;
@@ -396,7 +436,17 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.shadowBlur = 0;
   }
 
-  function draw() {
+  /** 按 zIndex 排序的实体列表（同帧缓存，跨帧重建） */
+  function getSortedEntities(frame: FrameState): RenderableEntity[] {
+    if (frame !== lastSortedFrame) {
+      cachedSortedEntities = frame.entities.slice().sort((a, b) => a.zIndex - b.zIndex);
+      lastSortedFrame = frame;
+    }
+    return cachedSortedEntities;
+  }
+
+  /** 单次绘制（按需触发，不自调度 rAF，避免静止时持续空转重绘） */
+  function drawOnce() {
     const canvas = canvasRef.value;
     const frame = currentFrame.value;
     if (!canvas || !frame) return;
@@ -419,12 +469,10 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
         ctx.restore();
       });
 
-    // 阶段二：entity（数据柱子中层）
+    // 阶段二：entity（数据柱子中层，zIndex 排序结果按帧缓存）
     ctx.save();
     ctx.translate(xOffset, 0);
-    frame.entities
-      .slice()
-      .sort((a, b) => a.zIndex - b.zIndex)
+    getSortedEntities(frame)
       .forEach((entity) => drawEntity(ctx, entity, frame));
     ctx.restore();
 
@@ -437,13 +485,23 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
         drawOverlay(ctx, overlay);
         ctx.restore();
       });
+  }
 
-    animationFrameId = requestAnimationFrame(draw);
+  /** 合并多次重绘请求：仅当有待绘制内容且当前无挂起 rAF 时调度一帧；画面静止时零开销 */
+  function requestRender() {
+    if (animationFrameId !== null) return;
+    animationFrameId = requestAnimationFrame(() => {
+      animationFrameId = null;
+      if (needsRedraw) {
+        needsRedraw = false;
+        drawOnce();
+      }
+    });
   }
 
   function startRenderLoop() {
-    if (animationFrameId !== null) return;
-    animationFrameId = requestAnimationFrame(draw);
+    needsRedraw = true;
+    requestRender();
   }
 
   function stopRenderLoop() {
