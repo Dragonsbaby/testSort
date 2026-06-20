@@ -1,9 +1,7 @@
 import type { RenderStyle, StateTag } from "@/types/timeline";
-import type { Theme } from "@/types/theme";
 
 /**
- * 获取基础样式（兼容旧代码）
- * @deprecated 建议使用 getBaseStyleFromTheme
+ * 基础柱状样式（默认底色，被各 timeline builder 作为 fallback 使用）
  */
 export const BAR_BASE_STYLE: RenderStyle = {
   fill: "#4a9eff",
@@ -13,8 +11,7 @@ export const BAR_BASE_STYLE: RenderStyle = {
 };
 
 /**
- * 旧版样式映射（用于兼容）
- * @deprecated 建议使用 getStyleFromStateTagsWithTheme
+ * 状态标签 → 样式映射表（getStyleFromStateTags 的查表来源）
  */
 const TAG_STYLE_MAP: Record<StateTag, RenderStyle> = {
   comparing: { fill: "#ffcc00", stroke: "rgba(255, 230, 102, 0.9)", text: "#ffd43b", glow: 0.72 },
@@ -27,20 +24,7 @@ const TAG_STYLE_MAP: Record<StateTag, RenderStyle> = {
 };
 
 /**
- * 从主题获取基础样式
- */
-export function getBaseStyleFromTheme(theme: Theme): RenderStyle {
-  return {
-    fill: theme.colors.primary,
-    stroke: theme.colors.textSecondary,
-    text: theme.colors.text,
-    glow: 0,
-  };
-}
-
-/**
- * 旧版函数（兼容性保持）
- * @deprecated 建议使用 getStyleFromStateTagsWithTheme
+ * 根据状态标签返回对应样式；无匹配标签时返回 fallback
  */
 export function getStyleFromStateTags(stateTags: StateTag[], fallback: RenderStyle): RenderStyle {
   for (const tag of stateTags) {
@@ -53,24 +37,10 @@ export function getStyleFromStateTags(stateTags: StateTag[], fallback: RenderSty
 }
 
 /**
- * 新版函数：从主题获取状态样式
+ * 样式插值：颜色类属性（fill/stroke/text/dashed）在 progress<0.5 取 from、>=0.5 取 to（二值切换是有意设计，
+ * 颜色突变配合状态切换的视觉节奏）；数值类属性（glow）线性 lerp。
+ * alpha 仅在 from/to 至少一方显式定义时才注入，避免默认 alpha=1 架空 opacity=0（CLAUDE.md 经验 #1 的关键修复）。
  */
-export function getStyleFromStateTagsWithTheme(
-  stateTags: StateTag[],
-  theme: Theme,
-  fallback?: RenderStyle
-): RenderStyle {
-  const baseStyle = fallback || getBaseStyleFromTheme(theme);
-
-  for (const tag of stateTags) {
-    if (theme.stateStyles[tag]) {
-      return { ...baseStyle, ...theme.stateStyles[tag] };
-    }
-  }
-
-  return baseStyle;
-}
-
 export function interpolateStyle(from: RenderStyle, to: RenderStyle, progress: number): RenderStyle {
   return {
     fill: progress < 0.5 ? from.fill : to.fill,

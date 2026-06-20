@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { useBucketSortRenderer } from '@/composables/useBucketSortRenderer';
+import { useCanvasRenderer } from '@/composables/useCanvasRenderer';
 import type { ArrayElement } from '@/stores/sortStore';
 import type { FrameState } from '@/types/timeline';
 
@@ -15,7 +15,7 @@ const emit = defineEmits<{ (e: "canvas-ready", payload: { width: number; height:
 const containerRef = ref<HTMLDivElement | null>(null);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 
-const { initialize, resize, renderFrame, startRenderLoop, stopRenderLoop } = useBucketSortRenderer(canvasRef);
+const { initialize, resize, renderFrame, startRenderLoop, stopRenderLoop } = useCanvasRenderer(canvasRef);
 
 let resizeObserver: ResizeObserver | null = null;
 

@@ -1,12 +1,7 @@
-import type { SemanticStep, SemanticStepType } from "@/types/timeline";
-
 /** 桶数动态计算：每 10 个元素一个桶，下限 3，上限 9 */
 export function calcBucketCount(n: number): number {
   return Math.min(9, Math.max(3, Math.round(n / 10)));
 }
-
-export type StepType = SemanticStepType;
-export type SortStep = SemanticStep;
 
 export type SortAlgorithm = "bubble" | "insertion" | "merge" | "quick" | "shell" | "bucket" | "heap";
 
@@ -53,4 +48,3 @@ export const algorithmInfo: Record<SortAlgorithm, AlgorithmInfo> = {
     complexity: "O(n log n)",
   },
 };
-

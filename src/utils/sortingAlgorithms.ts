@@ -559,7 +559,7 @@ export function shellSort(arr: number[]): SemanticStep[] {
   return steps;
 }
 
-/** 桶排序（动态桶数：每 10 个元素一个桶，上限 9，与 useBucketSortRenderer.ts 保持一致） */
+/** 桶排序（动态桶数：每 10 个元素一个桶，上限 9，桶数需与 bucket-layout 的 calcBucketCount 保持一致） */
 export function bucketSort(arr: number[]): SemanticStep[] {
   const steps: SemanticStep[] = [];
   const a = [...arr];

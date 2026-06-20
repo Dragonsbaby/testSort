@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
-import { useHeapSortRenderer } from "@/composables/useHeapSortRenderer";
+import { useCanvasRenderer } from "@/composables/useCanvasRenderer";
 import { getHeapRequiredHeight } from "@/utils/layout/heap-layout";
 import type { ArrayElement } from "@/stores/sortStore";
 import type { FrameState } from "@/types/timeline";
@@ -17,7 +17,7 @@ const containerRef = ref<HTMLDivElement | null>(null);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const requiredHeight = computed(() => getHeapRequiredHeight(props.array.length));
 
-const { initialize, resize, renderFrame, startRenderLoop, stopRenderLoop } = useHeapSortRenderer(canvasRef);
+const { initialize, resize, renderFrame, startRenderLoop, stopRenderLoop } = useCanvasRenderer(canvasRef);
 
 let resizeObserver: ResizeObserver | null = null;
 

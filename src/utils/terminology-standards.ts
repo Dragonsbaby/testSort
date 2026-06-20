@@ -3,28 +3,6 @@
  * 统一所有算法的用户界面描述，提升专业性和一致性
  */
 
-// === 位置和索引描述 ===
-export const POSITION_TERMS = {
-  // 标准位置描述
-  standard: (index: number, value?: number) =>
-    value ? `位置 ${index} 的值 ${value}` : `位置 ${index}`,
-
-  // 简洁位置描述
-  concise: (index: number) => `位置 ${index}`,
-
-  // 数值描述
-  valueOnly: (value: number) => `值 ${value}`,
-
-  // 禁止使用的格式
-  avoid: [
-    'arr[i]',        // 变量名泄露
-    'leftArr[i]',    // 内部数组名泄露
-    'rightArr[i]',   // 内部数组名泄露
-    '[i]',           // 数组访问语法
-    'temp[i]',       // 临时变量名泄露
-  ]
-} as const;
-
 // === 区域描述 ===
 export const REGION_TERMS = {
   // 归并排序专用
@@ -85,52 +63,6 @@ export const OPERATION_TERMS = {
     moveToPosition: (fromPos: number, toPos: number, value: number) =>
       `值 ${value} 从位置 ${fromPos} 移动到位置 ${toPos}`,
   },
-
-  // 移动操作
-  move: {
-    to: (target: string) => `移动到${target}`,
-    toPosition: (position: number) => `移动到位置 ${position}`,
-    shiftRight: '向右移动',
-    shiftLeft: '向左移动',
-    insertTo: '插入到',
-  },
-
-  // 复制操作
-  copy: {
-    to: (target: string) => `复制到${target}`,
-    toPosition: (position: number) => `复制到位置 ${position}`,
-  }
-} as const;
-
-// === 专业术语对照表 ===
-export const TERMINOLOGY_MAPPING = {
-  // 中英文对照
-  'pivot': '基准元素',
-  '基准值': '基准元素',
-  'sift-down': '向下调整（sift-down）',
-  'sift-up': '向上调整（sift-up）',
-  'heap property': '堆性质',
-  'partition': '分区',
-
-  // 口语化替换
-  '胜出': '较小值被选中',
-  '飞入': '移动到',
-  '飞回': '返回',
-  '飞到': '移动到',
-  '归位': '返回正确位置',
-
-  // 技术术语替换
-  '左子': '左子节点',
-  '右子': '右子节点',
-  '下排': '辅助区',
-  '上排': '主数组',
-  '槽': '位置',
-
-  // 变量名替换
-  'leftArr': '左半区',
-  'rightArr': '右半区',
-  'arr[i]': '位置 i 的值',
-  'temp': '辅助数组',
 } as const;
 
 // === 阶段描述 ===
@@ -184,64 +116,7 @@ export const PHASE_TERMS = {
   }
 } as const;
 
-// === 描述模板 ===
-export const DESCRIPTION_TEMPLATES = {
-  // 比较操作模板
-  compare: '比较位置 {posA} 的值 {valA} 和位置 {posB} 的值 {valB}',
-  compareResult: '，{result}', // 结果说明
-
-  // 交换操作模板
-  swap: '交换位置 {posA} 和位置 {posB} 的值',
-  swapWithValues: '交换位置 {posA} 的值 {valA} 和位置 {posB} 的值 {valB}',
-
-  // 移动操作模板
-  move: '值 {value} 从位置 {from} 移动到位置 {to}',
-  moveRight: '值 {value} 向右移动',
-
-  // 阶段说明模板
-  phaseStart: '开始{phase}，当前{condition}',
-  phaseComplete: '{phase}完成，{result}',
-
-  // 算法说明模板
-  algorithmHint: '{algorithm}的核心思想是{explanation}',
-  operationHint: '{operation}的目的是{explanation}',
-} as const;
-
-// === 禁用词汇列表 ===
-export const FORBIDDEN_TERMS = [
-  // 变量名泄露
-  'leftArr',
-  'rightArr',
-  'arr[',
-  'temp[',
-
-  // 口语化表达
-  '胜出',
-  '飞入',
-  '飞回',
-  '飞到',
-
-  // 不完整术语
-  '左子',
-  '右子',
-
-  // 编程语法泄露
-  '[i]',
-  '[j]',
-  '=',
-
-  // 不够专业的表达
-  '槽', // 除非明确指代内存槽
-] as const;
-
 // === 工具函数 ===
-/**
- * 检查描述是否包含禁用词汇
- */
-export function containsForbiddenTerms(description: string): boolean {
-  return FORBIDDEN_TERMS.some(term => description.includes(term));
-}
-
 /**
  * 规范化位置描述
  */
@@ -254,14 +129,4 @@ export function normalizePosition(index: number, value?: number): string {
  */
 export function normalizeCompare(posA: number, valA: number, posB: number, valB: number): string {
   return `比较位置 ${posA} 的值 ${valA} 和位置 ${posB} 的值 ${valB}`;
-}
-
-/**
- * 规范化交换描述
- */
-export function normalizeSwap(posA: number, posB: number, valA?: number, valB?: number): string {
-  if (valA !== undefined && valB !== undefined) {
-    return `交换位置 ${posA} 的值 ${valA} 和位置 ${posB} 的值 ${valB}`;
-  }
-  return `交换位置 ${posA} 和位置 ${posB}`;
 }
