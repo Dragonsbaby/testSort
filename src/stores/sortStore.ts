@@ -38,8 +38,14 @@ export const useSortStore = defineStore("sort", () => {
   }
 
   function setSpeed(speed: number) { animationSpeed.value = speed; }
-  function setAlgorithm(alg: SortAlgorithm) { algorithm.value = alg; }
 
+  /** 设置数组规模并重新生成（原子操作，替代组件内 arraySize 赋值 + generateArray 两步） */
+  function setArraySize(size: number) {
+    arraySize.value = size;
+    generateArray(size);
+  }
+
+  function setAlgorithm(alg: SortAlgorithm) { algorithm.value = alg; }
   function setViewMode(mode: ViewMode) { viewMode.value = mode; }
   function setCompareLayout(layout: CompareLayout) { compareLayout.value = layout; }
   function setLeftAlgorithm(alg: SortAlgorithm) { leftAlgorithm.value = alg; }
@@ -54,8 +60,7 @@ export const useSortStore = defineStore("sort", () => {
     rightAlgorithm.value = COMPARE_ALGORITHMS[(idx + 1) % COMPARE_ALGORITHMS.length];
     const maxSize = getCompareMaxArraySize(leftAlgorithm.value, rightAlgorithm.value);
     if (arraySize.value > maxSize) {
-      arraySize.value = maxSize;
-      generateArray(maxSize);
+      setArraySize(maxSize);
     }
     viewMode.value = 'compare';
   }
@@ -67,6 +72,7 @@ export const useSortStore = defineStore("sort", () => {
       savedAlgorithm.value = null;
     }
     if (savedOriginalArray.value !== null) {
+      // 仅恢复 arraySize 计数，不重新生成（originalArray 已在上行恢复）
       originalArray.value = savedOriginalArray.value;
       arraySize.value = savedOriginalArray.value.length;
       savedOriginalArray.value = null;
@@ -74,7 +80,7 @@ export const useSortStore = defineStore("sort", () => {
     savedArraySize.value = null;
   }
 
-  return { originalArray, animationSpeed, arraySize, algorithm, generateArray, setSpeed, setAlgorithm,
+  return { originalArray, animationSpeed, arraySize, algorithm, generateArray, setSpeed, setArraySize, setAlgorithm,
     viewMode, compareLayout, leftAlgorithm, rightAlgorithm,
     savedAlgorithm, savedArraySize,
     setViewMode, setCompareLayout, setLeftAlgorithm, setRightAlgorithm,

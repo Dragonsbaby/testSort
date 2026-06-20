@@ -23,8 +23,7 @@ function handleAlgorithmChange(val: SortAlgorithm) {
 }
 
 function handleSizeChange(val: number) {
-  store.arraySize = val;
-  store.generateArray(val);
+  store.setArraySize(val);
 }
 
 function handleNewArray() {

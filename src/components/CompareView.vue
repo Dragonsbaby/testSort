@@ -91,8 +91,7 @@ function handleRightAlgorithmChange(alg: SortAlgorithm) {
 function enforceSizeLimit(algA: SortAlgorithm, algB: SortAlgorithm) {
   const max = getCompareMaxArraySize(algA, algB);
   if (store.arraySize > max) {
-    store.arraySize = max;
-    store.generateArray(max);
+    store.setArraySize(max);
   }
 }
 

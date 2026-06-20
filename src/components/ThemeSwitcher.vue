@@ -18,23 +18,6 @@
         </div>
       </div>
     </transition>
-
-    <!-- 快捷切换菜单 -->
-    <transition name="dropdown">
-      <div v-if="showQuickMenu" class="quick-menu">
-        <button
-          v-for="theme in recentThemes"
-          :key="theme.id"
-          class="quick-menu-item"
-          :class="{ 'quick-menu-item--active': theme.id === currentThemeId }"
-          @click="quickSwitch(theme.id)"
-          :title="theme.name"
-        >
-          <span class="quick-menu-icon">{{ getThemeIcon(theme.id) }}</span>
-          <span class="quick-menu-text">{{ theme.name }}</span>
-        </button>
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -49,32 +32,18 @@ const themeStore = useThemeStore();
 
 // 状态
 const showSelector = ref(false);
-const showQuickMenu = ref(false);
 
 // 计算属性
 const currentThemeId = computed(() => themeStore.currentThemeId);
 const currentTheme = computed(() => themeStore.currentTheme);
 
-// 最近使用的主题（简化版，实际可以用localStorage存储历史）
-const recentThemes = computed(() => {
-  return themeStore.availableThemes.slice(0, 4); // 取前4个作为示例
-});
-
 // 方法
 function toggleThemeSelector() {
   showSelector.value = !showSelector.value;
-  if (showSelector.value) {
-    showQuickMenu.value = false;
-  }
 }
 
 function closeSelector() {
   showSelector.value = false;
-}
-
-function quickSwitch(themeId: ThemeId) {
-  themeStore.setTheme(themeId);
-  showQuickMenu.value = false;
 }
 
 function getThemeIcon(themeId: ThemeId): string {
@@ -93,18 +62,10 @@ function getShortName(name: string): string {
   return name.substring(0, 2);
 }
 
-// 键盘快捷键
+// 键盘快捷键：仅保留 Escape 关闭弹窗（Alt+T 全局切换主题已在 App.vue 的 useThemeKeyboardShortcuts 注册）
 function handleKeydown(event: KeyboardEvent) {
-  // Alt+T 快速切换主题
-  if (event.altKey && event.key === 't') {
-    event.preventDefault();
-    themeStore.nextTheme();
-  }
-
-  // Escape 关闭弹窗
   if (event.key === 'Escape') {
     closeSelector();
-    showQuickMenu.value = false;
   }
 }
 
@@ -220,76 +181,11 @@ onUnmounted(() => {
   transform: translateY(20px);
 }
 
-/* 快捷菜单样式 */
-.quick-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  background: var(--color-background-secondary, #1a1a2e);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 8px;
-  min-width: 200px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  z-index: 100;
-}
-
-.quick-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--color-text, #ffffff);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.quick-menu-item:hover,
-.quick-menu-item--active {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.quick-menu-item--active {
-  border-left: 3px solid var(--color-primary, #4a9eff);
-}
-
-.quick-menu-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.quick-menu-text {
-  flex: 1;
-  text-align: left;
-}
-
-/* 下拉菜单过渡动画 */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.2s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .theme-modal-content {
     margin: 16px;
     max-width: calc(100vw - 32px);
-  }
-
-  .quick-menu {
-    right: -8px;
-    left: -8px;
   }
 }
 </style>
