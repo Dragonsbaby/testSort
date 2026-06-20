@@ -59,8 +59,9 @@ export function interpolateEntities(
   const swapFromXOverride = new Map<string, number>();
   if (transition.swapEntityIdPairs) {
     for (const [idA, idB] of transition.swapEntityIdPairs) {
-      const toA = toEntities.find((e) => e.id === idA);
-      const toB = toEntities.find((e) => e.id === idB);
+      // toMap 已在上方构建，直接 O(1) 查找替代 O(n) 的 find 线性扫描
+      const toA = toMap.get(idA);
+      const toB = toMap.get(idB);
       if (toA && toB) {
         // A 的 from.x 覆盖为 B 的目标 x（让 A 从 B 的位置出发）
         swapFromXOverride.set(idA, toB.x);

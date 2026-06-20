@@ -128,7 +128,8 @@ export function buildBasicTimeline(params: {
   let currentFrame = createBasicFrame(algorithm, values, displayIndexes, width, height, 0, "初始状态", new Map());
 
   return steps.map((semantic, index) => {
-    const from = structuredClone(currentFrame) as FrameState;
+    // from 直接引用上一步的 to（createBasicFrame 每步返回独立新对象，引用共享安全；插值/渲染只读不 mutate）
+    const from = currentFrame;
     const { nextSorted, stateTagsByIndex } = buildStateTags(semantic, sortedIndices);
     sortedIndices = nextSorted;
 
@@ -155,7 +156,8 @@ export function buildBasicTimeline(params: {
       stateTagsByIndex,
     );
 
-    currentFrame = structuredClone(to) as FrameState;
+    // to 是当步新建的独立对象，直接引用即可（无需深拷贝）
+    currentFrame = to;
 
     const swapDuration = 3;
 

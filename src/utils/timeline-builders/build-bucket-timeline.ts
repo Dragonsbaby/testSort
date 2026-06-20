@@ -329,7 +329,9 @@ function createBucketFrame(params: {
         ghostEntities.push(
           frameRole === "from"
             ? { id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", value: sourceValue, displayIndex: 1, x: sBarX, y: sBarBaseY, width: sBarWidth, height: sBarHeight, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] }
-            : { ...target, id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", width: target.width, opacity: 0, zIndex: 3, style: bucketBaseStyle, stateTags: [] },
+            // ghost to 帧保持可见（opacity:1）：飞行结束时 target 主柱重新显示，ghost 须同位置可见以平滑接管，
+            // 下一 step 的 from 帧 ghost 消失、target 接管。若 opacity:0 会导致 ghost 淡出与 target 显现的切换闪烁（CLAUDE.md 经验 #6）
+            : { ...target, id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", width: target.width, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] },
         );
 
         // 桶内 position-0 bar 在 from 帧立刻隐藏
@@ -387,7 +389,9 @@ export function buildBucketTimeline(params: {
   const globalMaxValue = Math.max(...originalValues, 1);
 
   let mainValues = [...originalValues];
-  let buckets: number[][] = Array.from({ length: Math.max(steps.reduce((max, step) => Math.max(max, step.bucketIndex ?? -1), -1) + 1, 3) }, () => []);
+  // 桶数与算法层（calcBucketCount）、initialFrame、bucket-layout 完全一致
+  const bucketCount = calcBucketCount(originalValues.length);
+  let buckets: number[][] = Array.from({ length: bucketCount }, () => []);
   const scatteredIndices = new Set<number>();
 
   return steps.map((semantic, index) => {
@@ -431,9 +435,10 @@ export function buildBucketTimeline(params: {
       const sourceIndex = semantic.indices[0];
       const bucketIndex = semantic.bucketIndex ?? 0;
       if (typeof sourceIndex === "number") {
-        buckets = buckets.map((bucket) => [...bucket]);
-        buckets[bucketIndex] ??= [];
-        buckets[bucketIndex].push(mainValues[sourceIndex]);
+        // 结构共享：仅复制被追加的目标桶，其余桶引用不变（createBucketFrame 只读 buckets）
+        buckets = buckets.map((bucket, i) =>
+          i === bucketIndex ? [...bucket, mainValues[sourceIndex]] : bucket,
+        );
       }
     }
 
@@ -441,8 +446,13 @@ export function buildBucketTimeline(params: {
       const bucketIndex = semantic.bucketIndex ?? 0;
       const [left, right] = semantic.indices;
       if (buckets[bucketIndex]?.[left] !== undefined && buckets[bucketIndex]?.[right] !== undefined) {
-        buckets = buckets.map((bucket) => [...bucket]);
-        [buckets[bucketIndex][left], buckets[bucketIndex][right]] = [buckets[bucketIndex][right], buckets[bucketIndex][left]];
+        // 结构共享：仅重建被交换的桶，其余桶引用不变
+        buckets = buckets.map((bucket, i) => {
+          if (i !== bucketIndex) return bucket;
+          const next = [...bucket];
+          [next[left], next[right]] = [next[right], next[left]];
+          return next;
+        });
       }
     }
 
@@ -450,7 +460,7 @@ export function buildBucketTimeline(params: {
       const bucketIndex = semantic.bucketIndex ?? 0;
       const destIndex = semantic.indices[0];
       mainValues = [...semantic.arraySnapshot];
-      buckets = buckets.map((bucket, index2) => (index2 === bucketIndex ? bucket.slice(1) : [...bucket]));
+      buckets = buckets.map((bucket, index2) => (index2 === bucketIndex ? bucket.slice(1) : bucket));
       if (typeof destIndex === "number") scatteredIndices.delete(destIndex);
     }
 

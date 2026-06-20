@@ -252,7 +252,8 @@ export function buildHeapTimeline(params: {
       }
     }
 
-    currentFrame = structuredClone(to) as FrameState;
+    // to 是当步新建的独立对象（compare 的 overlay push 在此前已完成），直接引用无需深拷贝
+    currentFrame = to;
 
     const isRootExtractSwap = semantic.type === "swap" && semantic.indices.includes(0) && Math.abs(semantic.indices[0] - semantic.indices[1]) > 1;
     const swapDuration = 3;
