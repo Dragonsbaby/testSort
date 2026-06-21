@@ -422,7 +422,14 @@ export function quickSort(arr: number[]): SemanticStep[] {
       });
     }
 
+    // 基准就位：补全三层描述，与其他算法的 sorted step 对齐（修复此前漏补 brief/detail/context）
+    const pivotFinalDesc = generator.generateSorted(i + 1, array[i + 1]);
     steps.push(createStep("sorted", [i + 1], `基准 ${array[i + 1]} 已到达最终位置`, [...array]));
+    Object.assign(steps[steps.length - 1], {
+      brief: pivotFinalDesc.brief,
+      detail: pivotFinalDesc.detail,
+      context: { ...pivotFinalDesc.context, phase: '分区阶段' }
+    });
 
     return i + 1;
   }
