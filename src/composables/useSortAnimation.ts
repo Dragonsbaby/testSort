@@ -12,9 +12,9 @@ export interface ISortCanvas {
   renderFrame(frame: FrameState): void;
 }
 
-type BasicAlgorithm = "bubble" | "insertion" | "quick" | "shell";
-type SortAnimationAlgorithm = BasicAlgorithm | "merge" | "bucket" | "heap";
-type SortFn = (arr: number[]) => SemanticStep[];
+export type BasicAlgorithm = "bubble" | "insertion" | "quick" | "shell";
+export type SortAnimationAlgorithm = BasicAlgorithm | "merge" | "bucket" | "heap";
+export type SortFn = (arr: number[]) => SemanticStep[];
 
 function buildDisplayArray(values: number[], displayIndexes: number[]): ArrayElement[] {
   return values.map((value, index) => ({

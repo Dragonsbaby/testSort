@@ -1,26 +1,38 @@
 <script setup lang="ts">
 import { ref, toRef } from "vue";
-import { mergeSort } from "@/utils/sortingAlgorithms";
-import SortBarCanvasMerge from "@/components/SortBarCanvasMerge.vue";
+import SortBarCanvas from "@/components/SortBarCanvas.vue";
 import { useSortStore } from "@/stores/sortStore";
-import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimation";
+import {
+  useSortAnimation,
+  type ISortCanvas,
+  type SortFn,
+  type BasicAlgorithm,
+} from "@/composables/useSortAnimation";
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 import PlaybackButton from "@/components/common/PlaybackButton.vue";
 
-const props = defineProps<{ speed: number }>();
+/**
+ * 基础排序算法（bubble / insertion / quick / shell）的通用视图。
+ * 4 个算法组件退化为薄壳，仅注入 sortFn 与 algorithm 字面量；
+ * 本组件承载全部共用逻辑、模板、键盘注册与 defineExpose 契约。
+ */
+const props = defineProps<{
+  sortFn: SortFn;
+  algorithm: BasicAlgorithm;
+  speed: number;
+}>();
+
 const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
 const canvasWidthRef = ref(760);
-const canvasHeightRef = ref(460);
 
 const { array, steps, currentStep, isPlaying, isReady, play, pause, step, stepBack, reset, statusText, statusClass, progressPct, phase, desc, handleSeek } = useSortAnimation({
-  sortFn: mergeSort,
+  sortFn: props.sortFn,
   speed: toRef(props, "speed"),
   canvasRef,
   canvasWidth: canvasWidthRef,
-  canvasHeight: canvasHeightRef,
   originalArray: toRef(store, "originalArray"),
-  algorithm: "merge",
+  algorithm: props.algorithm,
 });
 
 useKeyboardShortcuts({
@@ -64,7 +76,7 @@ defineExpose({ reset, step });
       </div>
     </div>
 
-    <SortBarCanvasMerge ref="canvasRef" :array="array" :animation-speed="speed" @canvas-ready="canvasWidthRef = $event.width; canvasHeightRef = $event.height" />
+    <SortBarCanvas ref="canvasRef" :array="array" :animation-speed="speed" @canvas-ready="canvasWidthRef = $event" />
   </div>
 </template>
 
