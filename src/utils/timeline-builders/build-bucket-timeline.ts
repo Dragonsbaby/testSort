@@ -3,6 +3,7 @@ import { buildBucketLayout, BUCKET_INNER_PADDING_TOP, BUCKET_INNER_PADDING_BOT, 
 import { getStyleFromStateTags } from "@/utils/frame/style-utils";
 import { getBucketTheme } from "@/utils/frame/bucket-palette";
 import { calcBucketCount } from "@/types/sorting";
+import { TIMING, FLY_DURATION, CURVE } from "./timing-presets";
 
 const MAIN_BASE_STYLE = { fill: "#4a9eff", glow: 0 };
 
@@ -491,8 +492,8 @@ export function buildBucketTimeline(params: {
       : semantic.type === "bucket-gather"
         ? [`ghost-gather-${index}`]
         : undefined;
-    const swapDuration = 3;
-    const flyDuration = 2;
+    const swapDuration = TIMING.swap;
+    const flyDuration = FLY_DURATION.bucket;
     const isSwap = semantic.type === "bucket-swap";
     const isFly = semantic.type === "bucket-scatter" || semantic.type === "bucket-gather";
 
@@ -518,7 +519,7 @@ export function buildBucketTimeline(params: {
         easing: isFly || isSwap ? "easeInOutCubic" : "linear",
         // swap 不使用 movingEntityIds（linear 模式通过 swapEntityIdPairs 驱动交叉起点）
         movingEntityIds: isSwap ? undefined : movingEntityIds,
-        pathParams: { mode: semantic.type === "bucket-gather" ? "vertical-first" : "horizontal-first", curveHeight: 70 },
+        pathParams: { mode: semantic.type === "bucket-gather" ? "vertical-first" : "horizontal-first", curveHeight: CURVE.height },
         // swap 动画过程中保持样式插值，使颜色高亮在飞行期间持续可见
         styleTransition: true,
         // swap 的交叉起点对，触发 interpolate-entity.ts 中的平移对穿逻辑

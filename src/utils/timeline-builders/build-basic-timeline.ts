@@ -1,6 +1,8 @@
 import type { FrameState, RenderableEntity, SemanticStep, TimelineStep } from "@/types/timeline";
 import { BASIC_LAYOUT_LABEL_OFFSET, buildBasicLayout } from "@/utils/layout/basic-layout";
 import { BAR_BASE_STYLE, getStyleFromStateTags } from "@/utils/frame/style-utils";
+import { buildStateTagsFromSemantic } from "./state-tags";
+import { TIMING } from "./timing-presets";
 
 type BasicAlgorithm = "bubble" | "insertion" | "quick" | "shell";
 
@@ -62,41 +64,6 @@ function createBasicFrame(
   };
 }
 
-function buildStateTags(semantic: SemanticStep, previousSorted: Set<number>) {
-  const nextSorted = new Set(previousSorted);
-  const stateTagsByIndex = new Map<number, RenderableEntity["stateTags"]>();
-
-  if (semantic.type === "sorted") {
-    semantic.indices.forEach((index) => nextSorted.add(index));
-  }
-
-  nextSorted.forEach((index) => {
-    stateTagsByIndex.set(index, ["sorted"]);
-  });
-
-  if (semantic.type === "compare") {
-    semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["comparing"]));
-  }
-
-  if (semantic.type === "swap") {
-    semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["swapping"]));
-  }
-
-  if (semantic.type === "pivot") {
-    semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["pivot"]));
-  }
-
-  if (semantic.groupIndices?.length) {
-    semantic.groupIndices.forEach((index) => {
-      if (!stateTagsByIndex.has(index)) {
-        stateTagsByIndex.set(index, ["pending"]);
-      }
-    });
-  }
-
-  return { nextSorted, stateTagsByIndex };
-}
-
 function applyArraySnapshot(values: number[], semantic: SemanticStep) {
   if (!semantic.arraySnapshot) return values;
   return [...semantic.arraySnapshot];
@@ -130,7 +97,7 @@ export function buildBasicTimeline(params: {
   return steps.map((semantic, index) => {
     // from 直接引用上一步的 to（createBasicFrame 每步返回独立新对象，引用共享安全；插值/渲染只读不 mutate）
     const from = currentFrame;
-    const { nextSorted, stateTagsByIndex } = buildStateTags(semantic, sortedIndices);
+    const { nextSorted, stateTagsByIndex } = buildStateTagsFromSemantic(semantic, sortedIndices, { pendingTag: "pending" });
     sortedIndices = nextSorted;
 
     if (semantic.type === "swap") {
@@ -159,7 +126,7 @@ export function buildBasicTimeline(params: {
     // to 是当步新建的独立对象，直接引用即可（无需深拷贝）
     currentFrame = to;
 
-    const swapDuration = 3;
+    const swapDuration = TIMING.swap;
 
     return {
       id: `basic-${algorithm}-${index + 1}`,

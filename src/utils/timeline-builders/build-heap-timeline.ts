@@ -1,6 +1,8 @@
 import type { FrameState, RenderableEntity, RenderableOverlay, StateTag, SemanticStep, TimelineStep } from "@/types/timeline";
 import { buildHeapNodePosition, getArrayAreaHeight } from "@/utils/layout/heap-layout";
 import { getStyleFromStateTags } from "@/utils/frame/style-utils";
+import { buildStateTagsFromSemantic } from "./state-tags";
+import { TIMING } from "./timing-presets";
 
 const TREE_BASE_STYLE = { fill: "#1a3a5c", stroke: "#254e7a", text: "#f0ead8", glow: 0.04 };
 const ARRAY_BASE_STYLE = { fill: "#112240", stroke: "#1a3356", text: "#f0ead8", glow: 0.02 };
@@ -8,45 +10,6 @@ const ARRAY_BASE_STYLE = { fill: "#112240", stroke: "#1a3356", text: "#f0ead8", 
 function getHeapStyle(stateTags: StateTag[], fallback: typeof TREE_BASE_STYLE) {
   const style = getStyleFromStateTags(stateTags, fallback);
   return style.glow ? { ...style, glow: style.glow * 0.45 } : style;
-}
-
-function createStateTags(semantic: SemanticStep, previousSorted: Set<number>) {
-  const nextSorted = new Set(previousSorted);
-  const stateTagsByIndex = new Map<number, StateTag[]>();
-
-  if (semantic.type === "sorted") {
-    semantic.indices.forEach((index) => nextSorted.add(index));
-  }
-
-  nextSorted.forEach((index) => {
-    stateTagsByIndex.set(index, ["sorted"]);
-  });
-
-  if (semantic.groupIndices?.length) {
-    semantic.groupIndices.forEach((index) => {
-      if (!stateTagsByIndex.has(index)) {
-        stateTagsByIndex.set(index, ["heap-pending"]);
-      }
-    });
-  }
-
-  if (semantic.type === "compare") {
-    semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["comparing"]));
-  }
-
-  if (semantic.type === "swap") {
-    semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["swapping"]));
-  }
-
-  if (semantic.type === "pivot") {
-    semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["pivot"]));
-  }
-
-  if (semantic.type === "latest") {
-    semantic.indices.forEach((index) => stateTagsByIndex.set(index, ["latest"]));
-  }
-
-  return { nextSorted, stateTagsByIndex };
 }
 
 function createHeapOverlays(count: number, width: number, height: number, isMinHeap: boolean): RenderableOverlay[] {
@@ -215,7 +178,7 @@ export function buildHeapTimeline(params: {
 
   return steps.map((semantic, index) => {
     const from = currentFrame as FrameState;
-    const { nextSorted, stateTagsByIndex } = createStateTags(semantic, sortedIndices);
+    const { nextSorted, stateTagsByIndex } = buildStateTagsFromSemantic(semantic, sortedIndices, { pendingTag: "heap-pending" });
     sortedIndices = nextSorted;
 
     if ((semantic.type === "swap" || semantic.type === "set" || semantic.type === "merge") && semantic.arraySnapshot) {
@@ -256,8 +219,8 @@ export function buildHeapTimeline(params: {
     currentFrame = to;
 
     const isRootExtractSwap = semantic.type === "swap" && semantic.indices.includes(0) && Math.abs(semantic.indices[0] - semantic.indices[1]) > 1;
-    const swapDuration = 3;
-    const compareDuration = 2;
+    const swapDuration = TIMING.swap;
+    const compareDuration = TIMING.compare;
 
     const swapEntityIdPairs: [string, string][] | undefined = semantic.type === "swap"
       ? [

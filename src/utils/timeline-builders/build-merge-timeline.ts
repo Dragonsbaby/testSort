@@ -1,6 +1,7 @@
 import type { FrameState, RenderableEntity, RenderableOverlay, StateTag, TimelineStep, SemanticStep } from "@/types/timeline";
 import { buildMergeLayout } from "@/utils/layout/merge-layout";
 import { getStyleFromStateTags } from "@/utils/frame/style-utils";
+import { FLY_DURATION } from "./timing-presets";
 
 const MAIN_BASE_STYLE = { fill: "#4a9eff", glow: 0 };
 const BUFFER_BASE_STYLE = { fill: "#4ecdc4", glow: 0.2 };
@@ -452,7 +453,7 @@ export function buildMergeTimeline(params: {
         ? semantic.indices.filter((i) => typeof i === "number").map((i) => `ghost-back-${index}-${i}`)
         : undefined;
 
-    const flyDuration = 3;
+    const flyDuration = FLY_DURATION.merge;
     return {
       id: `merge-${index + 1}`,
       kind: semantic.type,
