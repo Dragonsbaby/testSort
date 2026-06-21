@@ -10,6 +10,26 @@ const VALUE_LABEL_COLOR = "#ffd43b";
 const INDEX_LABEL_COLOR = "#20e25a";
 const BAR_HIGHLIGHT_COLOR = "rgba(203, 243, 255, 0.82)";
 
+/** Canvas 等宽字体族（集中管理，避免字体字符串散落各绘制函数） */
+const FONT_FAMILY = '"JetBrains Mono", monospace';
+/** 固定字号字体预设（动态字号用 sizedFont 生成） */
+const FONTS = {
+  /** 徽章数字（桶计数）：bold 13px */
+  badge: `bold 13px ${FONT_FAMILY}`,
+  /** 桶标题：700 13px */
+  bucketTitle: `700 13px ${FONT_FAMILY}`,
+  /** 普通标签：600 11px */
+  label: `600 11px ${FONT_FAMILY}`,
+  /** 小字号文本：10px */
+  tiny: `10px ${FONT_FAMILY}`,
+  /** 堆节点 displayIndex：8px */
+  heapIndex: `8px ${FONT_FAMILY}`,
+} as const;
+/** 按字号生成动态字体字符串（柱子值/序号、堆节点值随尺寸缩放） */
+function sizedFont(weight: string, size: number) {
+  return `${weight} ${size}px ${FONT_FAMILY}`;
+}
+
 function isHeapNode(entity: RenderableEntity) {
   return entity.kind === "heap-tree-node" || entity.kind === "heap-array-node";
 }
@@ -217,7 +237,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
 
       if (overlay.kind === "badge") {
         // 徽章字号加大至 13px
-        ctx.font = 'bold 13px "JetBrains Mono", monospace';
+        ctx.font = FONTS.badge;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         const paddingX = 9;
@@ -243,10 +263,10 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
         // 桶标题 13px bold，其余 label 11px
         const isBucketTitle = overlay.id.startsWith("bucket-title-");
         ctx.font = isBucketTitle
-          ? '700 13px "JetBrains Mono", monospace'
+          ? FONTS.bucketTitle
           : overlay.kind === "label"
-            ? '600 11px "JetBrains Mono", monospace'
-            : '10px "JetBrains Mono", monospace';
+            ? FONTS.label
+            : FONTS.tiny;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = overlay.style.text ?? overlay.style.fill;
@@ -294,13 +314,13 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.lineTo(x + width - radius, top + 4);
     ctx.stroke();
 
-    ctx.font = `700 ${Math.min(12, Math.max(width - 2, 9))}px "JetBrains Mono", monospace`;
+    ctx.font = sizedFont("700", Math.min(12, Math.max(width - 2, 9)));
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     ctx.fillStyle = entity.style.text ?? VALUE_LABEL_COLOR;
     ctx.fillText(String(entity.value), x + width / 2, Math.max(14, top - 8));
 
-    ctx.font = `bold ${Math.min(12, Math.max(width - 2, 8))}px "JetBrains Mono", monospace`;
+    ctx.font = sizedFont("bold", Math.min(12, Math.max(width - 2, 8)));
     ctx.fillStyle = INDEX_LABEL_COLOR;
     const labelOffset = getFrameNumberMeta(frame, "labelOffset") ?? 17;
     ctx.fillText(String(entity.displayIndex), x + width / 2, y + labelOffset);
@@ -332,14 +352,14 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
 
     ctx.restore();
 
-    ctx.font = `bold ${Math.min(13, Math.max(radius * 1.2, 7))}px "JetBrains Mono", monospace`;
+    ctx.font = sizedFont("bold", Math.min(13, Math.max(radius * 1.2, 7)));
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = entity.style.text ?? "#f0ead8";
     if (radius >= 6) {
       ctx.fillText(String(entity.value), entity.x, entity.y + 0.5);
       if (entity.kind === "heap-array-node" || entity.kind === "heap-tree-node") {
-        ctx.font = '8px "JetBrains Mono", monospace';
+        ctx.font = FONTS.heapIndex;
         ctx.textBaseline = "top";
         ctx.fillStyle = "rgba(160, 185, 220, 0.65)";
         ctx.fillText(String(entity.displayIndex), entity.x, entity.y + radius + 4);
