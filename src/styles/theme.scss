@@ -1,0 +1,71 @@
+// ── 主题样式基座：自托管字体 / 颜色过渡 / tabular-nums ──
+// 颜色 token（--bg-1 等）由 themeStore.applyThemeToDOM 运行时注入，此处只放静态规则。
+
+// 自托管 JetBrains Mono（Orbitron 教训：不存在的字体不写进字体栈）
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("@/assets/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("@/assets/fonts/JetBrainsMono-Bold.woff2") format("woff2");
+}
+
+// 字体栈 token：拉丁 UI 走系统栈，中文回退系统字体，数字走自托管 mono
+:root {
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+// 主题切换全局颜色过渡（300ms，与 Canvas 色板混合同节奏；取代旧 theme-transitioning class hack）
+body,
+.app,
+.app-title,
+.bg-grid,
+.control-panel,
+.stats-bar,
+.compare-slot,
+.compare-summary,
+.compare-controls,
+.help-content,
+.algo-dropdown,
+.action-btn,
+.pb-btn,
+.ctrl-btn,
+.theme-switch,
+.help-button,
+kbd {
+  transition:
+    background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// 数值排版：等宽数字，滚动零抖动（spec 6.4 / 7.4）
+.tabular-nums,
+.pb-step-count,
+.metric-value,
+.diff-value,
+.stat-item strong,
+.size-value,
+.speed-value,
+.summary-algo-name {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+// 动效减弱偏好
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

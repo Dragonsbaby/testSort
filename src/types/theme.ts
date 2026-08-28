@@ -1,82 +1,68 @@
-import type { RenderStyle } from "./timeline";
+import type { StateTag } from "./timeline";
+
+/** 主题标识符（双城：暗画廊 / 亮画室） */
+export type ThemeId = "dark" | "light";
+
+/** 单个状态的视觉：填充色 + 发光乘数（0~1，由 renderer 乘 shadowBlur 基数） */
+export interface StateVisual {
+  fill: string;
+  glow: number;
+}
 
 /**
- * 主题标识符
+ * 渲染期调色板：useCanvasRenderer 每帧读取的唯一取色来源。
+ * 由主题 canvas 段 + overlay 需要的 ui 子集合成；主题切换时 300ms 逐字段混合。
+ * grid / gridSpacing / baseline / border 可能是 rgba() 字符串，不参与混合（直接取新主题）。
  */
-export type ThemeId = "dark" | "light" | "cyberpunk" | "ocean" | "sunset" | "forest";
-
-/**
- * 颜色调色板
- */
-export interface ColorPalette {
-  // 背景颜色
+export interface RendererPalette {
+  /** 背景色（混合） */
   background: string;
-  backgroundSecondary?: string;
-
-  // 网格和辅助线
+  /** 次级背景 / badge 底色（混合） */
+  backgroundSecondary: string;
+  /** Canvas 内数值文字色（混合） */
+  text: string;
+  /** Canvas 内序号文字色（混合） */
+  indexText: string;
+  /** 发光基数，最终 shadowBlur = shadowBlur * state.glow（数值混合） */
+  shadowBlur: number;
+  /** 点阵圆点色（不混合，rgba 字符串） */
   grid: string;
+  /** 点阵间距 px（不混合） */
+  gridSpacing: number;
+  /** 基线色（不混合，rgba 字符串） */
   baseline: string;
-  divider?: string;
+  /** 状态色板（fill 混合、glow 数值混合） */
+  states: Record<StateTag, StateVisual>;
+  /** —— 以下为 overlay 需要的 ui 子集（混合） —— */
+  accent: string;
+  uiText: string;
+  uiTextSecondary: string;
+  uiTextMuted: string;
+  /** 面板/分隔线边框色（不混合，可能 rgba） */
+  border: string;
+}
 
-  // 文字颜色
+/** UI 层 token（注入为 CSS 变量） */
+export interface ThemeUiTokens {
+  bg1: string;
+  bg2: string;
+  bg3: string;
+  border: string;
   text: string;
   textSecondary: string;
   textMuted: string;
-
-  // 实体基础颜色
-  primary: string;
-  secondary?: string;
+  accent: string;
+  /** 面板投影；暗色为 "none"（用边框分层），亮色用极轻投影 */
+  shadow: string;
 }
 
-/**
- * 状态样式映射
- */
-export interface StateStyleMapping {
-  [key: string]: RenderStyle;
-}
-
-/**
- * 主题配置
- */
-export interface Theme {
+/** 主题定义（纯数据，三段结构） */
+export interface ThemeDefinition {
   id: ThemeId;
   name: string;
-  description: string;
-
-  // 颜色调色板
-  colors: ColorPalette;
-
-  // 状态标签样式映射
-  stateStyles: StateStyleMapping;
-
-  // 视觉效果配置
-  effects: {
-    gridSpacing: number;
-    gridOpacity: number;
-    baselineGlow: boolean;
-    baselineOpacity: number;
-    shadowBlur: number;
-    particleEffect?: boolean; // 粒子效果
-  };
-
-  // 字体配置
-  typography: {
-    labelFont: string;
-    valueFont: string;
-    monospaceFont: string;
-  };
-
-  // 动画配置
-  animation: {
-    easing: string;
-    transitionSpeed: number;
-  };
-}
-
-/**
- * 主题预设配置
- */
-export interface ThemePreset {
-  themes: Theme[];
-  default: ThemeId;
+  /** 元数据：深浅判断唯一来源，消灭硬编码主题 ID 列表 */
+  dark: boolean;
+  ui: ThemeUiTokens;
+  /** Canvas 渲染段：直接复用 RendererPalette 字段集 */
+  canvas: RendererPalette;
 }

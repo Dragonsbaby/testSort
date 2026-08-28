@@ -70,7 +70,6 @@ defineExpose({ renderFrame: exposedRenderFrame });
   min-height: 560px;
   position: relative;
   padding: 20px 20px 0 20px;
-  box-shadow: inset 0 0 60px rgba(78, 205, 196, 0.04);
   z-index: 1;
 }
 
@@ -84,7 +83,7 @@ defineExpose({ renderFrame: exposedRenderFrame });
   position: absolute;
   width: 24px;
   height: 24px;
-  border-color: rgba(78, 205, 196, 0.7);
+  border-color: var(--border);
   border-style: solid;
   border-width: 0;
   z-index: 2;

@@ -58,6 +58,7 @@ useKeyboardShortcuts({
           :class="heapMode"
           @click="heapMode = heapMode === 'max' ? 'min' : 'max'"
           :title="heapMode === 'max' ? '当前：最大堆，点击切换为最小堆' : '当前：最小堆，点击切换为最大堆'"
+          :aria-label="heapMode === 'max' ? '切换为最小堆' : '切换为最大堆'"
         >
           <svg v-if="heapMode === 'max'" class="pb-icon" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="12,4 20,16 4,16"/>
@@ -101,25 +102,14 @@ useKeyboardShortcuts({
 <style lang="scss" scoped>
 @use './algorithm-common';
 
+/* 堆模式按钮：max 走 swapping 系、min 走 accent 系（与 CompareSlot 同一语义） */
 .heap-mode-btn.max {
-  color: #ff9f40;
-  border-color: rgba(255, 159, 64, 0.3);
-  background: rgba(255, 159, 64, 0.08);
-}
-
-.heap-mode-btn.max:hover:not(:disabled) {
-  background: rgba(255, 159, 64, 0.16);
-  border-color: rgba(255, 159, 64, 0.5);
+  color: var(--swapping);
+  border-color: var(--swapping);
 }
 
 .heap-mode-btn.min {
-  color: #4ecdc4;
-  border-color: rgba(78, 205, 196, 0.3);
-  background: rgba(78, 205, 196, 0.08);
-}
-
-.heap-mode-btn.min:hover:not(:disabled) {
-  background: rgba(78, 205, 196, 0.16);
-  border-color: rgba(78, 205, 196, 0.5);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 </style>

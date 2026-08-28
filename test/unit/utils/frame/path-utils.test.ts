@@ -52,13 +52,13 @@ describe('path-utils', () => {
     });
 
     test('应该快速启动然后减速', () => {
-      const early = easeOutCubic(0.2);
-      const mid = easeOutCubic(0.5);
-      const late = easeOutCubic(0.8);
+      // "减速"指斜率递减：等距采样的增量 early > mid > late
+      const earlyGain = easeOutCubic(0.2) - easeOutCubic(0);
+      const midGain = easeOutCubic(0.6) - easeOutCubic(0.4);
+      const lateGain = easeOutCubic(1) - easeOutCubic(0.8);
 
-      // 早期增长快，后期增长慢
-      expect(early).toBeGreaterThan(0.2 * 0.8); // 线性的80%
-      expect(late).toBeLessThan(0.8 + 0.2 * 0.2); // 接近1但不超过
+      expect(earlyGain).toBeGreaterThan(midGain);
+      expect(midGain).toBeGreaterThan(lateGain);
     });
 
     test('边界值', () => {
@@ -194,36 +194,38 @@ describe('path-utils', () => {
   });
 
   describe('getPathPoint - L形路径计算', () => {
-    test('horizontal-first 模式', () => {
+    // 实现契约：第 4 参数为 pathParams 对象（mode / curveHeight，弧顶偏移默认 48）；
+    // 前半段（t≤0.5）完成主轴全部位移，弧顶偏移只作用于 y 分量
+    test('horizontal-first 模式：前半段完成水平位移', () => {
       const start = { x: 0, y: 0 };
       const end = { x: 100, y: 50 };
-      const curveHeight = 20;
+      const params = { mode: 'horizontal-first', curveHeight: 20 };
 
-      // 前半段：水平移动
-      const earlyPoint = getPathPoint(start, end, 0.2, 'horizontal-first', curveHeight);
-      expect(earlyPoint.x).toBeGreaterThan(0);
-      expect(earlyPoint.x).toBeLessThan(50);
+      // t=0.2（前半段 localProgress=0.4）：x 走到 40，y 被 sin 弧顶抬高
+      const earlyPoint = getPathPoint(start, end, 0.2, params);
+      expect(earlyPoint.x).toBeCloseTo(40, 5);
+      expect(earlyPoint.y).toBeCloseTo(-Math.sin(0.4 * Math.PI) * 20, 5);
 
-      // 后半段：垂直移动
-      const latePoint = getPathPoint(start, end, 0.8, 'horizontal-first', curveHeight);
+      // t=0.8（后半段 localProgress=0.6）：x 已到位，y 走到 30 带残余弧偏移（0.35 衰减）
+      const latePoint = getPathPoint(start, end, 0.8, params);
       expect(latePoint.x).toBeCloseTo(100, 5);
-      expect(latePoint.y).toBeGreaterThan(25);
+      expect(latePoint.y).toBeCloseTo(30 - Math.sin(0.4 * Math.PI) * 20 * 0.35, 5);
     });
 
-    test('vertical-first 模式', () => {
+    test('vertical-first 模式：前半段完成垂直位移', () => {
       const start = { x: 0, y: 0 };
       const end = { x: 100, y: 50 };
-      const curveHeight = 20;
+      const params = { mode: 'vertical-first', curveHeight: 20 };
 
-      // 前半段：垂直移动
-      const earlyPoint = getPathPoint(start, end, 0.2, 'vertical-first', curveHeight);
-      expect(earlyPoint.y).toBeGreaterThan(0);
-      expect(earlyPoint.y).toBeLessThan(25);
+      // t=0.2：y 走到 20（含弧顶抬升），x 仍为 0
+      const earlyPoint = getPathPoint(start, end, 0.2, params);
+      expect(earlyPoint.y).toBeCloseTo(20 - Math.sin(0.4 * Math.PI) * 20, 5);
+      expect(earlyPoint.x).toBeCloseTo(0, 5);
 
-      // 后半段：水平移动
-      const latePoint = getPathPoint(start, end, 0.8, 'vertical-first', curveHeight);
-      expect(latePoint.y).toBeCloseTo(50, 5);
-      expect(latePoint.x).toBeGreaterThan(50);
+      // t=0.8：y 已到位，x 走到 60
+      const latePoint = getPathPoint(start, end, 0.8, params);
+      expect(latePoint.y).toBeCloseTo(50 - Math.sin(0.4 * Math.PI) * 20 * 0.35, 5);
+      expect(latePoint.x).toBeCloseTo(60, 5);
     });
 
     test('起点和终点应该匹配', () => {
@@ -231,8 +233,9 @@ describe('path-utils', () => {
       const end = { x: 100, y: 50 };
 
       ['horizontal-first', 'vertical-first'].forEach(mode => {
-        const startPoint = getPathPoint(start, end, 0, mode, 20);
-        const endPoint = getPathPoint(start, end, 1, mode, 20);
+        const params = { mode, curveHeight: 20 };
+        const startPoint = getPathPoint(start, end, 0, params);
+        const endPoint = getPathPoint(start, end, 1, params);
 
         expect(startPoint.x).toBeCloseTo(start.x, 5);
         expect(startPoint.y).toBeCloseTo(start.y, 5);
@@ -242,49 +245,54 @@ describe('path-utils', () => {
       });
     });
 
-    test('应该在转角处添加曲线', () => {
+    test('转角点（t=0.5）：主轴位移已走完，弧偏移恰好归零', () => {
       const start = { x: 0, y: 0 };
       const end = { x: 100, y: 100 };
-      const curveHeight = 30;
+      const params = { mode: 'horizontal-first', curveHeight: 30 };
 
-      // 在转角处（progress ≈ 0.5）
-      const cornerPoint = getPathPoint(start, end, 0.5, 'horizontal-first', curveHeight);
+      const cornerPoint = getPathPoint(start, end, 0.5, params);
 
-      // 应该有曲线效果，不是完全的直角
-      expect(cornerPoint.x).toBeGreaterThan(40);
-      expect(cornerPoint.x).toBeLessThan(60);
-      expect(cornerPoint.y).toBeGreaterThan(40);
-      expect(cornerPoint.y).toBeLessThan(60);
+      // 前半段终点 = (end.x, start.y)；sin(π)=0 弧偏移归零（存在浮点噪声，用近似断言）
+      expect(cornerPoint.x).toBeCloseTo(100, 5);
+      expect(cornerPoint.y).toBeCloseTo(0, 5);
     });
 
     test('应该处理零距离情况', () => {
-      const start = { x: 50, y: 50 };
-      const end = { x: 50, y: 50 };
+      const point = getPathPoint(
+        { x: 50, y: 50 },
+        { x: 50, y: 50 },
+        0.5,
+        { mode: 'horizontal-first', curveHeight: 20 },
+      );
 
-      const point = getPathPoint(start, end, 0.5, 'horizontal-first', 20);
-
-      expect(point.x).toBe(50);
-      expect(point.y).toBe(50);
+      expect(point.x).toBeCloseTo(50, 5);
+      expect(point.y).toBeCloseTo(50, 5);
     });
 
     test('应该处理纯水平移动', () => {
-      const start = { x: 0, y: 100 };
-      const end = { x: 100, y: 100 };
+      const point = getPathPoint(
+        { x: 0, y: 100 },
+        { x: 100, y: 100 },
+        0.5,
+        { mode: 'horizontal-first', curveHeight: 20 },
+      );
 
-      const point = getPathPoint(start, end, 0.5, 'horizontal-first', 20);
-
-      expect(point.y).toBe(100);
-      expect(point.x).toBe(50);
+      // 水平位移在前半段已全部完成
+      expect(point.x).toBeCloseTo(100, 5);
+      expect(point.y).toBeCloseTo(100, 5);
     });
 
     test('应该处理纯垂直移动', () => {
-      const start = { x: 100, y: 0 };
-      const end = { x: 100, y: 100 };
+      const point = getPathPoint(
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+        0.5,
+        { mode: 'vertical-first', curveHeight: 20 },
+      );
 
-      const point = getPathPoint(start, end, 0.5, 'vertical-first', 20);
-
-      expect(point.x).toBe(100);
-      expect(point.y).toBe(50);
+      // 垂直位移在前半段已全部完成
+      expect(point.x).toBeCloseTo(100, 5);
+      expect(point.y).toBeCloseTo(100, 5);
     });
   });
 
@@ -312,15 +320,18 @@ describe('path-utils', () => {
     test('L形路径应该是连续的', () => {
       const start = { x: 0, y: 0 };
       const end = { x: 100, y: 50 };
+      const params = { mode: 'horizontal-first', curveHeight: 20 };
 
       const points = Array.from({ length: 100 }, (_, i) =>
-        getPathPoint(start, end, i / 99, 'horizontal-first', 20)
+        getPathPoint(start, end, i / 99, params)
       );
 
-      // 检查路径连续性
       for (let i = 1; i < points.length; i++) {
-        expect(points[i].x).toBeGreaterThanOrEqual(0);
-        expect(points[i].y).toBeGreaterThanOrEqual(0);
+        // x 单调不减（前半段递增、后半段恒定）；相邻点距无跳变
+        expect(points[i].x).toBeGreaterThanOrEqual(points[i - 1].x - 1e-9);
+        const dx = points[i].x - points[i - 1].x;
+        const dy = points[i].y - points[i - 1].y;
+        expect(Math.hypot(dx, dy)).toBeLessThan(5);
       }
     });
   });

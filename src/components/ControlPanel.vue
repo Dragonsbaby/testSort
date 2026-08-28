@@ -49,7 +49,7 @@ function exitCompare() {
   <div class="control-panel">
     <!-- 算法选择：对比模式下隐藏 -->
     <div v-if="!isCompareMode" class="panel-section algo-section">
-      <select :value="store.algorithm" @change="e => handleAlgorithmChange((e.target as HTMLSelectElement).value as SortAlgorithm)" class="algo-dropdown">
+      <select :value="store.algorithm" @change="e => handleAlgorithmChange((e.target as HTMLSelectElement).value as SortAlgorithm)" class="algo-dropdown" aria-label="选择排序算法">
         <option v-for="alg in algorithms" :key="alg.value" :value="alg.value">{{ alg.label }}</option>
       </select>
     </div>
@@ -71,7 +71,7 @@ function exitCompare() {
 
     <div class="panel-section size-section">
       <div class="size-control">
-        <input type="range" :value="store.arraySize" @input="e => handleSizeChange(Number((e.target as HTMLInputElement).value))" min="10" :max="isCompareMode ? compareMaxSize : 100" step="1" class="size-slider" />
+        <input type="range" :value="store.arraySize" @input="e => handleSizeChange(Number((e.target as HTMLInputElement).value))" min="10" :max="isCompareMode ? compareMaxSize : 100" step="1" class="size-slider" aria-label="数组大小" />
         <span class="size-value">{{ store.arraySize }}</span>
       </div>
     </div>
@@ -80,7 +80,7 @@ function exitCompare() {
 
     <div class="panel-section speed-section">
       <div class="speed-control">
-        <input type="range" v-model="sliderValue" min="20" max="500" step="10" class="speed-slider" />
+        <input type="range" v-model="sliderValue" min="20" max="500" step="10" class="speed-slider" aria-label="动画速度" />
         <span class="speed-value">{{ sliderValue }}ms</span>
       </div>
       <div class="speed-marks">
@@ -128,13 +128,10 @@ function exitCompare() {
   align-items: center;
   gap: 0;
   padding: 14px 28px;
-  background: rgba(10, 10, 20, 0.85);
-  border: 1px solid rgba(74, 158, 255, 0.15);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  backdrop-filter: blur(20px);
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: var(--panel-shadow);
 }
 
 .panel-section {
@@ -146,12 +143,12 @@ function exitCompare() {
 
 /* Algorithm selector */
 .algo-dropdown {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   padding: 8px 32px 8px 12px;
-  border: 1px solid rgba(74, 158, 255, 0.25);
-  background: rgba(74, 158, 255, 0.08);
-  color: #6bb3ff;
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text);
   border-radius: 6px;
   cursor: pointer;
   outline: none;
@@ -160,22 +157,17 @@ function exitCompare() {
   background-repeat: no-repeat;
   background-position: right 10px center;
   min-width: 88px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.algo-dropdown:hover {
-  background-color: rgba(74, 158, 255, 0.12);
-  border-color: rgba(74, 158, 255, 0.4);
-}
-
+.algo-dropdown:hover,
 .algo-dropdown:focus {
-  border-color: rgba(74, 158, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+  border-color: var(--accent);
 }
 
 .algo-dropdown option {
-  background: #0d1117;
-  color: #e0e0e0;
+  background: var(--bg-3);
+  color: var(--text);
 }
 
 /* Algorithm info */
@@ -187,21 +179,21 @@ function exitCompare() {
 }
 
 .algo-complexity {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
-  color: #4adeee;
+  color: var(--text-secondary);
   padding: 2px 8px;
-  background: rgba(74, 222, 222, 0.08);
+  background: transparent;
   border-radius: 4px;
-  border: 1px solid rgba(74, 222, 222, 0.2);
+  border: 1px solid var(--border);
   white-space: nowrap;
   font-weight: 600;
 }
 
 .algo-desc {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: #a8b2c8;
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 
@@ -209,7 +201,7 @@ function exitCompare() {
 .panel-divider {
   width: 1px;
   height: 44px;
-  background: linear-gradient(180deg, transparent, rgba(74, 158, 255, 0.25) 30%, rgba(74, 158, 255, 0.25) 70%, transparent);
+  background: var(--border);
   margin: 0 20px;
 }
 
@@ -226,7 +218,8 @@ function exitCompare() {
   -webkit-appearance: none;
   width: 110px;
   height: 4px;
-  background: rgba(74, 158, 255, 0.15);
+  background: var(--bg-3);
+  border: 1px solid var(--border);
   border-radius: 2px;
   outline: none;
   transition: background 0.2s ease;
@@ -234,7 +227,7 @@ function exitCompare() {
 
 .size-slider:hover,
 .speed-slider:hover {
-  background: rgba(74, 158, 255, 0.25);
+  background: var(--border);
 }
 
 .size-slider::-webkit-slider-thumb,
@@ -242,24 +235,23 @@ function exitCompare() {
   -webkit-appearance: none;
   width: 14px;
   height: 14px;
-  background: #4a9eff;
+  background: var(--accent);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: none;
+  transition: transform 0.15s ease;
 }
 
 .size-slider::-webkit-slider-thumb:hover,
 .speed-slider::-webkit-slider-thumb:hover {
   transform: scale(1.15);
-  box-shadow: 0 0 14px rgba(74, 158, 255, 0.6);
 }
 
 .size-value,
 .speed-value {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 14px;
-  color: #5dddd4;
+  color: var(--text-secondary);
   min-width: 55px;
 }
 
@@ -267,9 +259,9 @@ function exitCompare() {
   display: flex;
   justify-content: space-between;
   width: 110px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
-  color: #8b95a8;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -278,21 +270,19 @@ function exitCompare() {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   padding: 8px 16px;
-  border: 1px solid rgba(78, 205, 196, 0.3);
-  background: rgba(78, 205, 196, 0.08);
-  color: #4ecdc4;
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--accent);
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
 
 .action-btn:hover {
-  background: rgba(78, 205, 196, 0.15);
-  border-color: rgba(78, 205, 196, 0.5);
-  box-shadow: 0 0 16px rgba(78, 205, 196, 0.15);
+  border-color: var(--accent);
   transform: translateY(-1px);
 }
 
@@ -331,38 +321,20 @@ function exitCompare() {
   }
 }
 
-/* 对比模式 */
+/* 对比模式：enter 与 .action-btn 同构（继承其样式）；exit 走 swapping 语义色 */
 .compare-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
-  color: #4ecdc4;
+  color: var(--accent);
   padding: 4px 12px;
-  background: rgba(78, 205, 196, 0.1);
-  border: 1px solid rgba(78, 205, 196, 0.25);
+  background: var(--bg-3);
+  border: 1px solid var(--border);
   border-radius: 5px;
   white-space: nowrap;
 }
 
-.compare-enter-btn {
-  color: #4ecdc4;
-  border-color: rgba(78, 205, 196, 0.3);
-  background: rgba(78, 205, 196, 0.08);
-}
-
-.compare-enter-btn:hover {
-  background: rgba(78, 205, 196, 0.15);
-  border-color: rgba(78, 205, 196, 0.5);
-  box-shadow: 0 0 16px rgba(78, 205, 196, 0.15);
-}
-
 .compare-exit-btn {
-  color: #ff8a8a;
-  border-color: rgba(255, 138, 138, 0.3);
-  background: rgba(255, 138, 138, 0.08);
-}
-
-.compare-exit-btn:hover {
-  background: rgba(255, 138, 138, 0.15);
-  border-color: rgba(255, 138, 138, 0.5);
+  color: var(--swapping);
+  border-color: var(--swapping);
 }
 </style>

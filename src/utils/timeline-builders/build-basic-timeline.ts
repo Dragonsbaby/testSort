@@ -1,6 +1,5 @@
 import type { FrameState, RenderableEntity, SemanticStep, TimelineStep } from "@/types/timeline";
 import { BASIC_LAYOUT_LABEL_OFFSET, buildBasicLayout } from "@/utils/layout/basic-layout";
-import { BAR_BASE_STYLE, getStyleFromStateTags } from "@/utils/frame/style-utils";
 import { buildStateTagsFromSemantic } from "./state-tags";
 import { TIMING } from "./timing-presets";
 
@@ -22,7 +21,6 @@ function createBasicFrame(
 
   const entities: RenderableEntity[] = values.map((value, index) => {
     const stateTags = stateTagsByIndex.get(index) ?? [];
-    const style = getStyleFromStateTags(stateTags, BAR_BASE_STYLE);
 
     return {
       id: `main-${displayIndexes[index]}`,
@@ -36,7 +34,6 @@ function createBasicFrame(
       height: Math.max(5, Math.round((value / maxValue) * (slots[index]?.maxHeight ?? 0))),
       opacity: 1,
       zIndex: 1,
-      style,
       stateTags,
     };
   });

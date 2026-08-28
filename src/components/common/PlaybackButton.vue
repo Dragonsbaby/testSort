@@ -25,6 +25,7 @@ defineEmits<{ click: [] }>();
     :class="{ active }"
     :disabled="disabled"
     :title="title"
+    :aria-label="title"
     @click="$emit('click')"
   >
     <!-- reset 为描边图标（fill=none, stroke），其余为填充图标（fill=currentColor） -->

@@ -228,14 +228,11 @@ defineExpose({
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: rgba(10, 10, 20, 0.5);
-  border: 1px solid rgba(74, 158, 255, 0.2);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
-  backdrop-filter: blur(10px);
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  box-shadow: var(--panel-shadow);
 }
 
 /* ── 头部区域 ── */
@@ -244,19 +241,19 @@ defineExpose({
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(10, 10, 20, 0.6);
-  border-bottom: 1px solid rgba(74, 158, 255, 0.1);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 /* ── 算法选择下拉框 ── */
 .slot-algo-select {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   padding: 4px 24px 4px 8px;
-  border: 1px solid rgba(74, 158, 255, 0.2);
-  background: rgba(74, 158, 255, 0.06);
-  color: #6bb3ff;
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text);
   border-radius: 4px;
   cursor: pointer;
   outline: none;
@@ -265,77 +262,59 @@ defineExpose({
   background-repeat: no-repeat;
   background-position: right 6px center;
   min-width: 72px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
-.slot-algo-select:hover {
-  background-color: rgba(74, 158, 255, 0.1);
-  border-color: rgba(74, 158, 255, 0.35);
-}
-
+.slot-algo-select:hover,
 .slot-algo-select:focus {
-  border-color: rgba(74, 158, 255, 0.5);
-  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  border-color: var(--accent);
 }
 
 .slot-algo-select option {
-  background: #0d1117;
-  color: #e0e0e0;
+  background: var(--bg-3);
+  color: var(--text);
 }
 
 /* ── 复杂度标签 ── */
 .slot-complexity {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
-  color: #4adeee;
+  color: var(--text-secondary);
   padding: 1px 6px;
-  background: rgba(74, 222, 222, 0.08);
+  background: transparent;
   border-radius: 3px;
-  border: 1px solid rgba(74, 222, 222, 0.15);
+  border: 1px solid var(--border);
   white-space: nowrap;
   font-weight: 600;
 }
 
-/* ── 堆模式切换按钮 ── */
+/* ── 堆模式切换按钮：max 走 swapping 系、min 走 accent 系 ── */
 .heap-mode-btn {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   padding: 1px 6px;
-  border: 1px solid rgba(74, 158, 255, 0.2);
-  background: rgba(74, 158, 255, 0.06);
-  color: #6bb3ff;
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text-secondary);
   border-radius: 3px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, color 0.2s ease;
   white-space: nowrap;
   font-weight: 600;
 }
 
 .heap-mode-btn:hover {
-  background: rgba(74, 158, 255, 0.12);
-  border-color: rgba(74, 158, 255, 0.35);
+  border-color: var(--accent);
 }
 
 .heap-mode-btn.max {
-  color: #ff8a8a;
-  border-color: rgba(255, 138, 138, 0.25);
-  background: rgba(255, 138, 138, 0.06);
-}
-
-.heap-mode-btn.max:hover {
-  background: rgba(255, 138, 138, 0.12);
-  border-color: rgba(255, 138, 138, 0.35);
+  color: var(--swapping);
+  border-color: var(--swapping);
 }
 
 .heap-mode-btn.min {
-  color: #4ecdc4;
-  border-color: rgba(78, 205, 196, 0.25);
-  background: rgba(78, 205, 196, 0.06);
-}
-
-.heap-mode-btn.min:hover {
-  background: rgba(78, 205, 196, 0.12);
-  border-color: rgba(78, 205, 196, 0.35);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* ── 统计信息 ── */
@@ -343,21 +322,21 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 4px;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
-  color: #8b95a8;
+  color: var(--text-muted);
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
 
 .stat-item strong {
-  color: #5dddd4;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
 .stat-divider {
-  color: rgba(74, 158, 255, 0.2);
+  color: var(--text-muted);
   margin: 0 1px;
 }
 
@@ -374,18 +353,17 @@ defineExpose({
   height: 5px;
   border-radius: 50%;
   flex-shrink: 0;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease;
 }
 
-.slot-status.ready .dot { background: #8b95a8; }
+.slot-status.ready .dot { background: var(--text-muted); }
 .slot-status.playing .dot {
-  background: #5dddd4;
-  box-shadow: 0 0 6px rgba(93, 221, 212, 0.5);
+  background: var(--accent);
   animation: status-pulse 1s ease-in-out infinite;
 }
-.slot-status.paused .dot { background: #ff8a8a; }
-.slot-status.done .dot { background: #6bff6b; }
-.slot-status.loading .dot { background: #ffcc44; }
+.slot-status.paused .dot { background: var(--swapping); }
+.slot-status.done .dot { background: var(--sorted); }
+.slot-status.loading .dot { background: var(--accent); }
 
 @keyframes status-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -393,16 +371,16 @@ defineExpose({
 }
 
 .slot-status .status-text {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   white-space: nowrap;
 }
 
-.slot-status.ready .status-text { color: #8b95a8; }
-.slot-status.playing .status-text { color: #5dddd4; }
-.slot-status.paused .status-text { color: #ff8a8a; }
-.slot-status.done .status-text { color: #6bff6b; }
-.slot-status.loading .status-text { color: #ffcc44; }
+.slot-status.ready .status-text { color: var(--text-muted); }
+.slot-status.playing .status-text { color: var(--accent); }
+.slot-status.paused .status-text { color: var(--swapping); }
+.slot-status.done .status-text { color: var(--sorted); }
+.slot-status.loading .status-text { color: var(--accent); }
 
 /* ── Canvas 区域 ── */
 .slot-canvas-wrap {
@@ -423,15 +401,15 @@ defineExpose({
 .slot-track-wrap {
   width: 100%;
   height: 3px;
-  background: rgba(74, 158, 255, 0.1);
+  background: var(--bg-3);
+  border: 1px solid var(--border);
   border-radius: 2px;
   overflow: hidden;
   cursor: pointer;
-  transition: height 0.15s ease, background 0.15s ease;
+  transition: height 0.15s ease;
 
   &:hover {
     height: 5px;
-    background: rgba(74, 158, 255, 0.18);
   }
 }
 
@@ -443,7 +421,7 @@ defineExpose({
 
 .slot-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4a9eff, #4ecdc4);
+  background: var(--accent);
   border-radius: 2px;
   transition: width 0.05s linear;
 }

@@ -41,7 +41,13 @@ function interpolateEntity(from: RenderableEntity, to: RenderableEntity, transit
     opacity: transition.visibilityTransition || transition.type === "fade"
       ? getFadeOpacity(from.opacity, to.opacity, progress)
       : lerp(from.opacity, to.opacity, progress),
-    style: transition.styleTransition ? interpolateStyle(from.style, to.style, progress) : to.style,
+    // 颜色随状态切换：progress<0.5 取 from 帧 tags（原 interpolateStyle 颜色二值切换的等价实现，
+    // 切换时机仍由 styleTransition 标志控制，与状态节奏对齐）
+    stateTags: transition.styleTransition
+      ? (progress < 0.5 ? from.stateTags : to.stateTags)
+      : to.stateTags,
+    // style 已可选（builders 可不传）；瘦身后只剩 dashed/alpha，统一走插值与 instant 步骤行为一致
+    style: interpolateStyle(from.style ?? {}, to.style ?? {}, progress),
   };
 }
 

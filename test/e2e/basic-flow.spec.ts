@@ -1,369 +1,257 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+/** 主题持久化键（与 themeStore 保持一致） */
+const THEME_KEY = 'sort-visualizer-theme';
+
+async function openApp(page: Page) {
+  await page.goto('http://localhost:5173');
+  await page.waitForLoadState('networkidle');
+}
 
 test.describe('排序可视化基础流程', () => {
   test.beforeEach(async ({ page }) => {
-    // 启动开发服务器并访问页面
-    await page.goto('http://localhost:5173');
-    await page.waitForLoadState('networkidle');
+    await openApp(page);
   });
 
   test('页面应该正确加载', async ({ page }) => {
-    // 检查页面标题
-    await expect(page).toHaveTitle(/排序可视化/);
-
-    // 检查主要控件是否存在
+    await expect(page).toHaveTitle(/排序算法可视化/);
     await expect(page.locator('.control-panel')).toBeVisible();
     await expect(page.locator('.algorithm-view')).toBeVisible();
-
-    // 检查Canvas元素
-    const canvas = page.locator('canvas');
-    await expect(canvas).toBeVisible();
+    await expect(page.locator('canvas')).toBeVisible();
   });
 
-  test('应该显示默认算法界面', async ({ page }) => {
-    // 检查算法选择器
-    const algorithmSelector = page.locator('select[name="algorithm"]');
+  test('应该显示默认算法界面（堆排序）', async ({ page }) => {
+    const algorithmSelector = page.locator('.algo-dropdown');
     await expect(algorithmSelector).toBeVisible();
+    await expect(algorithmSelector).toHaveValue('heap');
 
-    // 默认应该是堆排序
-    const selectedAlgorithm = await algorithmSelector.inputValue();
-    expect(selectedAlgorithm).toBe('heap');
-
-    // 检查堆排序特有的控件
-    await expect(page.locator('.mode-toggle')).toBeVisible();
-    await expect(page.locator('.mode-max')).toBeVisible();
-    await expect(page.locator('.mode-min')).toBeVisible();
+    // 堆排序特有的最大/最小堆切换按钮
+    await expect(page.locator('.heap-mode-btn.max')).toBeVisible();
   });
 
   test('应该能够生成新的随机数组', async ({ page }) => {
-    const initialElements = await page.locator('.main-bar').count();
+    const sizeValue = page.locator('.size-value');
+    const initialSize = await sizeValue.textContent();
 
-    // 点击生成新数组按钮
-    await page.click('button:has-text("生成数组")');
+    await page.getByRole('button', { name: '新数组' }).click();
+    await page.waitForTimeout(300);
 
-    // 等待数组重新生成
-    await page.waitForTimeout(500);
-
-    const newElements = await page.locator('.main-bar').count();
-
-    // 元素数量应该相同（大小没变），但内容应该不同
-    expect(newElements).toBe(initialElements);
+    // 数组大小不变（Canvas 渲染，无法比对柱子 DOM，验证控件状态稳定）
+    await expect(sizeValue).toHaveText(initialSize ?? '');
+    await expect(page.locator('canvas')).toBeVisible();
   });
 
   test('应该能够调整数组大小', async ({ page }) => {
-    const sizeSlider = page.locator('input[type="range"][name="size"]');
-
-    // 记录当前大小
-    const initialSize = await sizeSlider.inputValue();
-
-    // 调整大小
+    const sizeSlider = page.locator('.size-slider');
     await sizeSlider.fill('50');
-
-    // 等待更新
-    await page.waitForTimeout(300);
-
-    // 检查元素数量是否变化
-    const elements = await page.locator('.main-bar').count();
-    expect(elements).toBe(50);
+    await expect(page.locator('.size-value')).toHaveText('50');
   });
 
   test('应该能够调整动画速度', async ({ page }) => {
-    const speedSlider = page.locator('input[type="range"][name="speed"]');
+    const speedSlider = page.locator('.speed-slider');
+    await expect(speedSlider).toHaveAttribute('min', '20');
+    await expect(speedSlider).toHaveAttribute('max', '500');
 
-    // 检查速度范围
-    const minSpeed = await speedSlider.getAttribute('min');
-    const maxSpeed = await speedSlider.getAttribute('max');
-
-    expect(minSpeed).toBe('20');
-    expect(maxSpeed).toBe('500');
-
-    // 调整速度
     await speedSlider.fill('100');
-
-    // 等待更新
-    await page.waitForTimeout(100);
+    await expect(page.locator('.speed-value')).toHaveText('100ms');
   });
 
   test('应该能够切换算法', async ({ page }) => {
-    const algorithmSelector = page.locator('select[name="algorithm"]');
-
-    // 切换到冒泡排序
+    const algorithmSelector = page.locator('.algo-dropdown');
     await algorithmSelector.selectOption('bubble');
+    await expect(algorithmSelector).toHaveValue('bubble');
 
-    // 等待界面更新
-    await page.waitForTimeout(300);
-
-    // 检查当前选择
-    const selectedAlgorithm = await algorithmSelector.inputValue();
-    expect(selectedAlgorithm).toBe('bubble');
-
-    // 堆排序特有的控件应该消失
-    await expect(page.locator('.mode-toggle')).not.toBeVisible();
+    // 堆排序特有控件应该消失
+    await expect(page.locator('.heap-mode-btn')).toHaveCount(0);
   });
 
   test('播放控制按钮应该工作', async ({ page }) => {
-    const playButton = page.locator('button.ctrl-btn').first();
-    const pauseButton = page.locator('button.ctrl-btn').nth(1);
+    const playButton = page.locator('button[title="播放/暂停 Space"]');
 
-    // 点击播放
     await playButton.click();
-    await page.waitForTimeout(100);
+    await expect(page.locator('.pb-desc.playing')).toBeVisible();
 
-    // 检查播放状态
-    await expect(page.locator('.status-indicator.playing')).toBeVisible();
-
-    // 点击暂停
-    await pauseButton.click();
-    await page.waitForTimeout(100);
-
-    // 检查暂停状态
-    await expect(page.locator('.status-indicator.paused')).toBeVisible();
+    // 步骤推进后再暂停（步骤为 0 时暂停会回到 ready 态）
+    await expect(page.locator('.pb-step-count')).toHaveText(/^[1-9]\d*\//);
+    await playButton.click();
+    await expect(page.locator('.pb-desc.paused')).toBeVisible();
   });
 
   test('单步执行应该工作', async ({ page }) => {
-    const stepButton = page.locator('button').filter(async (btn) => {
-      const text = await btn.textContent();
-      return text?.includes('单步') || text?.includes('step');
-    }).first();
+    await expect(page.locator('.pb-step-count')).toHaveText(/^0\//);
 
-    const initialStep = await page.locator('.stat-value.steps').textContent();
-
-    // 点击单步执行
-    await stepButton.click();
-    await page.waitForTimeout(100);
-
-    const currentStep = await page.locator('.stat-value.steps').textContent();
-
-    // 步骤数应该增加
-    expect(currentStep).not.toBe(initialStep);
+    await page.locator('button[title="单步前进 →"]').click();
+    await expect(page.locator('.pb-step-count')).toHaveText(/^1\//);
   });
 
   test('重置按钮应该工作', async ({ page }) => {
-    const playButton = page.locator('button').first();
-    const resetButton = page.locator('button').filter(async (btn) => {
-      const svg = await btn.innerHTML();
-      return svg.includes('M3 12a9 9 0 109-9'); // 重置图标路径
-    });
-
-    // 开始播放
-    await playButton.click();
+    await page.locator('button[title="播放/暂停 Space"]').click();
     await page.waitForTimeout(500);
 
-    // 重置
-    await resetButton.click();
-    await page.waitForTimeout(100);
-
-    // 检查状态
-    const currentStep = await page.locator('.stat-value.steps').textContent();
-    expect(currentStep).toContain('0'); // 应该回到初始状态
-
-    await expect(page.locator('.status-indicator.ready')).toBeVisible();
-  });
-
-  test('统计数据应该正确显示', async ({ page }) => {
-    // 等待初始渲染
-    await page.waitForTimeout(300);
-
-    // 检查统计数据显示
-    const comparisons = await page.locator('.stat-value.comparisons').textContent();
-    const swaps = await page.locator('.stat-value.swaps').textContent();
-    const steps = await page.locator('.stat-value.steps').textContent();
-
-    expect(comparisons).toBeDefined();
-    expect(swaps).toBeDefined();
-    expect(steps).toBeDefined();
-
-    // 初始状态应该为0
-    expect(comparisons).toContain('0');
-    expect(swaps).toContain('0');
+    await page.locator('button[title="重置 Home"]').click();
+    await expect(page.locator('.pb-step-count')).toHaveText(/^0\//);
+    await expect(page.locator('.pb-desc.ready')).toBeVisible();
   });
 
   test('当前操作描述应该显示', async ({ page }) => {
-    const playButton = page.locator('button').first();
+    await page.locator('button[title="播放/暂停 Space"]').click();
 
-    // 开始播放
-    await playButton.click();
-    await page.waitForTimeout(500);
-
-    // 检查当前操作描述
-    const operationText = await page.locator('.stat-value.operation').textContent();
-    expect(operationText).toBeTruthy();
-    expect(operationText?.length).toBeGreaterThan(0);
+    // 播放中应显示状态文本与操作描述
+    await expect(page.locator('.pb-status-text')).not.toBeEmpty();
+    await expect(page.locator('.pb-desc-text')).toBeVisible({ timeout: 10_000 });
   });
 });
 
 test.describe('算法特定功能测试', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173');
-    await page.waitForLoadState('networkidle');
+    await openApp(page);
   });
 
   test('堆排序模式切换应该工作', async ({ page }) => {
-    // 确保选择堆排序
-    const algorithmSelector = page.locator('select[name="algorithm"]');
-    await algorithmSelector.selectOption('heap');
+    // 默认最大堆
+    await expect(page.locator('.heap-mode-btn.max')).toBeVisible();
 
-    await page.waitForTimeout(300);
-
-    // 测试最大堆模式
-    await page.click('.mode-max');
-    await page.waitForTimeout(100);
-
-    // 检查按钮状态
-    await expect(page.locator('.mode-max.mode-max')).toBeVisible();
-
-    // 测试最小堆模式
-    await page.click('.mode-min');
-    await page.waitForTimeout(100);
-
-    // 检查按钮状态
-    await expect(page.locator('.mode-min.mode-min')).toBeVisible();
+    await page.locator('.heap-mode-btn').click();
+    await expect(page.locator('.heap-mode-btn.min')).toBeVisible();
   });
 
-  test('归并排序双排布局应该显示', async ({ page }) => {
-    // 切换到归并排序
-    const algorithmSelector = page.locator('select[name="algorithm"]');
-    await algorithmSelector.selectOption('merge');
-
-    await page.waitForTimeout(300);
-
-    // 归并排序应该有上下两排
-    const mainBars = await page.locator('.main-bar').count();
-    const bufferBars = await page.locator('.buffer-bar').count();
-
-    // 应该有主数组和缓冲区元素
-    expect(mainBars + bufferBars).toBeGreaterThan(0);
+  test('归并排序视图应该显示', async ({ page }) => {
+    await page.locator('.algo-dropdown').selectOption('merge');
+    await expect(page.locator('.algorithm-view')).toBeVisible();
+    await expect(page.locator('canvas')).toBeVisible();
   });
 
-  test('桶排序桶区域应该显示', async ({ page }) => {
-    // 切换到桶排序
-    const algorithmSelector = page.locator('select[name="algorithm"]');
-    await algorithmSelector.selectOption('bucket');
+  test('桶排序视图应该显示', async ({ page }) => {
+    await page.locator('.algo-dropdown').selectOption('bucket');
+    await expect(page.locator('.algorithm-view')).toBeVisible();
+    await expect(page.locator('canvas')).toBeVisible();
+  });
+});
 
-    await page.waitForTimeout(300);
+test.describe('双主题系统', () => {
+  test('切换器点击应该换装并持久化', async ({ page }) => {
+    await openApp(page);
 
-    // 桶排序应该有桶区域
-    const bucketBars = await page.locator('.bucket-bar').count();
+    // Playwright 默认亮色系统偏好 → 首次进入应为亮色（画室）
+    await expect(page.locator('body')).toHaveClass(/theme-light/);
+    const initialBg = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--bg-1').trim(),
+    );
 
-    // 至少应该有一些桶元素
-    expect(bucketBars).toBeGreaterThanOrEqual(0);
+    // 切到暗色（画廊）
+    await page.locator('.theme-switch').click();
+    await expect(page.locator('body')).toHaveClass(/theme-dark/);
+    const darkBg = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--bg-1').trim(),
+    );
+    expect(darkBg).toBe('#0b0e14');
+    expect(darkBg).not.toBe(initialBg);
+    expect(await page.evaluate((key) => localStorage.getItem(key), THEME_KEY)).toBe('dark');
+
+    // 刷新后保持暗色
+    await page.reload();
+    await expect(page.locator('body')).toHaveClass(/theme-dark/);
+  });
+
+  test('Alt+D 应该切换主题', async ({ page }) => {
+    await openApp(page);
+    await expect(page.locator('body')).toHaveClass(/theme-light/);
+
+    await page.keyboard.press('Alt+d');
+    await expect(page.locator('body')).toHaveClass(/theme-dark/);
+  });
+
+  test('暗色系统偏好且无存量时默认画廊（dark）', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await openApp(page);
+    await expect(page.locator('body')).toHaveClass(/theme-dark/);
   });
 });
 
 test.describe('响应式设计测试', () => {
   test('应该适应不同屏幕尺寸', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+    await openApp(page);
 
-    // 测试桌面尺寸
-    await page.setViewportSize({ width: 1920, height: 1080 });
-    await expect(page.locator('.control-panel')).toBeVisible();
-
-    // 测试平板尺寸
-    await page.setViewportSize({ width: 768, height: 1024 });
-    await expect(page.locator('.control-panel')).toBeVisible();
-
-    // 测试移动尺寸
-    await page.setViewportSize({ width: 375, height: 667 });
-    await expect(page.locator('.control-panel')).toBeVisible();
+    for (const size of [
+      { width: 1920, height: 1080 },
+      { width: 768, height: 1024 },
+      { width: 375, height: 667 },
+    ]) {
+      await page.setViewportSize(size);
+      await expect(page.locator('.control-panel')).toBeVisible();
+    }
   });
 
-  test('Canvas应该自适应容器大小', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+  test('Canvas 应该自适应容器大小', async ({ page }) => {
+    await openApp(page);
 
-    const canvas = page.locator('canvas');
-
-    // 获取初始大小
-    const initialSize = await canvas.boundingBox();
-
-    // 调整窗口大小
+    const initialSize = await page.locator('canvas').boundingBox();
     await page.setViewportSize({ width: 800, height: 600 });
     await page.waitForTimeout(300);
 
-    const newSize = await canvas.boundingBox();
-
-    // Canvas大小应该变化
+    const newSize = await page.locator('canvas').boundingBox();
     expect(newSize?.width).not.toBe(initialSize?.width);
   });
 });
 
 test.describe('性能和稳定性测试', () => {
   test('应该能够处理最大数组', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+    await openApp(page);
 
-    // 设置最大数组
-    const sizeSlider = page.locator('input[type="range"][name="size"]');
-    await sizeSlider.fill('100');
+    await page.locator('.size-slider').fill('100');
+    await expect(page.locator('.size-value')).toHaveText('100');
 
-    // 等待渲染
-    await page.waitForTimeout(1000);
-
-    // 检查是否有元素
-    const elements = await page.locator('.main-bar').count();
-    expect(elements).toBe(100);
-
-    // 尝试播放
-    const playButton = page.locator('button').first();
-    await playButton.click();
+    await page.locator('button[title="播放/暂停 Space"]').click();
     await page.waitForTimeout(2000);
 
-    // 应该不会崩溃
     await expect(page.locator('.algorithm-view')).toBeVisible();
   });
 
-  test('长时间运行不应该内存泄漏', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+  test('长时间运行不应该崩溃', async ({ page }) => {
+    await openApp(page);
 
-    // 生成数组并开始播放
-    const playButton = page.locator('button').first();
-    const resetButton = page.locator('button').filter(async (btn) => {
-      const svg = await btn.innerHTML();
-      return svg.includes('M3 12a9 9 0 109-9');
-    });
-
-    // 多次重播
-    for (let i = 0; i < 5; i++) {
-      await playButton.click();
-      await page.waitForTimeout(3000);
-      await resetButton.click();
-      await page.waitForTimeout(500);
+    for (let i = 0; i < 3; i++) {
+      await page.locator('button[title="播放/暂停 Space"]').click();
+      await page.waitForTimeout(1500);
+      await page.locator('button[title="重置 Home"]').click();
+      await page.waitForTimeout(300);
     }
 
-    // 页面应该仍然响应
     await expect(page.locator('.algorithm-view')).toBeVisible();
   });
 });
 
 test.describe('可访问性测试', () => {
   test('控件应该有合适的标签', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+    await openApp(page);
 
-    // 检查输入框是否有标签
     const inputs = page.locator('input, select');
     const count = await inputs.count();
+    expect(count).toBeGreaterThan(0);
 
-    for (let i = 0; i < Math.min(count, 10); i++) {
-      const input = inputs.nth(i);
-      const hasLabel = await input.evaluate(el => {
-        return el.hasAttribute('aria-label') ||
-               el.hasAttribute('title') ||
-               el.labels.length > 0;
-      });
-      expect(hasLabel).toBe(true);
+    for (let i = 0; i < count; i++) {
+      const hasLabel = await inputs.nth(i).evaluate(
+        (el) =>
+          el.hasAttribute('aria-label') ||
+          el.hasAttribute('title') ||
+          el.labels.length > 0,
+      );
+      expect(hasLabel, `第 ${i} 个输入控件缺少标签`).toBe(true);
     }
   });
 
-  test('按钮应该有合适的文本或aria标签', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+  test('按钮应该有合适的文本或 aria 标签', async ({ page }) => {
+    await openApp(page);
 
     const buttons = page.locator('button');
     const count = await buttons.count();
+    expect(count).toBeGreaterThan(0);
 
-    for (let i = 0; i < Math.min(count, 10); i++) {
+    for (let i = 0; i < count; i++) {
       const button = buttons.nth(i);
       const text = await button.textContent();
       const ariaLabel = await button.getAttribute('aria-label');
-
-      expect(text?.trim().length || ariaLabel?.length).toBeGreaterThan(0);
+      expect((text?.trim().length || 0) + (ariaLabel?.length || 0)).toBeGreaterThan(0);
     }
   });
 });

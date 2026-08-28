@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeEach } from 'vitest';
+import { watch } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { useSortStore } from '@/stores/sortStore';
 import type { SortAlgorithm } from '@/types/sorting';
@@ -228,19 +229,19 @@ describe('useSortStore', () => {
       const store = useSortStore();
 
       const speeds: number[] = [];
-      const unwatch = store.$subscribe((mutation, state) => {
-        if (mutation.storeId === 'sort') {
-          speeds.push(state.animationSpeed);
-        }
-      });
+      // sync watch：每次赋值立即回调，可捕获全部中间值
+      // （Pinia $subscribe 内部为 flush:'pre' 异步且同 tick 去重，不适合逐值断言）
+      const unwatch = watch(
+        () => store.animationSpeed,
+        (speed) => speeds.push(speed),
+        { flush: 'sync' },
+      );
 
       store.setSpeed(100);
       store.setSpeed(200);
       store.setSpeed(300);
 
-      expect(speeds).toContain(100);
-      expect(speeds).toContain(200);
-      expect(speeds).toContain(300);
+      expect(speeds).toEqual([100, 200, 300]);
 
       unwatch();
     });
@@ -248,7 +249,8 @@ describe('useSortStore', () => {
     test('多个状态可以独立更新', () => {
       const store = useSortStore();
 
-      store.generateArray(20);
+      // setArraySize 才是「计数 + 重新生成」的原子操作；generateArray 不更新 arraySize
+      store.setArraySize(20);
       store.setSpeed(150);
       store.setAlgorithm('merge');
 

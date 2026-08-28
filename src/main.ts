@@ -4,7 +4,7 @@ import ElementPlus from "element-plus";
 import "element-plus/dist/index.css";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "./style.css";
-import "./styles/theme-transitions.css";
+import "./styles/theme.scss";
 import App from "@/App.vue";
 import { useThemeStore } from "@/stores/themeStore";
 

@@ -53,3 +53,17 @@
 
 **Why:** 对称设计保证两种飞行方向的视觉一致性，任何一帧的遗漏都会导致插值过程中实体意外显现。
 **How to apply:** 新增或修改排序算法的飞行动画时，先画出可见性矩阵再编码，避免逐帧调试。
+
+### 7. 渲染期取色（双城主题架构）
+
+实体颜色一律由 useCanvasRenderer 每帧 `resolveEntityStyle(stateTags, palette)` 从主题取，builders 只产 stateTags 不产颜色；overlay 颜色用 `OverlayColorToken` 语义键。切主题靠 themeStore 色板混合器（300ms），不重建 timeline。
+
+**Why:** 颜色烘焙进 FrameState 会导致切主题必须重建 timeline；渲染期取色让播放中 300ms 换装成为可能，Timeline 保持纯数据可回放。
+**How to apply:** 新增算法时实体创建处禁止写 `style.fill`（RenderStyle 只剩 dashed/alpha）；overlay 不写裸 hex，一律传语义 token 由渲染期查 palette。
+
+### 8. 主题 id 变更必须同步渲染调色板
+
+`currentThemeId` 的 watch 只驱动 CSS 变量（UI 层）；渲染调色板（`paletteTo`）只在 `setTheme()` 内更新。任何绕过 `setTheme` 直接改 `currentThemeId` 的路径（如 initialize 的迁移/系统偏好分支）必须调用 `syncPaletteToCurrentTheme()`，否则 Canvas 停留旧主题色板。
+
+**Why:** watch 与调色板是两条独立同步链路，直接赋值只触发 CSS 变量注入（亮色偏好用户首开曾出现 UI 亮色、Canvas 暗色板的分裂）。
+**How to apply:** 新增任何修改 `currentThemeId` 的代码路径，一律走 `setTheme()` 或显式调用 `syncPaletteToCurrentTheme()`，并在双主题下目检 Canvas 换装。

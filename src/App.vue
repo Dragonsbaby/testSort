@@ -1,33 +1,16 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 import { useSortStore } from "@/stores/sortStore";
-import { useTheme } from "@/composables/useTheme";
-import { useThemeKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 import SortVisualizer from "@/components/SortVisualizer.vue";
 import ControlPanel from "@/components/ControlPanel.vue";
 import ThemeSwitcher from "@/components/ThemeSwitcher.vue";
 import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp.vue";
+import { useThemeKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 
 const store = useSortStore();
-const theme = useTheme();
 
-// 启用主题键盘快捷键
+// 主题快捷键（双城时代仅剩 Alt+D）
 useThemeKeyboardShortcuts();
-
-// 生成动态网格背景样式
-function getBackgroundGridStyle() {
-  const gridColor = theme.getGridColor();
-  const gridSize = theme.themeEffects.value.gridSpacing;
-
-  return {
-    backgroundImage: `
-      linear-gradient(${gridColor} 1px, transparent 1px),
-      linear-gradient(90deg, ${gridColor} 1px, transparent 1px)
-    `,
-    backgroundSize: `${gridSize}px ${gridSize}px`,
-    backgroundPosition: '-1px -1px',
-  };
-}
 
 onMounted(() => {
   store.generateArray(store.arraySize);
@@ -35,13 +18,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="app" :style="{ backgroundColor: theme.getBackgroundColor() }">
-    <div class="bg-grid" :style="getBackgroundGridStyle()"></div>
+  <div class="app">
+    <!-- 点阵背景：与 Canvas gridSpacing 24 对齐，颜色走 --canvas-grid -->
+    <div class="bg-grid" aria-hidden="true"></div>
     <header class="header">
       <div class="header-content">
-        <h1 class="app-title" :style="{ color: theme.themeColors.value.text }">
-          排序算法可视化
-        </h1>
+        <div class="app-title-group">
+          <span class="app-eyebrow">SORTING&nbsp;VISUALIZER</span>
+          <h1 class="app-title">排序算法可视化</h1>
+        </div>
         <ControlPanel />
       </div>
       <div class="header-actions">
@@ -65,20 +50,19 @@ onMounted(() => {
   margin: 0 auto;
   position: relative;
   overflow: visible;
-  transition: background-color 0.3s ease;
+  background: var(--bg-1); /* 页面底色走 token（themeStore 注入） */
 }
 
-/* Background grid pattern */
+/* 点阵背景（画廊底纹） */
 .bg-grid {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  transition: background-image 0.3s ease, background-size 0.3s ease;
-  opacity: 0.6;
+  background-image: radial-gradient(var(--canvas-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-/* Header */
 .header {
   position: relative;
   z-index: 1;
@@ -93,20 +77,37 @@ onMounted(() => {
   flex: 1;
 }
 
+.app-title-group {
+  margin: 0 0 14px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* 等宽小写 eyebrow 标签（作品感排版） */
+.app-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
 .app-title {
-  margin: 0 0 16px 0;
-  font-size: 24px;
-  font-weight: 600;
-  transition: color 0.3s ease;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--text);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* Main content */
 .main {
   flex: 1;
   display: flex;
@@ -126,7 +127,7 @@ onMounted(() => {
   }
 
   .app-title {
-    font-size: 20px;
+    font-size: 19px;
   }
 }
 </style>

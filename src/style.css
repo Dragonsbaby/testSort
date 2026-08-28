@@ -1,31 +1,16 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
-
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-:root {
-  --bg-primary: #0f1219;
-  --bg-secondary: #161b26;
-  --color-primary: #4a9eff;
-  --color-secondary: #5dddd4;
-  --color-accent: #ff6b6b;
-  --color-warning: #ffcc00;
-  --color-text: #e8eaed;
-  --color-muted: #8b95a8;
-  --color-border: rgba(74, 158, 255, 0.25);
-}
-
 html,
 body {
   height: 100%;
-  /* 使用主题系统的CSS变量，有fallback值 */
-  background: var(--color-background, #0f1219);
-  color: var(--color-text, #e8eaed);
-  font-family: "JetBrains Mono", "Fira Code", monospace;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  /* token 由 themeStore 注入（--bg-1 / --text），fallback 对应暗色主题 */
+  background: var(--bg-1, #0b0e14);
+  color: var(--text, #e8ecf3);
+  font-family: var(--font-ui, system-ui, sans-serif);
 }
 
 #app {
@@ -38,20 +23,19 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 3px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(74, 158, 255, 0.3);
+  background: var(--border, rgba(255, 255, 255, 0.08));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(74, 158, 255, 0.5);
+  background: var(--text-muted, #5c6675);
 }
 
 ::selection {
-  background: var(--color-primary);
-  color: var(--bg-primary);
+  background: var(--accent, #89b4fa);
+  color: var(--bg-1, #0b0e14);
 }

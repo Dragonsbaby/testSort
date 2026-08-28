@@ -1,10 +1,7 @@
 import type { FrameState, RenderableEntity, RenderableOverlay, StateTag, TimelineStep, SemanticStep } from "@/types/timeline";
 import { buildMergeLayout } from "@/utils/layout/merge-layout";
-import { getStyleFromStateTags } from "@/utils/frame/style-utils";
 import { FLY_DURATION } from "./timing-presets";
 
-const MAIN_BASE_STYLE = { fill: "#4a9eff", glow: 0 };
-const BUFFER_BASE_STYLE = { fill: "#4ecdc4", glow: 0.2 };
 type FrameRole = "from" | "to" | "static";
 
 /** 缓冲区条目：同时记录值和元素原始序号，飞行过程中序号跟随元素 */
@@ -68,14 +65,14 @@ function buildMergeOverlays(width: number, dividerY: number): RenderableOverlay[
       kind: "label",
       points: [{ x: 58, y: 18 }],
       text: "主数组区",
-      style: { fill: "#74b6ff", text: "#74b6ff", alpha: 0.9 },
+      style: { textColor: "text-secondary", alpha: 0.9 },
     },
     {
       id: "merge-buffer-label",
       kind: "label",
       points: [{ x: 58, y: dividerY + 28 }],
       text: "缓冲区",
-      style: { fill: "#62e0d5", text: "#62e0d5", alpha: 0.9 },
+      style: { textColor: "text-secondary", alpha: 0.9 },
     },
     {
       id: "merge-divider",
@@ -84,7 +81,7 @@ function buildMergeOverlays(width: number, dividerY: number): RenderableOverlay[
         { x: 0, y: dividerY },
         { x: width, y: dividerY },
       ],
-      style: { fill: "rgba(78, 205, 196, 0.45)", stroke: "rgba(78, 205, 196, 0.45)", dashed: true },
+      style: { color: "border", dashed: true },
     },
   ];
 }
@@ -140,7 +137,6 @@ function createMergeFrame(params: {
       height: Math.max(5, Math.round((value / maxValue) * (layout.topSlots[index]?.maxHeight ?? 0))),
       opacity: isHidden ? 0 : 1,
       zIndex: 1,
-      style: getStyleFromStateTags(stateTags, MAIN_BASE_STYLE),
       stateTags,
     };
   });
@@ -163,7 +159,6 @@ function createMergeFrame(params: {
       height: Math.max(5, Math.round((value / maxValue) * (layout.bottomSlots[index]?.maxHeight ?? 0))),
       opacity: isHidden ? 0 : 1,
       zIndex: 2,
-      style: getStyleFromStateTags(stateTags, BUFFER_BASE_STYLE),
       stateTags,
     } satisfies RenderableEntity];
   });
@@ -196,8 +191,8 @@ function createMergeFrame(params: {
             height: ghostHeight,
             opacity: 1,
             zIndex: 3,
-            style: BUFFER_BASE_STYLE,
-            stateTags: [],
+            // ghost 统一 latest（冰青）：转移中的元素 = 最近被触碰；禁止继承源实体 tags（merge-set 源是 comparing 琥珀，与飞行语义混淆）
+            stateTags: ["latest"],
           });
         } else {
           // ghost 到达 buffer 目标位置
@@ -211,8 +206,8 @@ function createMergeFrame(params: {
             height: ghostHeight,
             opacity: 1,
             zIndex: 3,
-            style: BUFFER_BASE_STYLE,
-            stateTags: [],
+            // ghost 统一 latest（冰青）：转移中的元素 = 最近被触碰；禁止继承源实体 tags（merge-set 源是 comparing 琥珀，与飞行语义混淆）
+            stateTags: ["latest"],
           });
           // to 帧 buffer 目标柱子隐藏（ghost 覆盖它，ghost 消失后下一步才显示真实柱子）
           const bIdx = bufferEntities.findIndex((e) => e.id === `buffer-${destIndex}`);
@@ -254,8 +249,7 @@ function createMergeFrame(params: {
           height: ghostHeight,
           opacity: 1,
           zIndex: 3,
-          style: BUFFER_BASE_STYLE,
-          stateTags: [],
+          stateTags: ["latest"],
         });
       } else {
         // to 帧：ghost 到达主数组目标位置，保持 opacity=1（与 merge-set 一致，ghost 是唯一视觉主体）
@@ -273,8 +267,7 @@ function createMergeFrame(params: {
           height: Math.max(5, Math.round((bufferVal / maxValue) * (mainSlot?.maxHeight ?? 0))),
           opacity: 1,
           zIndex: 3,
-          style: BUFFER_BASE_STYLE,
-          stateTags: [],
+          stateTags: ["latest"],
         });
       }
     }

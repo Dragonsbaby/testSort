@@ -29,3 +29,8 @@ pnpm-lock.yaml
 
 # Playwright MCP 运行产物（截图/快照，工具自动生成）
 .playwright-mcp/
+
+# 测试产物（vitest 覆盖率 / playwright 报告）
+coverage/
+test-results/
+playwright-report/

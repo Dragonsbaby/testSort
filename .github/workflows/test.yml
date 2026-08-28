@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: 运行类型检查
-        run: npm run type-check || npx vue-tsc --noEmit
+        run: npm run type-check
 
       - name: 运行单元测试
         run: npm run test:run -- --coverage

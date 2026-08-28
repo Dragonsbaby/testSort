@@ -80,13 +80,35 @@ export type StateTag =
   | "heap-pending"
   | "latest";
 
+/** 实体非主题属性：虚线与透明度。颜色/发光一律由渲染期 resolveEntityStyle 从主题取（spec 5.1） */
 export interface RenderStyle {
-  fill: string;
-  stroke?: string;
-  text?: string;
-  glow?: number;
   dashed?: boolean;
   alpha?: number;
+}
+
+/** overlay 语义色 token：渲染期查 RendererPalette，builders 不再写死 hex */
+export type OverlayColorToken =
+  | "accent"
+  | "text"
+  | "text-secondary"
+  | "text-muted"
+  | "border"
+  | "panel-fill"
+  | "comparing"
+  | "swapping"
+  | "sorted"
+  | "latest";
+
+/** overlay 样式：全部语义化，无裸颜色值 */
+export interface OverlayStyle {
+  /** 线条/边框/引导色（edge / guide / divider / region-panel 边框） */
+  color?: OverlayColorToken;
+  /** 文字色（label / badge 文本） */
+  textColor?: OverlayColorToken;
+  alpha?: number;
+  dashed?: boolean;
+  /** guide 类发光强度 0~1 */
+  glow?: number;
 }
 
 export interface RenderableEntity {
@@ -101,7 +123,8 @@ export interface RenderableEntity {
   height: number;
   opacity: number;
   zIndex: number;
-  style: RenderStyle;
+  /** 非主题属性（dashed/alpha）；builders 可不传，颜色由渲染期取色 */
+  style?: RenderStyle;
   stateTags: StateTag[];
 }
 
@@ -120,11 +143,11 @@ export interface RenderableOverlay {
   kind: "edge" | "guide" | "label" | "badge" | "divider" | "region-panel";
   points?: Array<{ x: number; y: number }>;
   text?: string;
-  style: RenderStyle;
+  style: OverlayStyle;
   /** 用于 region-panel：圆角矩形尺寸 */
   rect?: { x: number; y: number; width: number; height: number; radius: number };
-  /** 用于 region-panel：活跃桶顶部高亮条颜色 */
-  accentBar?: string;
+  /** 活跃桶顶部高亮条（accent 色） */
+  accentBar?: boolean;
 }
 
 export interface FrameState {

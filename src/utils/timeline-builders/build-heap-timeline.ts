@@ -1,16 +1,7 @@
 import type { FrameState, RenderableEntity, RenderableOverlay, StateTag, SemanticStep, TimelineStep } from "@/types/timeline";
 import { buildHeapNodePosition, getArrayAreaHeight } from "@/utils/layout/heap-layout";
-import { getStyleFromStateTags } from "@/utils/frame/style-utils";
 import { buildStateTagsFromSemantic } from "./state-tags";
 import { TIMING } from "./timing-presets";
-
-const TREE_BASE_STYLE = { fill: "#1a3a5c", stroke: "#254e7a", text: "#f0ead8", glow: 0.04 };
-const ARRAY_BASE_STYLE = { fill: "#112240", stroke: "#1a3356", text: "#f0ead8", glow: 0.02 };
-
-function getHeapStyle(stateTags: StateTag[], fallback: typeof TREE_BASE_STYLE) {
-  const style = getStyleFromStateTags(stateTags, fallback);
-  return style.glow ? { ...style, glow: style.glow * 0.45 } : style;
-}
 
 function createHeapOverlays(count: number, width: number, height: number, isMinHeap: boolean): RenderableOverlay[] {
   const arrayAreaHeight = getArrayAreaHeight(count);
@@ -21,24 +12,24 @@ function createHeapOverlays(count: number, width: number, height: number, isMinH
       kind: "label",
       points: [{ x: 58, y: 18 }],
       text: isMinHeap ? "最小堆视图" : "最大堆视图",
-      style: { fill: isMinHeap ? "#62e0d5" : "#74b6ff", text: isMinHeap ? "#62e0d5" : "#74b6ff", alpha: 0.9 },
+      style: { textColor: "text-secondary", alpha: 0.9 },
     },
     {
       id: "heap-array-label",
       kind: "label",
       points: [{ x: 58, y: dividerY + 14 }],
       text: "数组映射区",
-      style: { fill: "#74b6ff", text: "#74b6ff", alpha: 0.9 },
+      style: { textColor: "text-secondary", alpha: 0.9 },
     },
     ...Array.from({ length: count }, (_, index) => {
       const childIndexes = [2 * index + 1, 2 * index + 2].filter((childIndex) => childIndex < count);
       const start = buildHeapNodePosition(index, count, width, height);
 
-      return childIndexes.map((childIndex) => ({
+      return childIndexes.map((childIndex): RenderableOverlay => ({
         id: `edge-${index}-${childIndex}`,
-        kind: "edge" as const,
+        kind: "edge",
         points: [start, buildHeapNodePosition(childIndex, count, width, height)],
-        style: { fill: "rgba(255,255,255,0.08)", stroke: "rgba(255,255,255,0.08)" },
+        style: { color: "border" },
       }));
     }).flat(),
     {
@@ -48,7 +39,7 @@ function createHeapOverlays(count: number, width: number, height: number, isMinH
         { x: 20, y: dividerY },
         { x: width - 20, y: dividerY },
       ],
-      style: { fill: "rgba(74,158,255,0.15)", stroke: "rgba(74,158,255,0.15)", dashed: true },
+      style: { color: "border", dashed: true },
     },
   ];
 }
@@ -95,7 +86,6 @@ function createHeapFrame(params: {
       height: treeRadius * 2,
       opacity: 1,
       zIndex: 2,
-      style: getHeapStyle(stateTags, TREE_BASE_STYLE),
       stateTags,
     };
   });
@@ -114,7 +104,6 @@ function createHeapFrame(params: {
       height: arrayRadius * 2,
       opacity: 1,
       zIndex: 3,
-      style: getHeapStyle(stateTags, ARRAY_BASE_STYLE),
       stateTags,
     };
   });
@@ -210,7 +199,7 @@ export function buildHeapTimeline(params: {
           id: `compare-edge-${index}`,
           kind: "guide",
           points: [posA, posB],
-          style: { fill: "#ffd43b", stroke: "#ffd43b", dashed: true, alpha: 0.85, glow: 0.4 },
+          style: { color: "comparing", dashed: true, alpha: 0.85, glow: 0.4 },
         });
       }
     }

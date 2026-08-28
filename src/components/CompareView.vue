@@ -282,11 +282,10 @@ function exitCompare() {
   gap: 0;
   padding: 0 20px;
   height: 48px;
-  background: rgba(10, 10, 20, 0.7);
-  border: 1px solid rgba(74, 158, 255, 0.12);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--panel-shadow);
   flex-shrink: 0;
 }
 
@@ -297,18 +296,17 @@ function exitCompare() {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid rgba(74, 158, 255, 0.2);
-  background: rgba(74, 158, 255, 0.05);
-  color: #8b95a8;
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text-secondary);
   border-radius: 5px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
   flex-shrink: 0;
 
   &:hover:not(:disabled) {
-    background: rgba(74, 158, 255, 0.12);
-    border-color: rgba(74, 158, 255, 0.35);
-    color: #c0c8d8;
+    border-color: var(--accent);
+    color: var(--text);
   }
 
   &:disabled {
@@ -324,41 +322,20 @@ function exitCompare() {
 
 /* ── 布局切换按钮 ── */
 .layout-btn {
-  color: #4ecdc4;
-  border-color: rgba(78, 205, 196, 0.3);
-  background: rgba(78, 205, 196, 0.06);
-
-  &:hover {
-    color: #6eeee5;
-    background: rgba(78, 205, 196, 0.15);
-    border-color: rgba(78, 205, 196, 0.5);
-  }
+  color: var(--accent);
 }
 
 /* ── 播放/暂停按钮 ── */
 .play-pause-btn {
   width: 32px;
   height: 28px;
-  color: #4ecdc4;
-  border-color: rgba(78, 205, 196, 0.35);
-  background: rgba(78, 205, 196, 0.08);
+  color: var(--accent);
 
+  /* 播放中 active 用 accent：进行中不是警告（原红色退役） */
   &.active {
-    color: #ff8a8a;
-    border-color: rgba(255, 138, 138, 0.3);
-    background: rgba(255, 138, 138, 0.07);
-  }
-
-  &:hover:not(:disabled) {
-    background: rgba(78, 205, 196, 0.18);
-    border-color: rgba(78, 205, 196, 0.5);
-    color: #6eeee5;
-
-    &.active {
-      background: rgba(255, 138, 138, 0.14);
-      border-color: rgba(255, 138, 138, 0.5);
-      color: #ffaaaa;
-    }
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--bg-3);
   }
 }
 
@@ -366,7 +343,7 @@ function exitCompare() {
 .ctrl-divider {
   width: 1px;
   height: 20px;
-  background: rgba(74, 158, 255, 0.1);
+  background: var(--border);
   margin: 0 8px;
   flex-shrink: 0;
 }
@@ -377,19 +354,16 @@ function exitCompare() {
   width: auto;
   padding: 0 10px;
   gap: 4px;
-  color: #ff8a8a;
-  border-color: rgba(255, 138, 138, 0.25);
-  background: rgba(255, 138, 138, 0.06);
+  color: var(--swapping);
+  border-color: var(--swapping);
 
   &:hover {
-    color: #ffaaaa;
-    background: rgba(255, 138, 138, 0.14);
-    border-color: rgba(255, 138, 138, 0.45);
+    color: var(--swapping);
   }
 }
 
 .exit-label {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
@@ -401,11 +375,10 @@ function exitCompare() {
   align-items: center;
   gap: 16px;
   padding: 8px 20px;
-  background: rgba(10, 10, 20, 0.6);
-  border: 1px solid rgba(74, 158, 255, 0.12);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--panel-shadow);
   flex-shrink: 0;
 }
 
@@ -418,9 +391,9 @@ function exitCompare() {
 }
 
 .summary-algo-name {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: #8b95a8;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -437,15 +410,15 @@ function exitCompare() {
 }
 
 .metric-label {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .metric-value {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
-  color: #5dddd4;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -455,8 +428,8 @@ function exitCompare() {
   align-items: center;
   gap: 3px;
   padding: 0 12px;
-  border-left: 1px solid rgba(74, 158, 255, 0.1);
-  border-right: 1px solid rgba(74, 158, 255, 0.1);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
 }
 
 .diff-row {
@@ -466,23 +439,24 @@ function exitCompare() {
 }
 
 .diff-label {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
-  color: #6b7280;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
 .diff-value {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
   min-width: 50px;
   text-align: right;
 }
 
-.diff-value.winner-left { color: #4ecdc4; }
-.diff-value.winner-right { color: #ff8a8a; }
-.diff-value.winner-tie { color: #8b95a8; }
+/* 赢家 = 更优 = 绿；落后 = 红；持平 = 中性 */
+.diff-value.winner-left { color: var(--sorted); }
+.diff-value.winner-right { color: var(--swapping); }
+.diff-value.winner-tie { color: var(--text-muted); }
 
 /* ── 响应式：窄屏下 horizontal 降级为 vertical ── */
 @media (max-width: 900px) {

@@ -1,16 +1,10 @@
 import { ref, watch, type Ref } from "vue";
-import type { FrameState, RenderableEntity, RenderableOverlay } from "@/types/timeline";
-import { useTheme } from "@/composables/useTheme";
+import type { FrameState, RenderableEntity, RenderableOverlay, OverlayColorToken } from "@/types/timeline";
+import type { RendererPalette } from "@/types/theme";
+import { useThemeStore } from "@/stores/themeStore";
+import { resolveEntityStyle } from "@/utils/frame/style-utils";
 
-// 硬编码颜色常量（向后兼容）
-const BACKGROUND_COLOR = "#080d18";
-const GRID_COLOR = "rgba(79, 195, 247, 0.055)";
-const BASELINE_COLOR = "rgba(78, 205, 196, 0.45)";
-const VALUE_LABEL_COLOR = "#ffd43b";
-const INDEX_LABEL_COLOR = "#20e25a";
-const BAR_HIGHLIGHT_COLOR = "rgba(203, 243, 255, 0.82)";
-
-/** Canvas 等宽字体族（集中管理，避免字体字符串散落各绘制函数） */
+/** Canvas 等宽字体族（集中管理；JetBrains Mono 由 theme.scss 自托管 @font-face 提供） */
 const FONT_FAMILY = '"JetBrains Mono", monospace';
 /** 固定字号字体预设（动态字号用 sizedFont 生成） */
 const FONTS = {
@@ -50,40 +44,20 @@ function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, wi
   ctx.closePath();
 }
 
-// hex 颜色 → rgb 解析缓存（颜色取值有限，命中率接近 100%；多实例共享无副作用）
-const rgbCache = new Map<string, { r: number; g: number; b: number } | null>();
-
-function hexToRgb(color: string) {
-  const cached = rgbCache.get(color);
-  if (cached !== undefined) return cached;
-
-  const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(color);
-  const result = match
-    ? {
-        r: Number.parseInt(match[1], 16),
-        g: Number.parseInt(match[2], 16),
-        b: Number.parseInt(match[3], 16),
-      }
-    : null;
-  rgbCache.set(color, result);
-  return result;
-}
-
-function rgbaFromHex(color: string, alpha: number) {
-  const rgb = hexToRgb(color);
-  return rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})` : color;
-}
-
-function createBarGradient(ctx: CanvasRenderingContext2D, entity: RenderableEntity, top: number, height: number) {
-  const gradient = ctx.createLinearGradient(0, top, 0, top + height);
-  const fill = entity.style.fill;
-
-  gradient.addColorStop(0, BAR_HIGHLIGHT_COLOR);
-  gradient.addColorStop(0.18, rgbaFromHex(fill, 0.95));
-  gradient.addColorStop(0.72, rgbaFromHex(fill, 0.72));
-  gradient.addColorStop(1, rgbaFromHex(fill, 0.46));
-
-  return gradient;
+/** overlay 语义 token → palette 颜色（渲染期解析，builders 不再携带 hex） */
+function overlayColor(token: OverlayColorToken, palette: RendererPalette): string {
+  switch (token) {
+    case "accent": return palette.accent;
+    case "text": return palette.uiText;
+    case "text-secondary": return palette.uiTextSecondary;
+    case "text-muted": return palette.uiTextMuted;
+    case "border": return palette.border;
+    case "panel-fill": return palette.backgroundSecondary;
+    case "comparing": return palette.states.comparing.fill;
+    case "swapping": return palette.states.swapping.fill;
+    case "sorted": return palette.states.sorted.fill;
+    case "latest": return palette.states.latest.fill;
+  }
 }
 
 export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
@@ -95,29 +69,29 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
   // entities 按 zIndex 排序结果缓存（同一帧复用，避免每帧重复 slice+sort）
   let lastSortedFrame: FrameState | null = null;
   let cachedSortedEntities: RenderableEntity[] = [];
-  // 静态背景（背景色 + grid）离屏缓存：仅在 resize / 主题变化时重建，绘制时 drawImage 一次
+  // 静态背景（背景色 + 点阵）离屏缓存：仅在 resize / 主题混合结束时重建，绘制时 drawImage 一次
   let bgCanvas: HTMLCanvasElement | null = null;
   let bgCtx: CanvasRenderingContext2D | null = null;
+  // 主题切换后缓存过期标记：混合结束的第一帧用终态 palette 重建（watch 时机在混合起点，那时取到的是旧色）
+  let bgCacheStale = false;
 
-  // 获取主题实例（在 setup 上下文中；主题系统可能未初始化，回退硬编码颜色）
-  let theme: ReturnType<typeof useTheme> | null = null;
-  try {
-    theme = useTheme();
+  const themeStore = useThemeStore();
 
-    // 监听主题变化：重建静态背景缓存（颜色/间距可能变）并触发重绘
-    watch(() => theme!.currentThemeId.value, () => {
-      rebuildBackgroundCache();
-      if (currentFrame.value) {
-        needsRedraw = true;
-        requestRender();
-      }
-    });
-  } catch (e) {
-    console.warn("[useCanvasRenderer] 主题系统未初始化，回退硬编码颜色", e);
-    theme = null;
+  /** 当前帧调色板（混合期间逐帧变化；轮询同时推进混合状态机） */
+  function palette(): RendererPalette {
+    return themeStore.currentRendererPalette(performance.now());
   }
 
-  function setCanvasDimensions(width: number, height: number) {
+  // 主题变化：标记缓存过期并触发重绘（背景缓存重建推迟到混合结束的终态帧）
+  watch(() => themeStore.currentThemeId, () => {
+    bgCacheStale = true;
+    if (currentFrame.value) {
+      needsRedraw = true;
+      requestRender();
+    }
+  });
+
+  function initialize(width: number, height: number) {
     containerWidth = Math.max(1, width);
     containerHeight = Math.max(1, height);
 
@@ -136,15 +110,12 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.scale(dpr, dpr);
     ctx.imageSmoothingEnabled = false;
 
-    rebuildBackgroundCache();
-  }
-
-  function initialize(width: number, height: number) {
-    setCanvasDimensions(width, height);
+    rebuildBackgroundCache(palette());
+    bgCacheStale = false;
   }
 
   function resize(width: number, height: number) {
-    setCanvasDimensions(width, height);
+    initialize(width, height);
     needsRedraw = true;
     requestRender();
   }
@@ -155,36 +126,40 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     requestRender();
   }
 
-  /** 绘制桶格子的圆角矩形背景面板（region-panel 类型专用） */
-  function drawRegionPanel(ctx: CanvasRenderingContext2D, overlay: RenderableOverlay) {
+  /** 绘制桶格子的圆角矩形背景面板（region-panel 专用；颜色全部 token 解析） */
+  function drawRegionPanel(ctx: CanvasRenderingContext2D, overlay: RenderableOverlay, pal: RendererPalette) {
     if (!overlay.rect) return;
     const { x, y, width, height, radius } = overlay.rect;
+    const alpha = overlay.style.alpha ?? 1;
+    const borderColor = overlayColor(overlay.style.color ?? "border", pal);
 
     ctx.save();
-    ctx.globalAlpha = overlay.style.alpha ?? 1;
 
-    // 半透明背景填充
+    // 面板底：次级背景半透明填充
     roundedRectPath(ctx, x, y, width, height, radius);
-    ctx.fillStyle = overlay.style.fill;
+    ctx.fillStyle = overlayColor("panel-fill", pal);
+    ctx.globalAlpha = alpha * 0.6;
     ctx.fill();
 
-    // 彩色边框 + 外发光
-    const borderColor = overlay.style.stroke ?? overlay.style.fill;
-    ctx.shadowColor = borderColor;
-    ctx.shadowBlur = 18 * (overlay.style.glow ?? 0.3);
+    // 边框（活跃桶 accent 微发光，非活跃 border 静默）
+    ctx.globalAlpha = alpha;
+    if (overlay.accentBar) {
+      ctx.shadowColor = borderColor;
+      ctx.shadowBlur = 8;
+    }
     ctx.strokeStyle = borderColor;
-    ctx.lineWidth = overlay.accentBar ? 1.8 : 1.2;
+    ctx.lineWidth = overlay.accentBar ? 1.4 : 1;
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // 活跃桶：顶部内侧绘制 2.5px 发光高亮条
+    // 活跃桶：顶部内侧 accent 高亮条
     if (overlay.accentBar) {
       const barH = 2.5;
       const innerR = Math.min(radius, barH);
       ctx.save();
-      ctx.shadowColor = overlay.accentBar;
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = overlay.accentBar;
+      ctx.shadowColor = borderColor;
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = borderColor;
       roundedRectPath(ctx, x + 1, y + 1, width - 2, barH, innerR);
       ctx.fill();
       ctx.restore();
@@ -193,10 +168,10 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.restore();
   }
 
-  function drawOverlay(ctx: CanvasRenderingContext2D, overlay: RenderableOverlay) {
+  function drawOverlay(ctx: CanvasRenderingContext2D, overlay: RenderableOverlay, pal: RendererPalette) {
     // region-panel 由三阶段绘制流程单独处理，此处跳过
     if (overlay.kind === "region-panel") {
-      drawRegionPanel(ctx, overlay);
+      drawRegionPanel(ctx, overlay, pal);
       return;
     }
 
@@ -204,12 +179,16 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.globalAlpha = overlay.style.alpha ?? 1;
 
     if (overlay.points?.length) {
-      ctx.strokeStyle = overlay.style.stroke ?? overlay.style.fill;
+      const lineColor = overlayColor(overlay.style.color ?? "border", pal);
+      ctx.strokeStyle = lineColor;
       ctx.lineWidth = overlay.kind === "guide" ? 2 : 1.5;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.shadowColor = overlay.style.stroke ?? overlay.style.fill;
-      ctx.shadowBlur = overlay.kind === "guide" ? 8 : 3;
+      if (overlay.kind === "guide") {
+        // 仅引导线发光（comparing 虚线），其余线条静默
+        ctx.shadowColor = lineColor;
+        ctx.shadowBlur = pal.shadowBlur * (overlay.style.glow ?? 0);
+      }
 
       if (overlay.style.dashed) {
         ctx.setLineDash([7, 7]);
@@ -236,28 +215,25 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
       const anchor = overlay.points[0];
 
       if (overlay.kind === "badge") {
-        // 徽章字号加大至 13px
+        // 徽章字号 13px
         ctx.font = FONTS.badge;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        const paddingX = 9;
-        const boxHeight = 20;
+
+        // 徽章底：次级背景 + border 细边（画廊式安静徽章）
+        const paddingX = 8;
+        const boxHeight = 18;
         const textWidth = ctx.measureText(overlay.text).width;
         const boxWidth = textWidth + paddingX * 2;
-        const left = anchor.x - boxWidth / 2;
-        const top = anchor.y - boxHeight / 2;
-        const radius = 8;
 
-        roundedRectPath(ctx, left, top, boxWidth, boxHeight, radius);
-        ctx.fillStyle = overlay.style.fill;
+        roundedRectPath(ctx, anchor.x - boxWidth / 2, anchor.y - boxHeight / 2, boxWidth, boxHeight, 6);
+        ctx.fillStyle = overlayColor("panel-fill", pal);
         ctx.fill();
-        if (overlay.style.stroke) {
-          ctx.strokeStyle = overlay.style.stroke;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        }
+        ctx.strokeStyle = overlayColor("border", pal);
+        ctx.lineWidth = 1;
+        ctx.stroke();
 
-        ctx.fillStyle = overlay.style.text ?? "#eaf2ff";
+        ctx.fillStyle = overlayColor(overlay.style.textColor ?? "text-secondary", pal);
         ctx.fillText(overlay.text, anchor.x, anchor.y + 0.5);
       } else {
         // 桶标题 13px bold，其余 label 11px
@@ -269,7 +245,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
             : FONTS.tiny;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = overlay.style.text ?? overlay.style.fill;
+        ctx.fillStyle = overlayColor(overlay.style.textColor ?? "text-secondary", pal);
         ctx.fillText(overlay.text, anchor.x, anchor.y);
       }
     }
@@ -277,7 +253,8 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.restore();
   }
 
-  function drawBarEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity, frame: FrameState) {
+  /** 柱状实体：纯色块 + 渲染期取色（渐变/描边/顶部高光线已退役——画廊柱子色块即身份） */
+  function drawBarEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity, frame: FrameState, pal: RendererPalette) {
     const x = Math.round(entity.x);
     const y = Math.round(entity.y);
     const width = Math.round(entity.width);
@@ -287,93 +264,76 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     if (width <= 0 || height <= 0) return;
 
     const radius = Math.max(4, Math.min(10, Math.floor(width / 3)));
+    const visual = resolveEntityStyle(entity.stateTags, pal);
 
     ctx.save();
-    ctx.globalAlpha = entity.style.alpha ?? entity.opacity;
+    ctx.globalAlpha = entity.style?.alpha ?? entity.opacity;
 
-    if (entity.style.glow) {
-      ctx.shadowColor = entity.style.fill;
-      ctx.shadowBlur = 18 * entity.style.glow;
+    // 发光只在有 glow 乘数的活跃状态出现（射灯原则）；亮色主题 shadowBlur=0 天然无发光
+    if (visual.glow > 0 && pal.shadowBlur > 0) {
+      ctx.shadowColor = visual.fill;
+      ctx.shadowBlur = pal.shadowBlur * visual.glow;
     }
 
     roundedRectPath(ctx, x, top, width, height, radius);
-    ctx.fillStyle = createBarGradient(ctx, entity, top, height);
+    ctx.fillStyle = visual.fill;
     ctx.fill();
-
     ctx.shadowBlur = 0;
-    if (entity.style.stroke) {
-      ctx.strokeStyle = entity.style.stroke;
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-    }
-
-    ctx.strokeStyle = BAR_HIGHLIGHT_COLOR;
-    ctx.lineWidth = Math.max(1, Math.min(2, width / 12));
-    ctx.beginPath();
-    ctx.moveTo(x + radius, top + 4);
-    ctx.lineTo(x + width - radius, top + 4);
-    ctx.stroke();
 
     ctx.font = sizedFont("700", Math.min(12, Math.max(width - 2, 9)));
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = entity.style.text ?? VALUE_LABEL_COLOR;
+    ctx.fillStyle = pal.text;
     ctx.fillText(String(entity.value), x + width / 2, Math.max(14, top - 8));
 
     ctx.font = sizedFont("bold", Math.min(12, Math.max(width - 2, 8)));
-    ctx.fillStyle = INDEX_LABEL_COLOR;
+    ctx.fillStyle = pal.indexText;
     const labelOffset = getFrameNumberMeta(frame, "labelOffset") ?? 17;
     ctx.fillText(String(entity.displayIndex), x + width / 2, y + labelOffset);
 
     ctx.restore();
   }
 
-  function drawHeapEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity) {
+  function drawHeapEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity, pal: RendererPalette) {
     const radius = Math.max(3, Math.round(entity.width / 2));
+    const visual = resolveEntityStyle(entity.stateTags, pal);
 
     ctx.save();
-    ctx.globalAlpha = entity.style.alpha ?? entity.opacity;
-    ctx.fillStyle = entity.style.fill;
+    ctx.globalAlpha = entity.style?.alpha ?? entity.opacity;
+    ctx.fillStyle = visual.fill;
 
-    if (entity.style.glow) {
-      ctx.shadowColor = entity.style.fill;
-      ctx.shadowBlur = 16 * entity.style.glow;
+    if (visual.glow > 0 && pal.shadowBlur > 0) {
+      ctx.shadowColor = visual.fill;
+      ctx.shadowBlur = pal.shadowBlur * visual.glow;
     }
 
     ctx.beginPath();
     ctx.arc(entity.x, entity.y, radius, 0, Math.PI * 2);
     ctx.fill();
-
-    if (entity.style.stroke) {
-      ctx.strokeStyle = entity.style.stroke;
-      ctx.lineWidth = radius < 14 ? 1.5 : 2;
-      ctx.stroke();
-    }
-
     ctx.restore();
 
     ctx.font = sizedFont("bold", Math.min(13, Math.max(radius * 1.2, 7)));
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = entity.style.text ?? "#f0ead8";
+    ctx.fillStyle = pal.text;
     if (radius >= 6) {
       ctx.fillText(String(entity.value), entity.x, entity.y + 0.5);
       if (entity.kind === "heap-array-node" || entity.kind === "heap-tree-node") {
         ctx.font = FONTS.heapIndex;
         ctx.textBaseline = "top";
-        ctx.fillStyle = "rgba(160, 185, 220, 0.65)";
+        ctx.fillStyle = pal.indexText;
         ctx.fillText(String(entity.displayIndex), entity.x, entity.y + radius + 4);
       }
     }
   }
 
-  function drawEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity, frame: FrameState) {
+  function drawEntity(ctx: CanvasRenderingContext2D, entity: RenderableEntity, frame: FrameState, pal: RendererPalette) {
     if (isHeapNode(entity)) {
-      drawHeapEntity(ctx, entity);
+      drawHeapEntity(ctx, entity, pal);
       return;
     }
 
-    drawBarEntity(ctx, entity, frame);
+    drawBarEntity(ctx, entity, frame, pal);
   }
 
   function getMainRegion(frame: FrameState) {
@@ -390,31 +350,24 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     return Math.max(0, Math.round((containerWidth - frameWidth) / 2));
   }
 
-  /** 绘制静态层（背景色 + grid）到指定 ctx；baseline 因 baseY 随帧变化，留给 drawBackground 动态绘制 */
-  function paintStaticBackground(targetCtx: CanvasRenderingContext2D) {
-    targetCtx.fillStyle = theme ? theme.getBackgroundColor() : BACKGROUND_COLOR;
+  /** 静态层（背景色 + 点阵）到指定 ctx；palette 参数化以支持混合期间逐帧重画；baseline 因 baseY 随帧变化，留给 drawBackground 动态绘制 */
+  function paintStaticBackground(targetCtx: CanvasRenderingContext2D, pal: RendererPalette) {
+    targetCtx.fillStyle = pal.background;
     targetCtx.fillRect(0, 0, containerWidth, containerHeight);
 
-    targetCtx.strokeStyle = theme ? theme.getGridColor() : GRID_COLOR;
-    targetCtx.lineWidth = 1;
-    const gridSize = theme ? theme.themeEffects.value.gridSpacing : 40;
-
-    for (let x = 0; x <= containerWidth; x += gridSize) {
-      targetCtx.beginPath();
-      targetCtx.moveTo(x + 0.5, 0);
-      targetCtx.lineTo(x + 0.5, containerHeight);
-      targetCtx.stroke();
-    }
-    for (let y = 0; y <= containerHeight; y += gridSize) {
-      targetCtx.beginPath();
-      targetCtx.moveTo(0, y + 0.5);
-      targetCtx.lineTo(containerWidth, y + 0.5);
-      targetCtx.stroke();
+    // 点阵网格（与 App.vue CSS 点阵同一 gridSpacing=24，画廊式安静底纹）
+    targetCtx.fillStyle = pal.grid;
+    for (let gx = pal.gridSpacing / 2; gx < containerWidth; gx += pal.gridSpacing) {
+      for (let gy = pal.gridSpacing / 2; gy < containerHeight; gy += pal.gridSpacing) {
+        targetCtx.beginPath();
+        targetCtx.arc(gx, gy, 1, 0, Math.PI * 2);
+        targetCtx.fill();
+      }
     }
   }
 
-  /** 重建静态背景离屏缓存（resize / 主题变化时调用；与主 canvas 同 dpr 创建+缩放，drawImage 时 1:1 无缩放） */
-  function rebuildBackgroundCache() {
+  /** 重建静态背景离屏缓存（resize / 主题混合结束时调用；与主 canvas 同 dpr 创建+缩放，drawImage 时 1:1 无缩放） */
+  function rebuildBackgroundCache(pal: RendererPalette) {
     if (!bgCanvas) bgCanvas = document.createElement("canvas");
     const dpr = window.devicePixelRatio || 1;
     bgCanvas.width = Math.floor(containerWidth * dpr);
@@ -423,37 +376,37 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     if (!bgCtx) return;
     bgCtx.setTransform(1, 0, 0, 1, 0, 0);
     bgCtx.scale(dpr, dpr);
-    paintStaticBackground(bgCtx);
+    paintStaticBackground(bgCtx, pal);
   }
 
-  function drawBackground(ctx: CanvasRenderingContext2D, frame: FrameState) {
+  function drawBackground(ctx: CanvasRenderingContext2D, frame: FrameState, pal: RendererPalette) {
     ctx.clearRect(0, 0, containerWidth, containerHeight);
 
-    // 静态层（背景色 + grid）从离屏缓存 drawImage；缓存不可用时回退即时绘制
-    if (bgCtx && bgCanvas) {
-      ctx.drawImage(bgCanvas, 0, 0, containerWidth, containerHeight);
+    if (themeStore.isPaletteMixing()) {
+      // 混合期间背景逐帧直画（缓存是单帧静止色，用它会在混合中发生背景跳变）
+      paintStaticBackground(ctx, pal);
     } else {
-      paintStaticBackground(ctx);
+      // 混合结束：用过期标记判断是否需要按终态 palette 重建缓存
+      if (bgCacheStale || !bgCtx || !bgCanvas) {
+        rebuildBackgroundCache(pal);
+        bgCacheStale = false;
+      }
+      if (bgCanvas) {
+        ctx.drawImage(bgCanvas, 0, 0, containerWidth, containerHeight);
+      } else {
+        paintStaticBackground(ctx, pal);
+      }
     }
 
-    // baseline（动态：baseY 随帧变化，故不进缓存）
-    const baselineColor = theme ? theme.getBaselineColor() : BASELINE_COLOR;
-    ctx.strokeStyle = baselineColor;
+    // baseline（动态：baseY 随帧变化，不进缓存）；安静水平线，无发光
+    ctx.strokeStyle = pal.baseline;
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = baselineColor;
-
-    // 使用主题阴影设置或默认值
-    const shadowBlur = theme ? theme.themeEffects.value.shadowBlur : 8;
-    ctx.shadowBlur = shadowBlur;
-
     const baseY = getFrameNumberMeta(frame, "baseY") ?? containerHeight - 21.5;
     const baselineY = Math.round(baseY) + 0.5;
-
     ctx.beginPath();
     ctx.moveTo(0, baselineY);
     ctx.lineTo(containerWidth, baselineY);
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }
 
   /** 按 zIndex 排序的实体列表（同帧缓存，跨帧重建） */
@@ -465,7 +418,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     return cachedSortedEntities;
   }
 
-  /** 单次绘制（按需触发，不自调度 rAF，避免静止时持续空转重绘） */
+  /** 单次绘制：每帧取一次 palette 贯穿全流程（按需触发，静止时零开销） */
   function drawOnce() {
     const canvas = canvasRef.value;
     const frame = currentFrame.value;
@@ -474,7 +427,9 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    drawBackground(ctx, frame);
+    const pal = palette();
+
+    drawBackground(ctx, frame, pal);
 
     const xOffset = getFrameContentOffsetX(frame);
 
@@ -485,7 +440,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
       .forEach((overlay) => {
         ctx.save();
         ctx.translate(xOffset, 0);
-        drawOverlay(ctx, overlay);
+        drawOverlay(ctx, overlay, pal);
         ctx.restore();
       });
 
@@ -493,7 +448,7 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
     ctx.save();
     ctx.translate(xOffset, 0);
     getSortedEntities(frame)
-      .forEach((entity) => drawEntity(ctx, entity, frame));
+      .forEach((entity) => drawEntity(ctx, entity, frame, pal));
     ctx.restore();
 
     // 阶段三：其余 overlay（label/badge/guide/divider 前景）
@@ -502,9 +457,15 @@ export function useCanvasRenderer(canvasRef: Ref<HTMLCanvasElement | null>) {
       .forEach((overlay) => {
         ctx.save();
         ctx.translate(xOffset, 0);
-        drawOverlay(ctx, overlay);
+        drawOverlay(ctx, overlay, pal);
         ctx.restore();
       });
+
+    // 混合未结束：自续帧直到 300ms 换装完成（spec 5.3）
+    if (themeStore.isPaletteMixing()) {
+      needsRedraw = true;
+      requestRender();
+    }
   }
 
   /** 合并多次重绘请求：仅当有待绘制内容且当前无挂起 rAF 时调度一帧；画面静止时零开销 */

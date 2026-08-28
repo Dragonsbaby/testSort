@@ -1,19 +1,9 @@
 import type { FrameState, RenderableEntity, RenderableOverlay, RenderableRegion, StateTag, TimelineStep, SemanticStep } from "@/types/timeline";
 import { buildBucketLayout, BUCKET_INNER_PADDING_TOP, BUCKET_INNER_PADDING_BOT, BUCKET_INNER_PADDING_X } from "@/utils/layout/bucket-layout";
-import { getStyleFromStateTags } from "@/utils/frame/style-utils";
-import { getBucketTheme } from "@/utils/frame/bucket-palette";
 import { calcBucketCount } from "@/types/sorting";
 import { TIMING, FLY_DURATION, CURVE } from "./timing-presets";
 
-const MAIN_BASE_STYLE = { fill: "#4a9eff", glow: 0 };
-
 type FrameRole = "from" | "to" | "static";
-
-/** 根据桶索引动态返回柱子样式 */
-function getBucketBarStyle(bucketIndex: number) {
-  const theme = getBucketTheme(bucketIndex);
-  return { fill: theme.bar, glow: 0.2 };
-}
 
 function buildBucketTags(semantic: SemanticStep) {
   const mainStateTags = new Map<number, StateTag[]>();
@@ -90,22 +80,21 @@ function buildBucketOverlays(
 ): RenderableOverlay[] {
   const overlays: RenderableOverlay[] = [];
 
-  // 主数组区标签（更醒目蓝色）
+  // 主数组区标签
   overlays.push({
     id: "bucket-main-label",
     kind: "label",
     points: [{ x: 72, y: 18 }],
     text: "▸ 主数组区",
-    style: { fill: "#74b6ff", text: "#74b6ff", alpha: 0.95 },
+    style: { textColor: "text-secondary", alpha: 0.95 },
   });
 
-  // 每个桶的 region-panel + 标题 + 计数徽章
+  // 每个桶：region-panel + 标题 + 计数徽章（统一 token，活跃桶用 accent 强调——射灯原则）
   for (const region of layout.bucketRegions) {
     const { bucketIndex } = region;
-    const theme = getBucketTheme(bucketIndex);
     const isActive = bucketIndex === activeBucketIndex;
+    const bucketItemCount = buckets[bucketIndex]?.length ?? 0;
 
-    // 圆角背景面板
     overlays.push({
       id: `bucket-panel-${bucketIndex}`,
       kind: "region-panel",
@@ -117,31 +106,26 @@ function buildBucketOverlays(
         radius: 8,
       },
       style: {
-        fill: theme.bgFill,
-        stroke: isActive ? theme.border : `${theme.border}99`,
-        glow: isActive ? 0.7 : 0.3,
+        color: isActive ? "accent" : "border",
         alpha: 1,
       },
-      accentBar: isActive ? theme.border : undefined,
+      accentBar: isActive || undefined,
     });
 
-    // 桶标题（英文更优雅，字号 13px bold，独立配色）
     overlays.push({
       id: `bucket-title-${bucketIndex}`,
       kind: "label",
       points: [{ x: region.x + region.width / 2, y: region.y + 14 }],
       text: `Bucket ${bucketIndex + 1}`,
-      style: { fill: theme.border, text: theme.border, alpha: 0.95 },
+      style: { textColor: "text-secondary", alpha: 0.95 },
     });
 
-    // 计数徽章（纯数字，尺寸加大）
-    const bucketItemCount = buckets[bucketIndex]?.length ?? 0;
     overlays.push({
       id: `bucket-count-${bucketIndex}`,
       kind: "badge",
       points: [{ x: region.x + region.width - 22, y: region.y + 14 }],
       text: String(bucketItemCount),
-      style: { fill: theme.badgeBg, stroke: `${theme.border}AA`, text: theme.badgeText, alpha: 0.95 },
+      style: { textColor: "text-muted", alpha: 0.95 },
     });
   }
 
@@ -204,7 +188,6 @@ function createBucketFrame(params: {
       height: Math.max(6, Math.round((value / maxValue) * (layout.mainHeight - 52))),
       opacity: isScattered ? 0 : 1,
       zIndex: 1,
-      style: getStyleFromStateTags(stateTags, MAIN_BASE_STYLE),
       stateTags,
     };
   });
@@ -236,8 +219,6 @@ function createBucketFrame(params: {
       region.x + region.width - BUCKET_INNER_PADDING_X - barWidth,
     );
 
-    const bucketBaseStyle = getBucketBarStyle(bucketIndex);
-
     return bucket.map((value, position) => {
       const stateTags = bucketStateTags.get(`${bucketIndex}-${position}`) ?? [];
       // to 帧 scatter 落点的 bar 保持隐藏，由 ghost 负责视觉，ghost 消失后下一步 from 帧才显示
@@ -260,7 +241,6 @@ function createBucketFrame(params: {
         height: Math.min(innerHeight, Math.max(6, Math.round((value / bucketMax) * innerHeight))),
         opacity: isGhostTarget ? 0 : 1,
         zIndex: 2,
-        style: getStyleFromStateTags(stateTags, bucketBaseStyle),
         stateTags,
       } satisfies RenderableEntity;
     });
@@ -287,15 +267,15 @@ function createBucketFrame(params: {
       );
       const xMax = Math.max(targetRegion.x + BUCKET_INNER_PADDING_X, targetRegion.x + targetRegion.width - BUCKET_INNER_PADDING_X - tBarWidth);
       const tBarX = Math.min(targetRegion.x + BUCKET_INNER_PADDING_X + (bucketPos as number) * (tBarWidth + tBarGap), xMax);
-      const bucketBaseStyle = getBucketBarStyle(targetBucketIndex);
 
       const ghostId = `ghost-scatter-${ghostStepIndex ?? stepIndex}`;
       // from 帧：ghost 在主数组位置，宽度与源柱子一致（完全覆盖源位置）
       // to 帧：ghost 到达桶内目标位置，宽度为桶内宽度
+      // ghost 统一 latest（冰青）：转移中的元素 = 最近被触碰（scatter 时源实体本身就是 latest，语义一致）
       ghostEntities.push(
         frameRole === "from"
-          ? { ...source, id: ghostId, sourceId: source.sourceId, kind: "main-bar", width: source.width, height: tBarHeight, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] }
-          : { ...source, id: ghostId, sourceId: source.sourceId, kind: "main-bar", x: tBarX, y: tBarBaseY, width: tBarWidth, height: tBarHeight, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] },
+          ? { ...source, id: ghostId, sourceId: source.sourceId, kind: "main-bar", width: source.width, height: tBarHeight, opacity: 1, zIndex: 3, stateTags: ["latest"] }
+          : { ...source, id: ghostId, sourceId: source.sourceId, kind: "main-bar", x: tBarX, y: tBarBaseY, width: tBarWidth, height: tBarHeight, opacity: 1, zIndex: 3, stateTags: ["latest"] },
       );
 
       // source bar 立即隐藏（ghost 接替飞行）
@@ -324,15 +304,14 @@ function createBucketFrame(params: {
           Math.max(6, Math.round((sourceValue / globalMaxValue) * (layout.mainHeight - 52))),
         );
         const sBarX = sourceRegion.x + BUCKET_INNER_PADDING_X;
-        const bucketBaseStyle = getBucketBarStyle(bucketIndex);
 
         const ghostId = `ghost-gather-${ghostStepIndex ?? stepIndex}`;
         ghostEntities.push(
           frameRole === "from"
-            ? { id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", value: sourceValue, displayIndex: 1, x: sBarX, y: sBarBaseY, width: sBarWidth, height: sBarHeight, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] }
+            ? { id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", value: sourceValue, displayIndex: 1, x: sBarX, y: sBarBaseY, width: sBarWidth, height: sBarHeight, opacity: 1, zIndex: 3, stateTags: ["latest"] }
             // ghost to 帧保持可见（opacity:1）：飞行结束时 target 主柱重新显示，ghost 须同位置可见以平滑接管，
             // 下一 step 的 from 帧 ghost 消失、target 接管。若 opacity:0 会导致 ghost 淡出与 target 显现的切换闪烁（CLAUDE.md 经验 #6）
-            : { ...target, id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", width: target.width, opacity: 1, zIndex: 3, style: bucketBaseStyle, stateTags: [] },
+            : { ...target, id: ghostId, sourceId: `bucket-${bucketIndex}-${sourceValue}-0`, kind: "bucket-bar", width: target.width, opacity: 1, zIndex: 3, stateTags: ["latest"] },
         );
 
         // 桶内 position-0 bar 在 from 帧立刻隐藏

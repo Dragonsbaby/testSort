@@ -12,20 +12,20 @@ export interface KeyboardShortcutHandlers {
   onSeekBackward?: () => void;
 }
 
+/** 输入控件聚焦时不响应快捷键 */
+function isTypingTarget(event: KeyboardEvent) {
+  return event.target instanceof HTMLInputElement
+    || event.target instanceof HTMLTextAreaElement
+    || event.target instanceof HTMLSelectElement;
+}
+
 /**
  * 键盘快捷键 Composable
  * 提供标准的播放控制键盘快捷键
  */
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
   function handleKeyDown(event: KeyboardEvent) {
-    // 如果用户正在输入，不触发快捷键
-    if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement ||
-      event.target instanceof HTMLSelectElement
-    ) {
-      return;
-    }
+    if (isTypingTarget(event)) return;
 
     // Space: 播放/暂停
     if (event.code === 'Space' && handlers.onPlayPause) {
@@ -93,59 +93,18 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
 }
 
 /**
- * 主题系统键盘快捷键 Composable
+ * 主题快捷键 Composable（双城时代仅剩深浅切换）
  */
 export function useThemeKeyboardShortcuts() {
   const themeStore = useThemeStore();
 
   function handleThemeKeydown(event: KeyboardEvent) {
-    // 如果用户正在输入，不触发快捷键
-    if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement ||
-      event.target instanceof HTMLSelectElement
-    ) {
-      return;
-    }
-
-    // Alt + T: 切换到下一个主题
-    if (event.altKey && event.key === 't') {
-      event.preventDefault();
-      themeStore.nextTheme();
-      return;
-    }
-
-    // Alt + Shift + T: 切换到上一个主题
-    if (event.altKey && event.shiftKey && event.key === 'T') {
-      event.preventDefault();
-      themeStore.previousTheme();
-      return;
-    }
+    if (isTypingTarget(event)) return;
 
     // Alt + D: 切换深色/浅色模式
     if (event.altKey && event.key === 'd') {
       event.preventDefault();
       themeStore.toggleDarkMode();
-      return;
-    }
-
-    // Alt + R: 重置为默认主题
-    if (event.altKey && event.key === 'r') {
-      event.preventDefault();
-      themeStore.resetToDefault();
-      return;
-    }
-
-    // 数字键 1-6: 快速切换到指定主题
-    if (event.altKey && !event.shiftKey && !event.ctrlKey) {
-      const themes = ['dark', 'light', 'cyberpunk', 'ocean', 'sunset', 'forest'] as const;
-      const keyIndex = parseInt(event.key) - 1;
-
-      if (keyIndex >= 0 && keyIndex < themes.length) {
-        event.preventDefault();
-        themeStore.setTheme(themes[keyIndex]);
-        return;
-      }
     }
   }
 
@@ -169,14 +128,5 @@ export const KEYBOARD_SHORTCUTS_HELP = {
   seekForward: { key: 'PageDown', description: '快速前进10步' },
   seekBackward: { key: 'PageUp', description: '快速后退10步' },
   seekEnd: { key: 'End', description: '跳转到最后' },
-  themeNext: { key: 'Alt+T', description: '下一个主题' },
-  themePrev: { key: 'Alt+Shift+T', description: '上一个主题' },
-  themeToggleDark: { key: 'Alt+D', description: '切换深色/浅色' },
-  themeReset: { key: 'Alt+R', description: '重置主题' },
-  themeQuick1: { key: 'Alt+1', description: '深色经典' },
-  themeQuick2: { key: 'Alt+2', description: '明亮清新' },
-  themeQuick3: { key: 'Alt+3', description: '赛博朋克' },
-  themeQuick4: { key: 'Alt+4', description: '深海探险' },
-  themeQuick5: { key: 'Alt+5', description: '日落余晖' },
-  themeQuick6: { key: 'Alt+6', description: '森林秘境' },
+  themeToggleDark: { key: 'Alt+D', description: '切换深色/浅色主题' },
 } as const;

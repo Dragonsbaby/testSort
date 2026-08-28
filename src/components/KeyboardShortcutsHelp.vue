@@ -19,54 +19,11 @@
           <div class="help-sections">
             <!-- 主题快捷键 -->
             <div class="help-section">
-              <h4>🎨 主题快捷键</h4>
+              <h4>🌓 主题</h4>
               <div class="shortcut-list">
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>T</kbd>
-                  <span>下一个主题</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>
-                  <span>上一个主题</span>
-                </div>
                 <div class="shortcut-item">
                   <kbd>Alt</kbd> + <kbd>D</kbd>
-                  <span>切换深色/浅色</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>R</kbd>
-                  <span>重置主题</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 快速主题切换 -->
-            <div class="help-section">
-              <h4>⚡ 快速主题切换</h4>
-              <div class="shortcut-list">
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>1</kbd>
-                  <span>🌙 深色经典</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>2</kbd>
-                  <span>🌞 明亮清新</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>3</kbd>
-                  <span>🌆 赛博朋克</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>4</kbd>
-                  <span>🌊 深海探险</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>5</kbd>
-                  <span>🌅 日落余晖</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>Alt</kbd> + <kbd>6</kbd>
-                  <span>🌲 森林秘境</span>
+                  <span>切换深色/浅色主题</span>
                 </div>
               </div>
             </div>
@@ -130,20 +87,19 @@ const showHelp = ref(false);
 
 .help-button {
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: var(--color-text, #ffffff);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, color 0.2s;
 }
 
 .help-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--color-primary, #4a9eff);
-  transform: translateY(-1px);
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .help-panel {
@@ -153,7 +109,6 @@ const showHelp = ref(false);
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -171,13 +126,14 @@ const showHelp = ref(false);
 }
 
 .help-content {
-  background: var(--color-background-secondary, #1a1a2e);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 24px;
   max-width: 600px;
   max-height: 80vh;
   overflow-y: auto;
+  box-shadow: var(--panel-shadow);
   animation: slideUp 0.3s ease;
 }
 
@@ -198,30 +154,29 @@ const showHelp = ref(false);
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--color-divider, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--border);
 }
 
 .help-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-text, #ffffff);
+  color: var(--text);
 }
 
 .close-btn {
   background: transparent;
   border: none;
-  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+  color: var(--text-muted);
   font-size: 24px;
   cursor: pointer;
   padding: 8px;
   border-radius: 6px;
-  transition: all 0.2s;
+  transition: color 0.2s;
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--color-text, #ffffff);
+  color: var(--text);
 }
 
 .help-sections {
@@ -231,8 +186,8 @@ const showHelp = ref(false);
 }
 
 .help-section {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;
 }
@@ -241,7 +196,7 @@ const showHelp = ref(false);
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-secondary, #4ecdc4);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -260,33 +215,33 @@ const showHelp = ref(false);
 }
 
 .shortcut-item kbd {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--bg-3);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 4px 8px;
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text, #ffffff);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .shortcut-item span {
-  color: var(--color-text-muted, rgba(255, 255, 255, 0.7));
+  color: var(--text-muted);
   flex: 1;
 }
 
 .help-footer {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--color-divider, rgba(255, 255, 255, 0.1));
+  border-top: 1px solid var(--border);
   text-align: center;
 }
 
 .help-footer p {
   margin: 0;
   font-size: 12px;
-  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+  color: var(--text-muted);
 }
 
 /* 过渡动画 */

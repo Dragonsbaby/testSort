@@ -84,7 +84,7 @@ defineExpose({ renderFrame: exposedRenderFrame });
   position: absolute;
   width: 24px;
   height: 24px;
-  border-color: rgba(74, 158, 255, 0.8);
+  border-color: var(--border);
   border-style: solid;
   border-width: 0;
   z-index: 2;
