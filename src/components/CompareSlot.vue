@@ -6,15 +6,7 @@ import { algorithmInfo } from "@/types/sorting";
 import type { SortAlgorithm } from "@/types/sorting";
 import { COMPARE_ALGORITHMS } from "@/composables/useCompareUtils";
 
-import {
-  bubbleSort,
-  insertionSort,
-  mergeSort,
-  quickSort,
-  shellSort,
-  bucketSort,
-  heapSort,
-} from "@/utils/sortingAlgorithms";
+import { SORT_FNS, heapSort } from "@/utils/sortingAlgorithms";
 
 import SortBarCanvas from "@/components/SortBarCanvas.vue";
 import { CANVAS_VARIANT_BY_ALGORITHM } from "@/components/canvas-variant";
@@ -40,13 +32,8 @@ const canvasHeightRef = ref(460);
 const heapMode = ref<"max" | "min">("max");
 
 /* ── 排序函数映射 ── */
-const sortFnMap: Record<SortAlgorithm, (arr: number[]) => ReturnType<typeof bubbleSort>> = {
-  bubble: bubbleSort,
-  insertion: insertionSort,
-  merge: mergeSort,
-  quick: quickSort,
-  shell: shellSort,
-  bucket: bucketSort,
+const sortFnMap: Record<SortAlgorithm, (arr: number[]) => ReturnType<typeof heapSort>> = {
+  ...SORT_FNS,
   heap: (arr) => heapSort(arr, heapMode.value),
 };
 

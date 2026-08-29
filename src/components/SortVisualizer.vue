@@ -1,38 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useSortStore } from "@/stores/sortStore";
-import {
-  BubbleSort,
-  BucketSort,
-  HeapSort,
-  InsertionSort,
-  MergeSort,
-  QuickSort,
-  ShellSort,
-} from "@/components/algorithms";
+import AlgorithmView from "@/components/algorithms/AlgorithmView.vue";
 import CompareView from "@/components/CompareView.vue";
 
-interface SortAlgorithmExposed {
-  reset(): void;
-  step(): void;
-}
-
 const store = useSortStore();
-const algorithmRef = ref<SortAlgorithmExposed | null>(null);
-
-const componentMap = {
-  bubble: BubbleSort,
-  bucket: BucketSort,
-  heap: HeapSort,
-  insertion: InsertionSort,
-  merge: MergeSort,
-  quick: QuickSort,
-  shell: ShellSort,
-} as const;
-
-const currentComponent = computed(
-  () => componentMap[store.algorithm] ?? MergeSort,
-);
+const algorithmRef = ref<InstanceType<typeof AlgorithmView> | null>(null);
 
 const isCompareMode = computed(() => store.viewMode === 'compare');
 
@@ -49,10 +22,12 @@ defineExpose({ reset, step });
 
 <template>
   <div class="visualizer">
-    <component
+    <!-- :key 保证切换算法即重挂载（useSortAnimation 的 algorithm 参数为挂载期常量） -->
+    <AlgorithmView
       v-if="!isCompareMode"
-      :is="currentComponent"
+      :key="store.algorithm"
       ref="algorithmRef"
+      :algorithm="store.algorithm"
       :speed="store.animationSpeed"
     />
     <CompareView v-else />

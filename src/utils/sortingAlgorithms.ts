@@ -1,5 +1,5 @@
 import type { SemanticStep } from "@/types/timeline";
-import { calcBucketCount } from "@/types/sorting";
+import { calcBucketCount, type SortAlgorithm } from "@/types/sorting";
 import { createDescriptionGenerator } from "./stepDescriptionGenerator";
 import { normalizePosition, REGION_TERMS } from "./terminology-standards";
 
@@ -16,6 +16,16 @@ function createStep(
 ): SemanticStep {
   return { type, indices, description, arraySnapshot, gap, groupIndices, tempSnapshot, bucketIndex, bucketPos };
 }
+
+/** 非堆算法的排序函数映射（heap 需额外 mode 参数，由调用方包装）；算法视图与 CompareSlot 共用 */
+export const SORT_FNS: Record<Exclude<SortAlgorithm, "heap">, (arr: number[]) => SemanticStep[]> = {
+  bubble: bubbleSort,
+  insertion: insertionSort,
+  merge: mergeSort,
+  quick: quickSort,
+  shell: shellSort,
+  bucket: bucketSort,
+};
 
 export function bubbleSort(arr: number[]): SemanticStep[] {
   const steps: SemanticStep[] = [];
