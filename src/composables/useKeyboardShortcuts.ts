@@ -6,10 +6,6 @@ export interface KeyboardShortcutHandlers {
   onStop?: () => void;
   onStepForward?: () => void;
   onStepBack?: () => void;
-  onSeekStart?: () => void;
-  onSeekEnd?: () => void;
-  onSeekForward?: () => void;
-  onSeekBackward?: () => void;
 }
 
 /** 输入控件聚焦时不响应快捷键 */
@@ -60,27 +56,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
       handlers.onStepBack();
       return;
     }
-
-    // PageUp: 快速后退10步
-    if (event.code === 'PageUp' && handlers.onSeekBackward) {
-      event.preventDefault();
-      handlers.onSeekBackward();
-      return;
-    }
-
-    // PageDown: 快速前进10步
-    if (event.code === 'PageDown' && handlers.onSeekForward) {
-      event.preventDefault();
-      handlers.onSeekForward();
-      return;
-    }
-
-    // End: 跳转到最后
-    if (event.code === 'End' && handlers.onSeekEnd) {
-      event.preventDefault();
-      handlers.onSeekEnd();
-      return;
-    }
   }
 
   onMounted(() => {
@@ -116,17 +91,3 @@ export function useThemeKeyboardShortcuts() {
     document.removeEventListener('keydown', handleThemeKeydown);
   });
 }
-
-/**
- * 快捷键说明映射
- */
-export const KEYBOARD_SHORTCUTS_HELP = {
-  playPause: { key: 'Space', description: '播放/暂停' },
-  stop: { key: 'Home', description: '停止并回到开头' },
-  stepForward: { key: '→/↓', description: '单步前进' },
-  stepBack: { key: '←/↑', description: '单步后退' },
-  seekForward: { key: 'PageDown', description: '快速前进10步' },
-  seekBackward: { key: 'PageUp', description: '快速后退10步' },
-  seekEnd: { key: 'End', description: '跳转到最后' },
-  themeToggleDark: { key: 'Alt+D', description: '切换深色/浅色主题' },
-} as const;

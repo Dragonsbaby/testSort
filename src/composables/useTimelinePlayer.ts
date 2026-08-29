@@ -31,11 +31,6 @@ export function useTimelinePlayer(steps: () => TimelineStep[], speed: Ref<number
     stopLoop();
   }
 
-  function renderCurrentStep() {
-    progress.value = 1;
-    pause();
-  }
-
   function stepForward() {
     // 单步动画进行中（rafId 占用）也拒绝重入，避免覆盖 rAF 句柄导致泄漏与双 tick 推进
     if (isPlaying.value || rafId !== null || !currentTimelineStep.value) return;
@@ -142,7 +137,6 @@ export function useTimelinePlayer(steps: () => TimelineStep[], speed: Ref<number
     play,
     pause,
     reset,
-    renderCurrentStep,
     stepForward,
     stepBack,
     seek,

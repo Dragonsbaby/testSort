@@ -48,18 +48,6 @@
                   <kbd>←</kbd> / <kbd>↑</kbd>
                   <span>单步后退</span>
                 </div>
-                <div class="shortcut-item">
-                  <kbd>PageDown</kbd>
-                  <span>快速前进</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>PageUp</kbd>
-                  <span>快速后退</span>
-                </div>
-                <div class="shortcut-item">
-                  <kbd>End</kbd>
-                  <span>跳转到最后</span>
-                </div>
               </div>
             </div>
           </div>

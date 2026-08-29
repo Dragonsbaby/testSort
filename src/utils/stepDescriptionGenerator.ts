@@ -17,14 +17,9 @@ export class StepDescriptionGenerator {
   private algorithm: SortAlgorithm;
   private currentDepth: number = 0;
   private currentPhase: string = '';
-  private totalSteps: number = 0;
-  private currentStep: number = 0;
 
-  constructor(algorithm: SortAlgorithm, totalSteps?: number) {
+  constructor(algorithm: SortAlgorithm) {
     this.algorithm = algorithm;
-    if (totalSteps) {
-      this.totalSteps = totalSteps;
-    }
   }
 
   /** 更新当前深度（用于递归算法） */
@@ -35,17 +30,6 @@ export class StepDescriptionGenerator {
   /** 更新当前阶段 */
   setPhase(phase: string): void {
     this.currentPhase = phase;
-  }
-
-  /** 更新步骤计数 */
-  updateStepCount(): void {
-    this.currentStep++;
-  }
-
-  /** 获取当前进度百分比 */
-  getProgress(): number {
-    if (this.totalSteps === 0) return 0;
-    return Math.floor((this.currentStep / this.totalSteps) * 100);
   }
 
   /**
@@ -71,7 +55,6 @@ export class StepDescriptionGenerator {
         phase: this.currentPhase || this.getPhase(),
         importance: 'medium',
         depth: this.currentDepth > 0 ? this.currentDepth : undefined,
-        progress: this.totalSteps > 0 ? this.getProgress() : undefined,
         ...extraContext
       }
     };
@@ -99,7 +82,6 @@ export class StepDescriptionGenerator {
         importance: 'high',
         phase: this.currentPhase || this.getPhase(),
         depth: this.currentDepth > 0 ? this.currentDepth : undefined,
-        progress: this.totalSteps > 0 ? this.getProgress() : undefined,
         ...extraContext
       }
     };
@@ -315,11 +297,9 @@ export class StepDescriptionGenerator {
 /**
  * 创建描述生成器的工厂函数
  * @param algorithm 算法类型
- * @param totalSteps 总步骤数（用于计算进度）
  */
 export function createDescriptionGenerator(
-  algorithm: SortAlgorithm,
-  totalSteps?: number
+  algorithm: SortAlgorithm
 ): StepDescriptionGenerator {
-  return new StepDescriptionGenerator(algorithm, totalSteps);
+  return new StepDescriptionGenerator(algorithm);
 }

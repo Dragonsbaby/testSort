@@ -23,7 +23,6 @@ export const useSortStore = defineStore("sort", () => {
   const leftAlgorithm = ref<SortAlgorithm>('bubble');
   const rightAlgorithm = ref<SortAlgorithm>('quick');
   const savedAlgorithm = ref<SortAlgorithm | null>(null);
-  const savedArraySize = ref<number | null>(null);
   const savedOriginalArray = ref<ArrayElement[] | null>(null);
 
   function generateArray(size: number) {
@@ -53,7 +52,6 @@ export const useSortStore = defineStore("sort", () => {
 
   function enterCompareMode() {
     savedAlgorithm.value = algorithm.value;
-    savedArraySize.value = arraySize.value;
     savedOriginalArray.value = JSON.parse(JSON.stringify(originalArray.value));
     leftAlgorithm.value = algorithm.value;
     const idx = COMPARE_ALGORITHMS.indexOf(algorithm.value);
@@ -77,12 +75,11 @@ export const useSortStore = defineStore("sort", () => {
       arraySize.value = savedOriginalArray.value.length;
       savedOriginalArray.value = null;
     }
-    savedArraySize.value = null;
   }
 
   return { originalArray, animationSpeed, arraySize, algorithm, generateArray, setSpeed, setArraySize, setAlgorithm,
     viewMode, compareLayout, leftAlgorithm, rightAlgorithm,
-    savedAlgorithm, savedArraySize,
+    savedAlgorithm,
     setViewMode, setCompareLayout, setLeftAlgorithm, setRightAlgorithm,
     enterCompareMode, exitCompareMode,
   };

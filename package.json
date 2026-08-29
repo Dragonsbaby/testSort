@@ -16,9 +16,6 @@
     "type-check": "vue-tsc -b --noEmit"
   },
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.2",
-    "@vue/devtools-api": "^8.2.1",
-    "element-plus": "^2.13.6",
     "pinia": "^4.0.3",
     "vue": "^3.5.30"
   },

@@ -48,7 +48,7 @@ defineExpose({ reset, step });
 </script>
 
 <template>
-  <div class="visualizer" ref="containerRef">
+  <div class="visualizer">
     <component
       v-if="!isCompareMode"
       :is="currentComponent"

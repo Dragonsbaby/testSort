@@ -9,15 +9,3 @@ export interface EnhancedDescription {
   /** 上下文：算法阶段和进度信息 */
   context?: StepContext;
 }
-
-/** 描述生成器配置选项 */
-export interface DescriptionGeneratorOptions {
-  /** 算法类型 */
-  algorithm: string;
-  /** 数组长度（用于计算进度） */
-  arrayLength?: number;
-  /** 当前深度（递归算法） */
-  depth?: number;
-  /** 当前阶段 */
-  phase?: string;
-}
