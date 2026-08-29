@@ -39,6 +39,12 @@ export interface StepContext {
   heapRange?: number;
   /** 希尔排序专用：当前间隔值 */
   gap?: number;
+  /** 插入排序专用：当前插入目标区间 */
+  targetRange?: string;
+  /** 希尔排序专用：同组索引（与顶层 groupIndices 同源） */
+  groupIndices?: number[];
+  /** 桶排序专用：收集阶段进度百分比 */
+  totalProgress?: number;
 }
 
 export interface SemanticStep {

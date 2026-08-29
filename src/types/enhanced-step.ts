@@ -6,6 +6,6 @@ export interface EnhancedDescription {
   brief: string;
   /** 详细层：操作原因和预期结果 */
   detail: string;
-  /** 上下文：算法阶段和进度信息 */
-  context?: StepContext;
+  /** 上下文：算法阶段和进度信息（生成器各方法恒定返回） */
+  context: StepContext;
 }
