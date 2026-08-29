@@ -1,6 +1,6 @@
 import type { SemanticStep, StateTag } from "@/types/timeline";
 
-export interface BuildStateTagsOptions {
+interface BuildStateTagsOptions {
   /** pending 态的 tag 名（basic="pending", heap="heap-pending"） */
   pendingTag: StateTag;
 }

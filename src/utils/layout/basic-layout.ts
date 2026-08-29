@@ -1,11 +1,11 @@
-export interface BasicLayoutInput {
+interface BasicLayoutInput {
   width: number;
   height: number;
   count: number;
   topPadding?: number;
 }
 
-export interface BasicBarSlot {
+interface BasicBarSlot {
   index: number;
   x: number;
   y: number;

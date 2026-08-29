@@ -1,6 +1,6 @@
 import { calcBucketCount } from "@/types/sorting";
 
-export interface BucketRegion {
+interface BucketRegion {
   bucketIndex: number;
   x: number;
   y: number;
@@ -8,7 +8,7 @@ export interface BucketRegion {
   height: number;
 }
 
-export interface BucketLayout {
+interface BucketLayout {
   bucketCount: number;
   mainHeight: number;
   separatorHeight: number;

@@ -1,6 +1,6 @@
 import { buildBasicLayout } from "./basic-layout";
 
-export interface MergeLayout {
+interface MergeLayout {
   topSlots: ReturnType<typeof buildBasicLayout>;
   bottomSlots: ReturnType<typeof buildBasicLayout>;
   dividerY: number;

@@ -1,7 +1,7 @@
 import { onMounted, onUnmounted } from 'vue';
 import { useThemeStore } from '@/stores/themeStore';
 
-export interface KeyboardShortcutHandlers {
+interface KeyboardShortcutHandlers {
   onPlayPause?: () => void;
   onStop?: () => void;
   onStepForward?: () => void;

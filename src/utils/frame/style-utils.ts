@@ -2,7 +2,7 @@ import type { RenderStyle, StateTag } from "@/types/timeline";
 import type { RendererPalette } from "@/types/theme";
 
 /** 渲染期实体样式：填充色 + 发光乘数（最终 shadowBlur = palette.shadowBlur * glow） */
-export interface ResolvedEntityStyle {
+interface ResolvedEntityStyle {
   fill: string;
   glow: number;
 }

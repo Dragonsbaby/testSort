@@ -13,7 +13,7 @@ import {
  * 统一描述生成器
  * 为排序算法的每个步骤生成三层描述（简洁、详细、上下文）
  */
-export class StepDescriptionGenerator {
+class StepDescriptionGenerator {
   private algorithm: SortAlgorithm;
   private currentDepth: number = 0;
   private currentPhase: string = '';
