@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, toRef } from "vue";
 import { mergeSort } from "@/utils/sortingAlgorithms";
-import SortBarCanvasMerge from "@/components/SortBarCanvasMerge.vue";
+import SortBarCanvas from "@/components/SortBarCanvas.vue";
 import { useSortStore } from "@/stores/sortStore";
 import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimation";
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
@@ -13,7 +13,7 @@ const canvasRef = ref<ISortCanvas | null>(null);
 const canvasWidthRef = ref(760);
 const canvasHeightRef = ref(460);
 
-const { array, steps, currentStep, isPlaying, isReady, play, pause, step, stepBack, reset, statusText, statusClass, progressPct, phase, desc, handleSeek } = useSortAnimation({
+const { steps, currentStep, isPlaying, isReady, play, pause, step, stepBack, reset, statusText, statusClass, progressPct, phase, desc, handleSeek } = useSortAnimation({
   sortFn: mergeSort,
   speed: toRef(props, "speed"),
   canvasRef,
@@ -64,7 +64,7 @@ defineExpose({ reset, step });
       </div>
     </div>
 
-    <SortBarCanvasMerge ref="canvasRef" :array="array" :animation-speed="speed" @canvas-ready="canvasWidthRef = $event.width; canvasHeightRef = $event.height" />
+    <SortBarCanvas ref="canvasRef" variant="merge" @canvas-ready="canvasWidthRef = $event.width; canvasHeightRef = $event.height" />
   </div>
 </template>
 

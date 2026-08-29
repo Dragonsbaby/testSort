@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, toRef, watch, type Component } from "vue";
+import { ref, computed, toRef, watch } from "vue";
 import { useSortStore } from "@/stores/sortStore";
 import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimation";
 import { algorithmInfo } from "@/types/sorting";
@@ -17,9 +17,7 @@ import {
 } from "@/utils/sortingAlgorithms";
 
 import SortBarCanvas from "@/components/SortBarCanvas.vue";
-import SortBarCanvasMerge from "@/components/SortBarCanvasMerge.vue";
-import SortBarCanvasBucket from "@/components/SortBarCanvasBucket.vue";
-import SortBarCanvasHeap from "@/components/SortBarCanvasHeap.vue";
+import { CANVAS_VARIANT_BY_ALGORITHM } from "@/components/canvas-variant";
 
 const props = defineProps<{
   algorithm: SortAlgorithm;
@@ -52,27 +50,13 @@ const sortFnMap: Record<SortAlgorithm, (arr: number[]) => ReturnType<typeof bubb
   heap: (arr) => heapSort(arr, heapMode.value),
 };
 
-/* ── Canvas 组件映射 ── */
-const canvasComponentMap: Record<SortAlgorithm, Component> = {
-  bubble: SortBarCanvas,
-  insertion: SortBarCanvas,
-  merge: SortBarCanvasMerge,
-  quick: SortBarCanvas,
-  shell: SortBarCanvas,
-  bucket: SortBarCanvasBucket,
-  heap: SortBarCanvasHeap,
-};
-
-const currentCanvasComponent = computed(() => canvasComponentMap[props.algorithm]);
+/* ── Canvas 变体映射 ── */
+const canvasVariant = computed(() => CANVAS_VARIANT_BY_ALGORITHM[props.algorithm]);
 
 /* ── canvas-ready 事件归一化 ── */
-function handleCanvasReady(payload: number | { width: number; height: number }) {
-  if (typeof payload === "number") {
-    canvasWidthRef.value = payload;
-  } else {
-    canvasWidthRef.value = payload.width;
-    canvasHeightRef.value = payload.height;
-  }
+function handleCanvasReady(size: { width: number; height: number }) {
+  canvasWidthRef.value = size.width;
+  canvasHeightRef.value = size.height;
 }
 
 /* ── 核心编排器 ── */
@@ -202,11 +186,10 @@ defineExpose({
 
     <!-- Canvas 区域 -->
     <div class="slot-canvas-wrap">
-      <component
-        :is="currentCanvasComponent"
+      <SortBarCanvas
         ref="canvasRef"
+        :variant="canvasVariant"
         :array="array"
-        :animation-speed="speed"
         @canvas-ready="handleCanvasReady"
       />
     </div>

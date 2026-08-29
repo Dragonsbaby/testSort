@@ -26,7 +26,7 @@ const store = useSortStore();
 const canvasRef = ref<ISortCanvas | null>(null);
 const canvasWidthRef = ref(760);
 
-const { array, steps, currentStep, isPlaying, isReady, play, pause, step, stepBack, reset, statusText, statusClass, progressPct, phase, desc, handleSeek } = useSortAnimation({
+const { steps, currentStep, isPlaying, isReady, play, pause, step, stepBack, reset, statusText, statusClass, progressPct, phase, desc, handleSeek } = useSortAnimation({
   sortFn: props.sortFn,
   speed: toRef(props, "speed"),
   canvasRef,
@@ -76,7 +76,7 @@ defineExpose({ reset, step });
       </div>
     </div>
 
-    <SortBarCanvas ref="canvasRef" :array="array" :animation-speed="speed" @canvas-ready="canvasWidthRef = $event" />
+    <SortBarCanvas ref="canvasRef" variant="basic" @canvas-ready="canvasWidthRef = $event.width" />
   </div>
 </template>
 

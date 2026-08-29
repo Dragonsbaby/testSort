@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, toRef, watch } from "vue";
 import { heapSort } from "@/utils/sortingAlgorithms";
-import SortBarCanvasHeap from "@/components/SortBarCanvasHeap.vue";
+import SortBarCanvas from "@/components/SortBarCanvas.vue";
 import { useSortStore } from "@/stores/sortStore";
 import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimation";
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
@@ -90,11 +90,11 @@ useKeyboardShortcuts({
       </div>
     </div>
 
-    <SortBarCanvasHeap
+    <SortBarCanvas
       ref="canvasRef"
+      variant="heap"
       :array="array"
-      :animation-speed="speed"
-      @canvas-ready="canvasWidthRef = $event"
+      @canvas-ready="canvasWidthRef = $event.width"
     />
   </div>
 </template>

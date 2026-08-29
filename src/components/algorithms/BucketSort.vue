@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, toRef } from "vue";
 import { bucketSort } from "@/utils/sortingAlgorithms";
-import SortBarCanvasBucket from "@/components/SortBarCanvasBucket.vue";
+import SortBarCanvas from "@/components/SortBarCanvas.vue";
 import { useSortStore } from "@/stores/sortStore";
 import { useSortAnimation, type ISortCanvas } from "@/composables/useSortAnimation";
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
@@ -14,7 +14,7 @@ const canvasWidthRef = ref(760);
 const canvasHeightRef = ref(520);
 
 const {
-  array, steps, currentStep,
+  steps, currentStep,
   isPlaying, isReady, play, pause, step: stepOnce,
   stepBack, reset, statusText, statusClass,
   progressPct, phase, desc, handleSeek,
@@ -69,10 +69,9 @@ useKeyboardShortcuts({
       </div>
     </div>
 
-    <SortBarCanvasBucket
+    <SortBarCanvas
       ref="canvasRef"
-      :array="array"
-      :animation-speed="speed"
+      variant="bucket"
       @canvas-ready="canvasWidthRef = $event.width; canvasHeightRef = $event.height"
     />
   </div>
